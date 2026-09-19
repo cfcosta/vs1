@@ -9,11 +9,20 @@
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # candle-flash-attn's build script (via cudaforge) clones this
+    # exact commit of cutlass at build time. Pinning it as a flake
+    # input lets the sandboxed `vs1-flash-attn` build stage a copy
+    # instead of reaching for the network.
+    nvidia-cutlass = {
+      url = "github:NVIDIA/cutlass/7d49e6c7e2f8896c47f586706e67e1fb215529dc";
+      flake = false;
+    };
   };
 
   outputs =
     {
       nixpkgs,
+      nvidia-cutlass,
       rust-overlay,
       treefmt-nix,
       ...
@@ -97,7 +106,8 @@
 
               # Builds the `vs1` binary (and library) as a Nix package.
               # Pass `name` plus `buildFeatures` / `buildInputs` /
-              # `extraEnv` to opt into `cuda` / `metal`.
+              # `extraEnv` / `extraPreBuild` to opt into `cuda` /
+              # `flash-attn` / `metal`.
               mkPackage =
                 {
                   name,
@@ -105,6 +115,7 @@
                   buildInputs ? [ ],
                   nativeBuildInputs ? [ ],
                   extraEnv ? { },
+                  extraPreBuild ? "",
                 }:
                 rustPlatform.buildRustPackage (
                   {
@@ -119,11 +130,14 @@
                     cargoLock.lockFile = ./Cargo.lock;
                     RUSTFLAGS = "-C target-cpu=native";
                     meta.mainProgram = "vs1";
+                    preBuild = extraPreBuild;
                     postInstall = ''
                       for bin in "$out"/bin/*; do
                         remove-references-to -t ${rust} "$bin"
                       done
                     '';
+                    # Guard: fail the build if a rust toolchain reference
+                    # survives, so this closure leak can't silently return.
                     disallowedReferences = [ rust ];
                   }
                   // extraEnv
@@ -158,6 +172,26 @@
             CUDA_COMPUTE_CAP = "80";
             CUDA_PATH = "${pkgs.cudaPackages.cudatoolkit}";
           };
+          # cudaforge fetches NVIDIA/cutlass via git at build time.
+          # Pre-stage a sandbox-resident copy with a stubbed `.git` so
+          # the build doesn't need network and `git rev-parse HEAD`
+          # returns the pinned commit. Only the `flash-attn` build
+          # pulls candle-flash-attn, so the plain `cuda` output skips
+          # this.
+          cudaforgeEnv = cudaEnv // {
+            CUDAFORGE_HOME = "/tmp/cudaforge-cache";
+          };
+          cudaforgePreBuild = ''
+            dest=$CUDAFORGE_HOME/git/checkouts/cutlass-7d49e6c7e2f8896c
+            mkdir -p $CUDAFORGE_HOME/git/checkouts
+            cp -r ${nvidia-cutlass} $dest
+            chmod -R u+w $dest
+
+            # Stub a minimal .git dir so cudaforge's `git rev-parse HEAD`
+            # returns the expected commit hash and skips any network fetch.
+            mkdir -p $dest/.git/objects $dest/.git/refs
+            echo "7d49e6c7e2f8896c47f586706e67e1fb215529dc" > $dest/.git/HEAD
+          '';
         in
         {
           default = mkPackage { name = "vs1"; };
@@ -170,6 +204,15 @@
             nativeBuildInputs = cudaNativeBuildInputs;
             buildInputs = cudaBuildInputs;
             extraEnv = cudaEnv;
+          };
+
+          vs1-flash-attn = mkPackage {
+            name = "vs1-flash-attn";
+            buildFeatures = [ "flash-attn" ];
+            nativeBuildInputs = cudaNativeBuildInputs ++ [ pkgs.git ];
+            buildInputs = cudaBuildInputs;
+            extraEnv = cudaforgeEnv;
+            extraPreBuild = cudaforgePreBuild;
           };
 
           vs1-metal = mkPackage {
@@ -201,6 +244,7 @@
 
                   bacon
                   cargo-deny
+                  cargo-mutants
                   cargo-nextest
                   uv
                 ]
