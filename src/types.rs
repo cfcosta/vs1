@@ -12,6 +12,12 @@
 //! and all of them run in one forward pass, so adding questions is
 //! nearly free. The response mirrors the request: one [`Answer`] per
 //! question id, plus token usage.
+//!
+//! The JSON forms match TypeSafe's `systemone` endpoint field for
+//! field: a request written for `api.typesafe.ai/v1/systemone` parses
+//! here, and a response serialised here has exactly the keys TypeSafe
+//! returns. laya's extra `act_probability` signal is kept on
+//! [`Action`] for Rust callers and never serialised.
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
@@ -101,6 +107,13 @@ impl Description {
     }
 }
 
+impl Default for Description {
+    /// `null`, which is what absent `instructions` reach the model as.
+    fn default() -> Self {
+        Description::Json(Json::Null)
+    }
+}
+
 impl From<&str> for Description {
     fn from(text: &str) -> Self {
         Description::Text(text.to_string())
@@ -174,7 +187,9 @@ pub struct NoulCriteria {
 /// Pick one option from a labelled set.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChoiceQuestion {
-    /// The question put to the model.
+    /// The question put to the model. May be `null` or absent, as at
+    /// TypeSafe; the model then reads `null`.
+    #[serde(default)]
     pub instructions: Description,
     /// The options to choose between.
     pub criteria: ChoiceCriteria,
@@ -183,7 +198,9 @@ pub struct ChoiceQuestion {
 /// Place the state on an ordered rubric; level `i` is `criteria[i]`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ScoreQuestion {
-    /// The question put to the model.
+    /// The question put to the model. May be `null` or absent, as at
+    /// TypeSafe; the model then reads `null`.
+    #[serde(default)]
     pub instructions: Description,
     /// Rubric levels from lowest to highest; at least two.
     pub criteria: Vec<Description>,
@@ -192,7 +209,9 @@ pub struct ScoreQuestion {
 /// A yes/no statement answered with a probability of `true`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NoulQuestion {
-    /// The statement or question put to the model.
+    /// The statement or question put to the model. May be `null` or
+    /// absent, as at TypeSafe; the model then reads `null`.
+    #[serde(default)]
     pub instructions: Description,
     /// Optional wording for each side.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -381,7 +400,10 @@ impl SystemOneRequest {
     }
 }
 
-/// Extra laya signal shipped with every answer.
+/// Extra laya signal attached to every answer this crate produces.
+///
+/// TypeSafe's `systemone` answers do not carry it, so it is never
+/// serialised and is `None` on answers parsed from JSON.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Action {
     /// Probability that acting on the answer beats escalating to a
@@ -401,8 +423,9 @@ pub struct ChoiceAnswer {
     /// `1 - H(p) / log(k)`: `1.0` when one label takes everything,
     /// `0.0` when the distribution is uniform.
     pub confidence: f32,
-    /// See [`Action`].
-    pub action: Action,
+    /// See [`Action`]; not part of the JSON.
+    #[serde(skip)]
+    pub action: Option<Action>,
 }
 
 /// Answer to a [`ScoreQuestion`].
@@ -410,25 +433,28 @@ pub struct ChoiceAnswer {
 pub struct ScoreAnswer {
     /// Expected level, `sum(i * p_i)`, so `0.0 ..= levels - 1`.
     pub score: f32,
-    /// `"i" -> level text`.
-    pub legend: IndexMap<String, String>,
+    /// `"i" -> the level exactly as the question wrote it, text or
+    /// structure.
+    pub legend: IndexMap<String, Description>,
     /// `"i" -> probability`.
     pub probabilities: IndexMap<String, f32>,
     /// Normalised-entropy confidence, as for choice.
     pub confidence: f32,
-    /// See [`Action`].
-    pub action: Action,
+    /// See [`Action`]; not part of the JSON.
+    #[serde(skip)]
+    pub action: Option<Action>,
 }
 
-/// Answer to a [`NoulQuestion`].
+/// Answer to a [`NoulQuestion`]. Carries no `confidence`: TypeSafe
+/// leaves it off noul answers, since `noul` already says how far the
+/// model is from the fence.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NoulAnswer {
     /// Calibrated probability that the statement holds.
     pub noul: f32,
-    /// `max(noul, 1 - noul)`.
-    pub confidence: f32,
-    /// See [`Action`].
-    pub action: Action,
+    /// See [`Action`]; not part of the JSON.
+    #[serde(skip)]
+    pub action: Option<Action>,
 }
 
 /// One answer, tagged with its primitive.
@@ -465,17 +491,18 @@ impl Answer {
         }
     }
 
-    /// Confidence, whichever primitive this is.
-    pub fn confidence(&self) -> f32 {
+    /// Confidence for choice and score answers; noul answers carry
+    /// none.
+    pub fn confidence(&self) -> Option<f32> {
         match self {
-            Answer::Choice(a) => a.confidence,
-            Answer::Score(a) => a.confidence,
-            Answer::Noul(a) => a.confidence,
+            Answer::Choice(a) => Some(a.confidence),
+            Answer::Score(a) => Some(a.confidence),
+            Answer::Noul(_) => None,
         }
     }
 
-    /// Action probability, whichever primitive this is.
-    pub fn action(&self) -> Action {
+    /// laya's action signal, when this answer came out of a model run.
+    pub fn action(&self) -> Option<Action> {
         match self {
             Answer::Choice(a) => a.action,
             Answer::Score(a) => a.action,
@@ -628,16 +655,30 @@ mod tests {
     }
 
     #[test]
-    fn answers_serialise_with_type_tag() {
+    fn answers_serialise_with_type_tag_and_nothing_extra() {
         let answer = Answer::Noul(NoulAnswer {
             noul: 0.9,
-            confidence: 0.9,
-            action: Action {
+            action: Some(Action {
                 act_probability: 0.5,
-            },
+            }),
         });
         let value = serde_json::to_value(&answer).unwrap();
-        assert_eq!(value["type"], "noul");
-        assert_eq!(value["noul"], 0.9f32 as f64);
+        assert_eq!(value, json!({"type": "noul", "noul": 0.9f32 as f64}));
+    }
+
+    #[test]
+    fn instructions_may_be_absent_or_null() {
+        let q: Question = serde_json::from_value(json!({
+            "type": "choice",
+            "criteria": {"a": null, "b": null}
+        }))
+        .unwrap();
+        assert_eq!(q.instructions().render(), "null");
+        let q: Question = serde_json::from_value(json!({
+            "type": "noul",
+            "instructions": null
+        }))
+        .unwrap();
+        assert_eq!(q.instructions().render(), "null");
     }
 }

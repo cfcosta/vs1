@@ -389,9 +389,9 @@ impl SystemOne {
         let z: Vec<f32> =
             output.logits.iter().map(|l| l / temperature).collect();
         let p = softmax(&z);
-        let action = Action {
+        let action = Some(Action {
             act_probability: output.act_probability,
-        };
+        });
         match (question, item.kind) {
             (Question::Choice(q), QuestionKind::Choice) => {
                 let labels = q.criteria.labels();
@@ -418,7 +418,7 @@ impl SystemOne {
                         .criteria
                         .iter()
                         .enumerate()
-                        .map(|(i, level)| (i.to_string(), level.render()))
+                        .map(|(i, level)| (i.to_string(), level.clone()))
                         .collect(),
                     probabilities: p
                         .iter()
@@ -431,11 +431,7 @@ impl SystemOne {
             }
             (Question::Noul(_), QuestionKind::Noul) => {
                 let noul = p.get(1).copied().unwrap_or(0.0);
-                Answer::Noul(NoulAnswer {
-                    noul,
-                    confidence: noul.max(1.0 - noul),
-                    action,
-                })
+                Answer::Noul(NoulAnswer { noul, action })
             }
             _ => unreachable!("item kind always matches its question"),
         }

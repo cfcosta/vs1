@@ -6,8 +6,10 @@
 //! vs1 --dump-ids request.json
 //! ```
 //!
-//! The file holds one request or a JSON array of them. Each response
-//! is printed as JSON. `--dump-ids` also prints the token sequence and
+//! The file holds one request or a JSON array of them, and the output
+//! mirrors it: one response, or an array of them, in the JSON shape
+//! TypeSafe's `systemone` endpoint returns. `--dump-ids` wraps each
+//! response as `{"response", "ids"}`, adding the token sequence and
 //! marker positions built for every question, which is what the
 //! parity check against laya's Python implementation compares.
 
@@ -73,10 +75,11 @@ fn main() -> anyhow::Result<()> {
         "usage: decide [--dump-ids] [--device cpu|cuda] request.json",
     )?;
     let raw = fs::read_to_string(&path)?;
-    let requests: Vec<SystemOneRequest> = match serde_json::from_str(&raw) {
-        Ok(list) => list,
-        Err(_) => vec![serde_json::from_str(&raw)?],
-    };
+    let (requests, single): (Vec<SystemOneRequest>, bool) =
+        match serde_json::from_str(&raw) {
+            Ok(list) => (list, false),
+            Err(_) => (vec![serde_json::from_str(&raw)?], true),
+        };
 
     let started = Instant::now();
     let mut builder = SystemOne::from(&model_id)
@@ -110,7 +113,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut out = Vec::with_capacity(responses.len());
     for (request, response) in requests.iter().zip(&responses) {
-        let mut entry = json!({ "response": response });
+        let mut entry = serde_json::to_value(response)?;
         if dump_ids {
             let state = model.encode_state(&request.state)?;
             let mut ids = serde_json::Map::new();
@@ -121,10 +124,15 @@ fn main() -> anyhow::Result<()> {
                     json!({ "ids": item.ids, "markers": item.markers }),
                 );
             }
-            entry["ids"] = serde_json::Value::Object(ids);
+            entry = json!({ "response": entry, "ids": ids });
         }
         out.push(entry);
     }
-    println!("{}", serde_json::to_string_pretty(&out)?);
+    let printed = if single {
+        out.into_iter().next().context("no response")?
+    } else {
+        serde_json::Value::Array(out)
+    };
+    println!("{}", serde_json::to_string_pretty(&printed)?);
     Ok(())
 }

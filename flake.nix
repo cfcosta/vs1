@@ -101,6 +101,7 @@
                   ./deny.toml
                   ./src
                   ./benches
+                  ./tests
                 ];
               };
 

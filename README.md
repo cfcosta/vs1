@@ -20,10 +20,14 @@ laya is API-compatible with.
 | -------- | --------------------------- | ----------------------------------------------------------------- |
 | `choice` | pick one option from a set  | `choice`, `probabilities`, `confidence`                           |
 | `score`  | place the state on a rubric | `score` (expected level), `legend`, `probabilities`, `confidence` |
-| `noul`   | is this statement true?     | `noul` (P(true)), `confidence`                                    |
+| `noul`   | is this statement true?     | `noul` (P(true))                                                  |
 
-Every answer also carries `action.act_probability`, laya's learned
-"act rather than escalate" signal.
+The JSON matches TypeSafe's `systemone` response field for field:
+choice and score answers carry `confidence`, noul answers do not, and
+`legend` echoes each level exactly as the question wrote it, text or
+structure. laya's extra "act rather than escalate" signal is kept for
+Rust callers as `Answer::action()` and is never serialised. Requests
+may leave `instructions` out or set it to `null`, as TypeSafe allows.
 
 ## Usage
 
@@ -130,8 +134,9 @@ cargo run --release --features cuda -- --device cuda --dtype bf16 request.json
 ```
 
 `request.json` holds one request or an array of them in the JSON shape
-above; every response is printed as JSON. `--dump-ids` also prints the
-token sequence built for each question.
+above; the output is one response or an array of them, exactly as
+TypeSafe would return. `--dump-ids` wraps each response with the token
+sequence built for each question.
 
 ## Benchmarks
 
