@@ -40,7 +40,6 @@ pub mod builder;
 pub mod config;
 pub mod error;
 pub mod head;
-pub mod json;
 pub mod model;
 pub mod modernbert;
 pub mod pyjson;
@@ -55,7 +54,6 @@ pub use builder::{
 };
 pub use config::AgentConfig;
 pub use error::{Result, SystemOneError};
-pub use json::Json;
 pub use model::{CheckpointAssets, SystemOne};
 pub use types::{
     Action,

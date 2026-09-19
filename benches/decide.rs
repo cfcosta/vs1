@@ -76,11 +76,11 @@ fn relevance_question() -> Question {
 }
 
 fn candidate(i: usize) -> SystemOneRequest {
-    let state = State::Json(vs1::Json::object([
-        ("query", "how does docbert sync decide which files changed"),
-        ("title", "Pipeline"),
-        ("passage", &format!("Candidate {i}. {PASSAGE}")),
-    ]));
+    let state = State::Json(serde_json::json!({
+        "query": "how does docbert sync decide which files changed",
+        "title": "Pipeline",
+        "passage": format!("Candidate {i}. {PASSAGE}"),
+    }));
     SystemOneRequest::new(state).question("relevant", relevance_question())
 }
 

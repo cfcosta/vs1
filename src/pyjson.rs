@@ -8,30 +8,31 @@
 //! `{"a":1}` layout. Non-ASCII text stays as-is (`ensure_ascii=False`),
 //! and string escaping matches CPython's `json` module: `\"`, `\\`,
 //! `\n`, `\r`, `\t`, `\b`, `\f`, and `\u00XX` for the remaining
-//! control characters. Objects keep the key order of the [`Json`]
-//! value, which is insertion order when parsed from text.
+//! control characters. Objects keep the key order of the `Value`,
+//! which is the written order because serde_json is built with
+//! `preserve_order`.
 
 use std::fmt::Write;
 
-use crate::json::Json;
+use serde_json::Value;
 
 /// Serialises `value` with CPython's default `json.dumps` layout.
 ///
-/// Object keys keep the order the [`Json`] holds them in.
-pub fn dumps(value: &Json) -> String {
+/// Object keys keep the order the `Value` holds them in.
+pub fn dumps(value: &Value) -> String {
     let mut out = String::new();
     write_value(&mut out, value);
     out
 }
 
-fn write_value(out: &mut String, value: &Json) {
+fn write_value(out: &mut String, value: &Value) {
     match value {
-        Json::Null => out.push_str("null"),
-        Json::Bool(true) => out.push_str("true"),
-        Json::Bool(false) => out.push_str("false"),
-        Json::Number(n) => write_number(out, n),
-        Json::String(s) => write_string(out, s),
-        Json::Array(items) => {
+        Value::Null => out.push_str("null"),
+        Value::Bool(true) => out.push_str("true"),
+        Value::Bool(false) => out.push_str("false"),
+        Value::Number(n) => write_number(out, n),
+        Value::String(s) => write_string(out, s),
+        Value::Array(items) => {
             out.push('[');
             for (i, item) in items.iter().enumerate() {
                 if i > 0 {
@@ -41,7 +42,7 @@ fn write_value(out: &mut String, value: &Json) {
             }
             out.push(']');
         }
-        Json::Object(map) => {
+        Value::Object(map) => {
             out.push('{');
             for (i, (key, item)) in map.iter().enumerate() {
                 if i > 0 {
@@ -123,7 +124,7 @@ fn write_string(out: &mut String, s: &str) {
 mod tests {
     use super::*;
 
-    fn parse(text: &str) -> Json {
+    fn parse(text: &str) -> Value {
         serde_json::from_str(text).unwrap()
     }
 
@@ -140,7 +141,7 @@ mod tests {
     #[test]
     fn strings_escape_like_cpython_with_ensure_ascii_false() {
         let value =
-            Json::from("quote \" back \\ nl \n tab \t bell \u{7} café 日本");
+            Value::from("quote \" back \\ nl \n tab \t bell \u{7} café 日本");
         assert_eq!(
             dumps(&value),
             "\"quote \\\" back \\\\ nl \\n tab \\t bell \\u0007 café 日本\""
@@ -165,11 +166,18 @@ mod tests {
     }
 
     #[test]
-    fn object_helper_keeps_caller_order() {
-        let obj =
-            Json::object([("query", "what is rust"), ("passage", "Rust.")]);
+    fn objects_keep_written_order() {
+        // Guards the `preserve_order` feature on serde_json: without
+        // it these keys would come out sorted.
+        let built =
+            serde_json::json!({"zeta": 1, "alpha": [true, null], "mid": "x"});
         assert_eq!(
-            dumps(&obj),
+            dumps(&built),
+            r#"{"zeta": 1, "alpha": [true, null], "mid": "x"}"#
+        );
+        let parsed = parse(r#"{"query": "what is rust", "passage": "Rust."}"#);
+        assert_eq!(
+            dumps(&parsed),
             r#"{"query": "what is rust", "passage": "Rust."}"#
         );
     }

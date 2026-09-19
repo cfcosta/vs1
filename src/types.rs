@@ -21,8 +21,9 @@
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
-use crate::{json::Json, pyjson};
+use crate::pyjson;
 
 /// What the model reads: plain text, or a JSON document that is
 /// serialised the way CPython's `json.dumps` would print it.
@@ -32,9 +33,10 @@ pub enum State {
     /// Raw text, passed to the model verbatim.
     Text(String),
     /// A JSON object, array, or scalar. Objects keep the key order
-    /// they were parsed or built in; a bare string is passed through
-    /// like [`State::Text`].
-    Json(Json),
+    /// they were written in (serde_json is built with
+    /// `preserve_order`); a bare string is passed through like
+    /// [`State::Text`].
+    Json(Value),
 }
 
 impl State {
@@ -42,7 +44,7 @@ impl State {
     pub fn render(&self) -> String {
         match self {
             State::Text(text) => text.clone(),
-            State::Json(Json::String(text)) => text.clone(),
+            State::Json(Value::String(text)) => text.clone(),
             State::Json(value) => pyjson::dumps(value),
         }
     }
@@ -60,18 +62,9 @@ impl From<String> for State {
     }
 }
 
-impl From<Json> for State {
-    fn from(value: Json) -> Self {
+impl From<Value> for State {
+    fn from(value: Value) -> Self {
         State::Json(value)
-    }
-}
-
-impl From<serde_json::Value> for State {
-    /// Objects arrive in the `Value`'s order, which is sorted unless
-    /// serde_json was built with `preserve_order`; parse into [`Json`]
-    /// directly when the order matters.
-    fn from(value: serde_json::Value) -> Self {
-        State::Json(value.into())
     }
 }
 
@@ -85,7 +78,7 @@ pub enum Description {
     /// Plain text.
     Text(String),
     /// Any other JSON value.
-    Json(Json),
+    Json(Value),
 }
 
 impl Description {
@@ -93,7 +86,7 @@ impl Description {
     pub fn render(&self) -> String {
         match self {
             Description::Text(text) => text.clone(),
-            Description::Json(Json::String(text)) => text.clone(),
+            Description::Json(Value::String(text)) => text.clone(),
             Description::Json(value) => pyjson::dumps(value),
         }
     }
@@ -102,7 +95,9 @@ impl Description {
     fn is_blank(&self) -> bool {
         match self {
             Description::Text(text) => text.is_empty(),
-            Description::Json(value) => value.is_blank(),
+            Description::Json(value) => {
+                value.is_null() || value.as_str() == Some("")
+            }
         }
     }
 }
@@ -110,7 +105,7 @@ impl Description {
 impl Default for Description {
     /// `null`, which is what absent `instructions` reach the model as.
     fn default() -> Self {
-        Description::Json(Json::Null)
+        Description::Json(Value::Null)
     }
 }
 
@@ -541,8 +536,8 @@ mod tests {
 
     #[test]
     fn request_round_trips_through_jev_json() {
-        // Parsed from text, not from a `Value`: serde_json's default
-        // map sorts keys, and question order is part of the contract.
+        // Question order is part of the contract and must survive a
+        // parse from text.
         let raw = r#"{
             "state": {"from": "a@b.c", "body": "refund me"},
             "model": "laya",
