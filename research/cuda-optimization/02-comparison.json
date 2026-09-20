@@ -1,0 +1,74 @@
+[
+  {
+    "name": "one",
+    "baseline_p50_ms": 7.991199,
+    "candidate_p50_ms": 7.1469035000000005,
+    "p50_change_percent": -10.565316919275814,
+    "baseline_p95_ms": 8.46071,
+    "candidate_p95_ms": 7.191418,
+    "baseline_questions_per_second": 125.13766707599196,
+    "candidate_questions_per_second": 139.92073630209222,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "five",
+    "baseline_p50_ms": 14.446076,
+    "candidate_p50_ms": 14.171847,
+    "p50_change_percent": -1.898294041925297,
+    "baseline_p95_ms": 15.009603,
+    "candidate_p95_ms": 14.255867,
+    "baseline_questions_per_second": 346.1147511614919,
+    "candidate_questions_per_second": 352.81216343924683,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "thirty",
+    "baseline_p50_ms": 96.9027065,
+    "candidate_p50_ms": 81.4298185,
+    "p50_change_percent": -15.967446688395636,
+    "baseline_p95_ms": 102.641244,
+    "candidate_p95_ms": 81.971761,
+    "baseline_questions_per_second": 309.58887613732435,
+    "candidate_questions_per_second": 368.4154103818861,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "mixed_lengths",
+    "baseline_p50_ms": 105.80108,
+    "candidate_p50_ms": 102.578825,
+    "p50_change_percent": -3.045578551750139,
+    "baseline_p95_ms": 121.421604,
+    "candidate_p95_ms": 103.287266,
+    "baseline_questions_per_second": 283.55098076503566,
+    "candidate_questions_per_second": 292.4580194791664,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "browser_call3",
+    "baseline_p50_ms": 23.4379785,
+    "candidate_p50_ms": 23.495112,
+    "p50_change_percent": 0.24376462330144566,
+    "baseline_p95_ms": 24.245969,
+    "candidate_p95_ms": 25.394391,
+    "baseline_questions_per_second": 85.33159120356733,
+    "candidate_questions_per_second": 85.12408878919156,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "browser_call5",
+    "baseline_p50_ms": 37.348007499999994,
+    "candidate_p50_ms": 36.689295,
+    "p50_change_percent": -1.7637152396951628,
+    "baseline_p95_ms": 42.021015,
+    "candidate_p95_ms": 41.978834,
+    "baseline_questions_per_second": 80.32557024628423,
+    "candidate_questions_per_second": 81.76771998480756,
+    "differing_outputs": 0,
+    "first_differences": []
+  }
+]

@@ -1,0 +1,208 @@
+diff --git a/crates/vs1/src/head.rs b/crates/vs1/src/head.rs
+index c20638ad10..5c7fd038ba 100644
+--- a/crates/vs1/src/head.rs
++++ b/crates/vs1/src/head.rs
+@@ -41,6 +41,8 @@
+ /// One `nn.TransformerEncoderLayer` in pre-norm form.
+ #[derive(Debug, Clone)]
+ pub struct HeadLayer {
++    #[cfg(feature = "flash-attn")]
++    qkv: Linear,
+     q: Linear,
+     k: Linear,
+     v: Linear,
+@@ -82,7 +84,12 @@
+         let linear2 = linear(4 * hidden, hidden, vb.pp("linear2"))?;
+         let norm1 = torch_layer_norm(hidden, vb.pp("norm1"))?;
+         let norm2 = torch_layer_norm(hidden, vb.pp("norm2"))?;
++        #[cfg(feature = "flash-attn")]
++        let qkv = Linear::new(Tensor::cat(&[q.weight(), k.weight(), v.weight()],0)?,
++            Some(Tensor::cat(&[q.bias().unwrap(), k.bias().unwrap(), v.bias().unwrap()],0)?));
+         Ok(Self {
++            #[cfg(feature = "flash-attn")]
++            qkv,
+             q,
+             k,
+             v,
+@@ -138,10 +145,8 @@
+     ) -> Result<Tensor> {
+         let (total, d) = xs.dims2()?;
+         let h = xs.apply(&self.norm1)?;
+-        let shape = (total, self.num_heads, self.head_dim);
+-        let q = h.apply(&self.q)?.reshape(shape)?;
+-        let k = h.apply(&self.k)?.reshape(shape)?;
+-        let v = h.apply(&self.v)?.reshape(shape)?;
++        let packed = h.apply(&self.qkv)?;
++        let (q,k,v) = crate::qkv_cuda::split(&packed,&packed,&packed,self.num_heads,false)?;
+         let orig_dtype = q.dtype();
+         let flash_dtype = crate::modernbert::flash_compat_dtype(orig_dtype);
+         let ctx = candle_flash_attn::flash_attn_varlen(
+diff --git a/crates/vs1/src/lib.rs b/crates/vs1/src/lib.rs
+index dde68c0298..db8b34b2b2 100644
+--- a/crates/vs1/src/lib.rs
++++ b/crates/vs1/src/lib.rs
+@@ -74,3 +74,6 @@
+     SystemOneResponse,
+     Usage,
+ };
++
++#[cfg(feature = "flash-attn")]
++mod qkv_cuda;
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index 2392e99d00..dfc059b7e3 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -249,6 +249,8 @@
+ /// contiguous and reshape to `(.., heads, head_dim)` for free. Slicing
+ /// the fused output instead costs three strided copies per layer.
+ struct ModernBertAttention {
++    #[cfg(feature = "flash-attn")]
++    qkv: Linear,
+     q: Linear,
+     k: Linear,
+     v: Linear,
+@@ -284,7 +286,11 @@
+             vb.pp("Wo"),
+         )?;
+ 
++        #[cfg(feature = "flash-attn")]
++        let qkv = Linear::new(Tensor::cat(&[q.weight(), k.weight(), v.weight()],0)?, None);
+         Ok(Self {
++            #[cfg(feature = "flash-attn")]
++            qkv,
+             q,
+             k,
+             v,
+@@ -392,18 +398,11 @@
+         local_window: Option<usize>,
+     ) -> Result<Tensor> {
+         let (total_tokens, d) = packed_hidden_states.dims2()?;
+-        let shape = (
+-            total_tokens,
+-            self.num_attention_heads,
+-            self.attention_head_size,
+-        );
+-        let q = packed_hidden_states.apply(&self.q)?.reshape(shape)?;
+-        let k = packed_hidden_states.apply(&self.k)?.reshape(shape)?;
+-        let v = packed_hidden_states.apply(&self.v)?.reshape(shape)?;
+-
+-        let (q, k) = self
+-            .rotary_emb
+-            .apply_rotary_emb_packed(&q, &k, positions, valid_lens)?;
++        let packed_qkv = packed_hidden_states.apply(&self.qkv)?;
++        let (cos, sin) = self.rotary_emb.packed_cos_sin.get_or_try_insert(valid_lens, || {
++            Ok((self.rotary_emb.cos.index_select(positions,0)?, self.rotary_emb.sin.index_select(positions,0)?))
++        })?;
++        let (q,k,v) = crate::qkv_cuda::split(&packed_qkv,&cos,&sin,self.num_attention_heads,true)?;
+         let orig_dtype = q.dtype();
+         let flash_dtype = flash_compat_dtype(orig_dtype);
+         let q = q.to_dtype(flash_dtype)?;
+diff --git a/crates/vs1/src/qkv_cuda.rs b/crates/vs1/src/qkv_cuda.rs
+new file mode 100644
+index 0000000000..a9ec63d510
+--- /dev/null
++++ b/crates/vs1/src/qkv_cuda.rs
+@@ -0,0 +1,68 @@
++use candle_core::{CpuStorage, CustomOp3, Layout, Result, Shape, Tensor};
++use candle_core::cuda_backend::{CudaDType, WrapErr, cudarc::{driver::{CudaSlice, DeviceRepr, LaunchConfig, PushKernelArg}, nvrtc}};
++struct Split { heads: usize, rotate: bool }
++impl CustomOp3 for Split {
++    fn name(&self) -> &'static str { "split_qkv_rope" }
++    fn cpu_fwd(&self, _: &CpuStorage, _: &Layout, _: &CpuStorage, _: &Layout, _: &CpuStorage, _: &Layout) -> Result<(CpuStorage, Shape)> {
++        candle_core::bail!("CUDA only")
++    }
++    fn cuda_fwd(&self, src: &candle_core::CudaStorage, sl: &Layout,
++        cos: &candle_core::CudaStorage, cl: &Layout, sin: &candle_core::CudaStorage, nl: &Layout) -> Result<(candle_core::CudaStorage, Shape)> {
++        use candle_core::{backend::BackendStorage, cuda_backend::CudaStorageSlice};
++        static PTX: std::sync::OnceLock<String> = std::sync::OnceLock::new();
++        let ptx = PTX.get_or_init(|| nvrtc::compile_ptx(include_str!("qkv_rope.cu")).expect("compile qkv").to_src());
++        let (total, width) = sl.shape().dims2()?;
++        let d = width / 3 / self.heads;
++        let dev = src.device();
++        fn launch<T: CudaDType + DeviceRepr>(src: &CudaSlice<T>, offset: usize, cos: &candle_core::CudaStorage,
++            cl: &Layout, sin: &candle_core::CudaStorage, nl: &Layout, dev: &candle_core::CudaDevice,
++            ptx: &str, name: &str, total: usize, heads: usize, d: usize, rotate: bool) -> Result<candle_core::CudaStorage> {
++            let f = dev.get_or_load_custom_func(name,"vs1_qkv",ptx)?;
++            let src = src.slice(offset..);
++            let cos = cos.as_cuda_slice::<T>()?.slice(cl.start_offset()..);
++            let sin = sin.as_cuda_slice::<T>()?.slice(nl.start_offset()..);
++            let mut out = unsafe { dev.alloc::<T>(3*total*heads*d)? };
++            let mut b = f.builder();
++            let (t,h,d,r) = (total as i32,heads as i32,d as i32,i32::from(rotate));
++            b.arg(&src).arg(&cos).arg(&sin).arg(&mut out).arg(&t).arg(&h).arg(&d).arg(&r);
++            unsafe { b.launch(LaunchConfig::for_num_elems((3*total*heads*d as usize/2) as u32)) }.w()?;
++            Ok(candle_core::CudaStorage::wrap_cuda_slice(out,dev.clone()))
++        }
++        let out = match &src.slice {
++            CudaStorageSlice::BF16(s) => launch(s,sl.start_offset(),cos,cl,sin,nl,dev,ptx,"qkv_bf16",total,self.heads,d,self.rotate)?,
++            CudaStorageSlice::F32(s) => launch(s,sl.start_offset(),cos,cl,sin,nl,dev,ptx,"qkv_f32",total,self.heads,d,self.rotate)?,
++            _ => candle_core::bail!("unsupported qkv dtype"),
++        };
++        Ok((out, (3,total,self.heads,d).into()))
++    }
++}
++pub fn split(src: &Tensor, cos: &Tensor, sin: &Tensor, heads: usize, rotate: bool) -> Result<(Tensor,Tensor,Tensor)> {
++    let out = src.apply_op3_no_bwd(cos,sin,&Split {heads,rotate})?;
++    Ok((out.get(0)?,out.get(1)?,out.get(2)?))
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    #[ignore = "requires CUDA"]
++    fn fused_layout_and_rope_are_exact() {
++        let dev = candle_core::Device::new_cuda(0).unwrap();
++        for dtype in [candle_core::DType::BF16, candle_core::DType::F32] {
++            let (tokens,heads,d) = (7,2,64);
++            let data: Vec<f32> = (0..tokens*3*heads*d).map(|i| (i as f32*0.137).sin()).collect();
++            let src = Tensor::from_vec(data,(tokens,3*heads*d),&dev).unwrap().to_dtype(dtype).unwrap();
++            let angles: Vec<f32> = (0..tokens*d/2).map(|i| i as f32/7.0).collect();
++            let cos = Tensor::from_vec(angles.iter().map(|x| x.cos()).collect::<Vec<_>>(),(tokens,d/2),&dev).unwrap().to_dtype(dtype).unwrap();
++            let sin = Tensor::from_vec(angles.iter().map(|x| x.sin()).collect::<Vec<_>>(),(tokens,d/2),&dev).unwrap().to_dtype(dtype).unwrap();
++            let actual = split(&src,&cos,&sin,heads,true).unwrap();
++            for (component,actual) in [actual.0,actual.1,actual.2].iter().enumerate() {
++                let plain = src.narrow(1,component*heads*d,heads*d).unwrap().contiguous().unwrap().reshape((1,tokens,heads,d)).unwrap();
++                let expected = if component < 2 { candle_nn::rotary_emb::rope_thd(&plain,&cos,&sin).unwrap() } else { plain };
++                let expected = expected.flatten_all().unwrap().to_dtype(candle_core::DType::F32).unwrap().to_vec1::<f32>().unwrap();
++                let actual = actual.flatten_all().unwrap().to_dtype(candle_core::DType::F32).unwrap().to_vec1::<f32>().unwrap();
++                assert_eq!(actual,expected,"{dtype:?}, component {component}");
++            }
++        }
++    }
++}
+diff --git a/crates/vs1/src/qkv_rope.cu b/crates/vs1/src/qkv_rope.cu
+new file mode 100644
+index 0000000000..bff41065ed
+--- /dev/null
++++ b/crates/vs1/src/qkv_rope.cu
+@@ -0,0 +1,29 @@
++__device__ float cvt(unsigned short x) { return __uint_as_float((unsigned)x << 16); }
++__device__ unsigned short rnd(float x) {
++    unsigned u=__float_as_uint(x);
++    if ((u & 0x7fffffffU) > 0x7f800000U) return (u >> 16) | 0x40;
++    return (u + 0x7fff + ((u >> 16) & 1)) >> 16;
++}
++__device__ float add(float a,float b) {return a+b;}
++__device__ float sub(float a,float b) {return a-b;}
++__device__ float mul(float a,float b) {return a*b;}
++__device__ unsigned short add(unsigned short a,unsigned short b) {return rnd(cvt(a)+cvt(b));}
++__device__ unsigned short sub(unsigned short a,unsigned short b) {return rnd(cvt(a)-cvt(b));}
++__device__ unsigned short mul(unsigned short a,unsigned short b) {return rnd(cvt(a)*cvt(b));}
++template<class T> __device__ void split(const T* src,const T* cos,const T* sin,T* out,int total,int heads,int d,int rotate) {
++    int idx=blockIdx.x*blockDim.x+threadIdx.x;
++    int plane=total*heads*d/2;
++    if(idx>=3*plane)return;
++    int component=idx/plane, local=idx%plane;
++    int row=local/(d/2), j=local%(d/2), token=row/heads, head=row%heads;
++    int a=token*3*heads*d+component*heads*d+head*d+j;
++    int o=component*2*plane+row*d+j;
++    T x=src[a],y=src[a+d/2];
++    if(rotate && component<2) {
++        int cs=token*(d/2)+j;
++        T c=cos[cs],s=sin[cs];
++        out[o]=sub(mul(x,c),mul(y,s)); out[o+d/2]=add(mul(x,s),mul(y,c));
++    } else {out[o]=x;out[o+d/2]=y;}
++}
++extern "C" __global__ void qkv_bf16(const unsigned short* x,const unsigned short* c,const unsigned short* s,unsigned short* o,int t,int h,int d,int r) {split(x,c,s,o,t,h,d,r);}
++extern "C" __global__ void qkv_f32(const float* x,const float* c,const float* s,float* o,int t,int h,int d,int r) {split(x,c,s,o,t,h,d,r);}

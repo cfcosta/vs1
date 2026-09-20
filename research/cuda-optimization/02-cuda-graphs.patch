@@ -1,0 +1,211 @@
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index 8d8a0f1ca4..8319100c09 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -91,6 +91,19 @@
+     device: Device,
+     dtype: DType,
+     batch_size: usize,
++    #[cfg(feature = "flash-attn")]
++    graph: std::sync::Mutex<Option<MarkerGraph>>,
++}
++
++#[cfg(feature = "flash-attn")]
++struct MarkerGraph {
++    _prepared: Vec<Tensor>,
++    key: Vec<usize>,
++    input: Tensor,
++    indices: Tensor,
++    pooled: Tensor,
++    logits: Tensor,
++    graph: candle_core::cuda_backend::cudarc::driver::CudaGraph,
+ }
+ 
+ impl SystemOne {
+@@ -190,6 +203,8 @@
+             device: device.clone(),
+             dtype,
+             batch_size,
++            #[cfg(feature = "flash-attn")]
++            graph: std::sync::Mutex::new(None),
+         })
+     }
+ 
+@@ -343,67 +358,65 @@
+     /// attention is one varlen flash kernel. Used on CUDA when built
+     /// with `flash-attn`.
+     #[cfg(feature = "flash-attn")]
+-    fn marker_logits_packed(
+-        &self,
+-        collated: &Collated,
+-    ) -> Result<(Tensor, Vec<Vec<f32>>)> {
+-        let shape = (collated.batch, collated.seq_len);
+-        let input_ids =
+-            Tensor::from_slice(&collated.input_ids, shape, &self.device)?;
+-        let lens = &collated.lens;
+-        let hidden = self.encoder.forward_varlen_packed(&input_ids, lens)?;
+-        let (total, hidden_size) = hidden.dims2()?;
+-
+-        // One type embedding row per token, by its sequence's kind.
+-        let token_kinds: Vec<u32> = collated
+-            .kinds
+-            .iter()
+-            .zip(lens)
+-            .flat_map(|(&kind, &len)| std::iter::repeat_n(kind, len))
+-            .collect();
+-        let token_kinds = Tensor::from_vec(token_kinds, total, &self.device)?;
+-        let mut hidden =
+-            (hidden + self.type_emb.index_select(&token_kinds, 0)?)?;
+-
+-        let (seqlens, max_seq_len) =
+-            crate::modernbert::cumulative_seqlens(lens, &self.device)?;
+-        for layer in &self.head {
+-            hidden = layer.forward_packed(&hidden, &seqlens, max_seq_len)?;
+-        }
+-
+-        // Marker positions are per sequence; offset them into the
+-        // packed layout. Slots past an item's option count point at
+-        // its own `[CLS]` row and are ignored downstream.
+-        let mut offsets = Vec::with_capacity(lens.len());
+-        let mut start = 0u32;
+-        for &len in lens {
+-            offsets.push(start);
+-            start += len as u32;
+-        }
+-        let marker_index: Vec<u32> = collated
+-            .marker_pos
+-            .chunks(collated.max_markers.max(1))
+-            .zip(&offsets)
+-            .flat_map(|(row, &offset)| row.iter().map(move |&m| offset + m))
+-            .collect();
+-        let marker_index = Tensor::from_vec(
+-            marker_index,
+-            collated.batch * collated.max_markers,
+-            &self.device,
+-        )?;
+-        let marked = hidden.index_select(&marker_index, 0)?.reshape((
+-            collated.batch,
+-            collated.max_markers,
+-            hidden_size,
+-        ))?;
+-        let logits = self.scorer.forward(&marked)?.to_vec2::<f32>()?;
+-        let cls_index =
+-            Tensor::from_vec(offsets, collated.batch, &self.device)?;
+-        let pooled = hidden
+-            .index_select(&cls_index, 0)?
+-            .to_dtype(DType::F32)?
+-            .contiguous()?;
+-        Ok((pooled, logits))
++    fn marker_logits_packed(&self, c: &Collated) -> Result<(Tensor, Vec<Vec<f32>>)> {
++        use candle_core::cuda_backend::{WrapErr, cudarc::driver::sys};
++        let mut key = vec![c.batch, c.seq_len, c.max_markers];
++        key.extend(&c.lens);
++        key.extend(c.kinds.iter().map(|&x| x as usize));
++        key.extend(c.marker_pos.iter().map(|&x| x as usize));
++        let packed: Vec<_> = c.input_ids.chunks(c.seq_len).zip(&c.lens)
++            .flat_map(|(row,&len)| row[..len].iter().copied()).collect();
++        let mut cache = self.graph.lock().unwrap();
++        if cache.as_ref().is_none_or(|g| g.key != key) {
++            // Keep only one shape; release its graph before replacing encoder caches.
++            *cache = None;
++            let dev = self.device.as_cuda_device()?;
++            let stream = dev.cuda_stream();
++            let _cache_guard = dev.enable_cuda_graph_htod_cache();
++            let input = Tensor::from_vec(packed.clone(), packed.len(), &self.device)?;
++            let indices = Tensor::arange(0u32, packed.len() as u32, &self.device)?;
++            // Prepare all value-dependent and large host uploads outside capture.
++            let token_kinds: Vec<u32> = c.kinds.iter().zip(&c.lens)
++                .flat_map(|(&kind,&len)| std::iter::repeat_n(kind,len)).collect();
++            let kinds = Tensor::from_vec(token_kinds, packed.len(), &self.device)?;
++            let mut offsets = vec![];
++            let mut start = 0u32;
++            for &len in &c.lens { offsets.push(start); start += len as u32; }
++            let marker: Vec<_> = c.marker_pos.chunks(c.max_markers.max(1)).zip(&offsets)
++                .flat_map(|(row,&offset)| row.iter().map(move |&m| m+offset)).collect();
++            let marker = Tensor::from_vec(marker, c.batch*c.max_markers, &self.device)?;
++            let offsets = Tensor::from_vec(offsets, c.batch, &self.device)?;
++            let (seqlens, max_len) = crate::modernbert::cumulative_seqlens(&c.lens, &self.device)?;
++            let forward = || -> Result<(Tensor,Tensor)> {
++                let hidden = self.encoder.forward_prepacked(&input, &c.lens)?;
++                let (_, h) = hidden.dims2()?;
++                let mut hidden = (hidden + self.type_emb.index_select(&kinds,0)?)?;
++                for layer in &self.head { hidden = layer.forward_packed(&hidden,&seqlens,max_len)?; }
++                let marked = hidden.index_select(&marker,0)?.reshape((c.batch,c.max_markers,h))?;
++                let logits = self.scorer.forward(&marked)?;
++                let pooled = hidden.index_select(&offsets,0)?.to_dtype(DType::F32)?.contiguous()?;
++                Ok((pooled,logits))
++            };
++            forward()?;
++            self.device.synchronize()?;
++            stream.begin_capture(sys::CUstreamCaptureMode::CU_STREAM_CAPTURE_MODE_THREAD_LOCAL).w()?;
++            let captured = forward();
++            let graph = stream.end_capture(sys::CUgraphInstantiate_flags::CUDA_GRAPH_INSTANTIATE_FLAG_AUTO_FREE_ON_LAUNCH).w()?;
++            let (pooled, logits) = captured?;
++            let graph = graph.ok_or_else(|| candle_core::Error::Msg("empty graph".into()))?;
++            graph.launch().w()?;
++            // Captured operations refer to these prepared buffers. Keep them alive.
++            // Initial prototype retains them through the stored tensors below.
++            *cache = Some(MarkerGraph { key, input, indices, pooled, logits, graph,
++                _prepared: vec![kinds, marker, offsets, seqlens] });
++        } else {
++            let g = cache.as_ref().unwrap();
++            let input = Tensor::from_vec(packed.clone(), packed.len(), &self.device)?;
++            g.input.scatter_set(&g.indices, &input, 0)?;
++            g.graph.launch().w()?;
++        }
++        let g = cache.as_ref().unwrap();
++        Ok((g.pooled.clone(), g.logits.to_vec2::<f32>()?))
+     }
+ 
+     /// Runs the encoder and head; returns the F32 pooled `[CLS]`
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index 2392e99d00..a28fb546c0 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -1080,6 +1080,46 @@
+         packed_xs.apply(&self.final_norm)
+     }
+ 
++    #[cfg(feature = "flash-attn")]
++    pub fn forward_prepacked(
++        &self,
++        xs: &Tensor,
++        valid_lens: &[usize],
++    ) -> Result<Tensor> {
++        let xs = xs.apply(&self.word_embeddings)?;
++        let (seqlens, max_seq_len) =
++            cumulative_seqlens(valid_lens, xs.device())?;
++        let positions =
++            self.cached_packed_positions(valid_lens, xs.device())?;
++        let local_window = self.local_attention_size / 2;
++        // A window of `local_window` on each side covers every pair of
++        // positions only while the sequence is at most `local_window +
++        // 1` tokens long; past that some pairs are farther apart than
++        // the window and must be hidden, exactly as the masked path's
++        // `|i - j| > local_window` bias hides them.
++        let full_attention_threshold = local_window + 1;
++        let mut packed_xs = xs.apply(&self.norm)?;
++        for layer in self.layers.iter() {
++            let effective_window = if layer.uses_local_attention
++                && max_seq_len > full_attention_threshold
++            {
++                Some(local_window)
++            } else {
++                None
++            };
++            packed_xs = layer.forward_varlen_packed_input(
++                &packed_xs,
++                valid_lens,
++                &positions,
++                &seqlens,
++                max_seq_len,
++                effective_window,
++            )?;
++        }
++        packed_xs.apply(&self.final_norm)
++    }
++
++
+     /// Forward pass for fixed-length query batches where padding rows
+     /// must produce outputs (ColBERT query expansion feeds [MASK]
+     /// expansion rows into MaxSim) without serving as attention keys.

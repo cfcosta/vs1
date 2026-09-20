@@ -1,0 +1,126 @@
+[
+  {
+    "name": "one",
+    "baseline_p50_ms": 8.7185175,
+    "candidate_p50_ms": 9.0058605,
+    "p50_change_percent": 3.295778209999578,
+    "baseline_p95_ms": 9.88202,
+    "candidate_p95_ms": 10.233338,
+    "baseline_questions_per_second": 114.6983991257688,
+    "candidate_questions_per_second": 111.03880634171492,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "five",
+    "baseline_p50_ms": 16.824839,
+    "candidate_p50_ms": 16.686784000000003,
+    "p50_change_percent": -0.8205427701269419,
+    "baseline_p95_ms": 17.420624999999998,
+    "candidate_p95_ms": 16.936017,
+    "baseline_questions_per_second": 297.1796639480473,
+    "candidate_questions_per_second": 299.638324556727,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "thirty",
+    "baseline_p50_ms": 96.538238,
+    "candidate_p50_ms": 102.633242,
+    "p50_change_percent": 6.313564579457087,
+    "baseline_p95_ms": 98.649826,
+    "candidate_p95_ms": 104.185247,
+    "baseline_questions_per_second": 310.7576916827506,
+    "candidate_questions_per_second": 292.30295580061676,
+    "differing_outputs": 58,
+    "first_differences": [
+      {
+        "path": "/json/0/answers/relevant/noul",
+        "before": 0.7361581325531006,
+        "after": 0.7338565587997437
+      },
+      {
+        "path": "/json/1/answers/relevant/noul",
+        "before": 0.7161923050880432,
+        "after": 0.7169922590255737
+      },
+      {
+        "path": "/json/2/answers/relevant/noul",
+        "before": 0.706078827381134,
+        "after": 0.7077110409736633
+      },
+      {
+        "path": "/json/3/answers/relevant/noul",
+        "before": 0.7209714651107788,
+        "after": 0.7241299748420715
+      },
+      {
+        "path": "/json/4/answers/relevant/noul",
+        "before": 0.7395864725112915,
+        "after": 0.7330865263938904
+      }
+    ]
+  },
+  {
+    "name": "mixed_lengths",
+    "baseline_p50_ms": 123.122642,
+    "candidate_p50_ms": 141.8138735,
+    "p50_change_percent": 15.180986369671956,
+    "baseline_p95_ms": 124.931177,
+    "candidate_p95_ms": 143.516288,
+    "baseline_questions_per_second": 243.659488723447,
+    "candidate_questions_per_second": 211.54488809587448,
+    "differing_outputs": 56,
+    "first_differences": [
+      {
+        "path": "/json/0/answers/relevant/noul",
+        "before": 0.9121146202087402,
+        "after": 0.9111628532409668
+      },
+      {
+        "path": "/json/2/answers/relevant/noul",
+        "before": 0.7330865263938904,
+        "after": 0.7299923300743103
+      },
+      {
+        "path": "/json/3/answers/relevant/noul",
+        "before": 0.7606196999549866,
+        "after": 0.7577391862869263
+      },
+      {
+        "path": "/json/4/answers/relevant/noul",
+        "before": 0.8415908217430115,
+        "after": 0.8400090932846069
+      },
+      {
+        "path": "/json/5/answers/relevant/noul",
+        "before": 0.9133695363998412,
+        "after": 0.907922387123108
+      }
+    ]
+  },
+  {
+    "name": "browser_call3",
+    "baseline_p50_ms": 23.4105385,
+    "candidate_p50_ms": 23.6815215,
+    "p50_change_percent": 1.157525701512574,
+    "baseline_p95_ms": 24.331753000000003,
+    "candidate_p95_ms": 24.459881,
+    "baseline_questions_per_second": 85.43161021263991,
+    "candidate_questions_per_second": 84.45403307384619,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "browser_call5",
+    "baseline_p50_ms": 42.1761905,
+    "candidate_p50_ms": 43.263177,
+    "p50_change_percent": 2.5772514945369585,
+    "baseline_p95_ms": 43.943975,
+    "candidate_p95_ms": 43.776094,
+    "baseline_questions_per_second": 71.13017947886972,
+    "candidate_questions_per_second": 69.34303507114144,
+    "differing_outputs": 0,
+    "first_differences": []
+  }
+]

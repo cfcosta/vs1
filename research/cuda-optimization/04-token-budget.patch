@@ -1,0 +1,33 @@
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index 8d8a0f1ca4..4275916acc 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -280,7 +280,27 @@
+         order.sort_by_key(|&i| std::cmp::Reverse(items[i].2.ids.len()));
+ 
+         let mut outputs: Vec<Option<ItemOutput>> = vec![None; items.len()];
+-        for chunk in order.chunks(self.batch_size) {
++        // Token-aware groups retain length order and the public item-count cap.
++        // An oversized single item runs alone, so the loop always progresses.
++        let budget = if self.device.is_cuda() { 2048 } else { usize::MAX };
++        let mut ranges = vec![];
++        let mut start = 0;
++        while start < order.len() {
++            let mut end = start;
++            let mut tokens = 0;
++            while end < order.len() && end - start < self.batch_size {
++                let next = items[order[end]].2.ids.len();
++                let cost = if cfg!(feature = "flash-attn") { tokens + next }
++                    else { items[order[start]].2.ids.len() * (end-start+1) };
++                if end > start && cost > budget { break; }
++                tokens = cost;
++                end += 1;
++            }
++            ranges.push(start..end);
++            start = end;
++        }
++        for range in ranges {
++            let chunk = &order[range];
+             let batch: Vec<&EncodedItem> =
+                 chunk.iter().map(|&i| &items[i].2).collect();
+             let results = self.forward_batch(&batch)?;

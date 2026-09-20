@@ -1,0 +1,158 @@
+[
+  {
+    "name": "one",
+    "baseline_p50_ms": 7.614525,
+    "candidate_p50_ms": 8.150216,
+    "p50_change_percent": 7.03512037848717,
+    "baseline_p95_ms": 8.006822999999999,
+    "candidate_p95_ms": 8.838037,
+    "baseline_questions_per_second": 131.3279554535575,
+    "candidate_questions_per_second": 122.69613467912995,
+    "differing_outputs": 1,
+    "first_differences": [
+      {
+        "path": "/json/0/answers/relevant/noul",
+        "before": 0.733471691608429,
+        "after": 0.7342410087585449
+      }
+    ]
+  },
+  {
+    "name": "five",
+    "baseline_p50_ms": 14.427805,
+    "candidate_p50_ms": 14.4889235,
+    "p50_change_percent": 0.4236160663385835,
+    "baseline_p95_ms": 15.745898,
+    "candidate_p95_ms": 17.162416999999998,
+    "baseline_questions_per_second": 346.55306195225126,
+    "candidate_questions_per_second": 345.09120018474806,
+    "differing_outputs": 12,
+    "first_differences": [
+      {
+        "path": "/json/0/answers/relevance/noul",
+        "before": 0.9575358629226683,
+        "after": 0.9581719636917114
+      },
+      {
+        "path": "/json/0/answers/topic/probabilities/index",
+        "before": 0.9606446027755736,
+        "after": 0.9622902870178224
+      },
+      {
+        "path": "/json/0/answers/topic/probabilities/travel",
+        "before": 0.019852356985211372,
+        "after": 0.018854884430766106
+      },
+      {
+        "path": "/json/0/answers/topic/probabilities/food",
+        "before": 0.01950300857424736,
+        "after": 0.018854884430766106
+      },
+      {
+        "path": "/json/0/answers/topic/confidence",
+        "before": 0.8241713047027588,
+        "after": 0.8300269842147827
+      }
+    ]
+  },
+  {
+    "name": "thirty",
+    "baseline_p50_ms": 82.992526,
+    "candidate_p50_ms": 87.71291449999998,
+    "p50_change_percent": 5.687727229798956,
+    "baseline_p95_ms": 83.551318,
+    "candidate_p95_ms": 96.100415,
+    "baseline_questions_per_second": 361.478333603197,
+    "candidate_questions_per_second": 342.02489075881755,
+    "differing_outputs": 28,
+    "first_differences": [
+      {
+        "path": "/json/0/answers/relevant/noul",
+        "before": 0.7361581325531006,
+        "after": 0.7307679653167725
+      },
+      {
+        "path": "/json/3/answers/relevant/noul",
+        "before": 0.7209714651107788,
+        "after": 0.7173917293548584
+      },
+      {
+        "path": "/json/4/answers/relevant/noul",
+        "before": 0.7395864725112915,
+        "after": 0.7353923320770264
+      },
+      {
+        "path": "/json/5/answers/relevant/noul",
+        "before": 0.6886246800422668,
+        "after": 0.6924124956130981
+      },
+      {
+        "path": "/json/6/answers/relevant/noul",
+        "before": 0.7467285990715027,
+        "after": 0.7489569187164307
+      }
+    ]
+  },
+  {
+    "name": "mixed_lengths",
+    "baseline_p50_ms": 104.8883015,
+    "candidate_p50_ms": 109.103182,
+    "p50_change_percent": 4.018446709235746,
+    "baseline_p95_ms": 106.023285,
+    "candidate_p95_ms": 116.142395,
+    "baseline_questions_per_second": 286.0185508867259,
+    "candidate_questions_per_second": 274.969065521847,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "browser_call3",
+    "baseline_p50_ms": 20.027707,
+    "candidate_p50_ms": 18.916905999999997,
+    "p50_change_percent": -5.546321403643473,
+    "baseline_p95_ms": 20.791488,
+    "candidate_p95_ms": 21.467001999999997,
+    "baseline_questions_per_second": 99.86165665395444,
+    "candidate_questions_per_second": 105.72553460909518,
+    "differing_outputs": 10,
+    "first_differences": [
+      {
+        "path": "/json/0/answers/operation/probabilities/CLICK",
+        "before": 0.4113747477531433,
+        "after": 0.40338966250419617
+      },
+      {
+        "path": "/json/0/answers/operation/probabilities/SCROLL_DOWN",
+        "before": 0.0951392874121666,
+        "after": 0.10015881061553956
+      },
+      {
+        "path": "/json/0/answers/operation/probabilities/WAIT",
+        "before": 0.12716829776763916,
+        "after": 0.13035941123962402
+      },
+      {
+        "path": "/json/0/answers/operation/probabilities/DONE",
+        "before": 0.22295865416526792,
+        "after": 0.2215615510940552
+      },
+      {
+        "path": "/json/0/answers/operation/probabilities/BLOCKED",
+        "before": 0.1433590054512024,
+        "after": 0.14453059434890747
+      }
+    ]
+  },
+  {
+    "name": "browser_call5",
+    "baseline_p50_ms": 37.089456,
+    "candidate_p50_ms": 35.8118805,
+    "p50_change_percent": -3.444578696435985,
+    "baseline_p95_ms": 37.719617,
+    "candidate_p95_ms": 40.701676,
+    "baseline_questions_per_second": 80.88552175044035,
+    "candidate_questions_per_second": 83.77108261600505,
+    "differing_outputs": 0,
+    "first_differences": []
+  }
+]
