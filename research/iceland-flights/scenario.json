@@ -1,0 +1,28 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "url",
+    "url": "https://www.google.com/travel/flights?hl=en&curr=BRL"
+  },
+  "goal": "Find the cheapest available one-way flight for one adult in economy from São Paulo, Brazil (SAO, all São Paulo airports) to Iceland, departing on any date from October 1 through October 31, 2026 inclusive. Compare fares across the whole month using the fare calendar or price graph; do not just use the initially selected date. Choose the lowest-priced date found and show its flight results ordered by cheapest, in Brazilian reais (BRL). Iceland destinations may include Keflavík/Reykjavík. Stop when the cheapest matching flight options and their departure date are visible. Do not select a flight for booking, book, or purchase anything.",
+  "variants": [
+    {
+      "name": "october-one-way"
+    }
+  ],
+  "verify": [
+    "(() => {",
+    "  const url = new URL(page.url);",
+    "  const encoded = (url.searchParams.get('tfs') || '').replace(/-/g, '+').replace(/_/g, '/');",
+    "  let route = ''; try { route = atob(encoded.padEnd(Math.ceil(encoded.length / 4) * 4, '=')); } catch (_) {}",
+    "  const fields = page.actions.filter(a => a.kind === 'fill');",
+    "  const origin = fields.some(a => a.label.trim().startsWith('Where from?') && /São Paulo|Sao Paulo|Guarulhos|Congonhas|Viracopos|SAO|GRU|CGH|VCP/i.test(a.value || ''));",
+    "  const destination = fields.some(a => a.label.trim().startsWith('Where to?') && /Iceland|Reykjav|Keflav|KEF|RKV/i.test(a.value || ''));",
+    "  const oneWay = page.actions.some(a => a.label.includes('Change ticket type') && a.value === 'One way');",
+    "  const flights = page.actions.filter(a => a.label.includes('Select flight'));",
+    "  return url.hostname === 'www.google.com' && url.pathname === '/travel/flights/search'",
+    "    && origin && destination && oneWay && /2026-10-(0[1-9]|[12][0-9]|3[01])/.test(route)",
+    "    && flights.length > 0 && flights.every(a => /October/.test(a.label));",
+    "})()"
+  ]
+}

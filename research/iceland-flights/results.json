@@ -1,0 +1,543 @@
+{
+  "configuration": {
+    "date": "2026-09-20",
+    "code_commit": "2e1231c5a9d2",
+    "origin": "São Paulo (SAO/all airports)",
+    "requested_destination": "Iceland",
+    "adjusted_destination": "Keflavík (KEF)",
+    "assumptions": {
+      "departure_start": "2026-10-01",
+      "departure_end": "2026-10-31",
+      "trip_type": "one_way",
+      "adults": 1,
+      "cabin": "economy",
+      "currency": "BRL"
+    },
+    "backend": "typesafe",
+    "model_requested": "jev-latest",
+    "model_returned": "jev-1.13.0",
+    "text_helper": "inception/mercury-2.5 via OpenRouter; reasoning disabled",
+    "max_actions": 60,
+    "max_model_attempts": 120,
+    "screenshots": false,
+    "scenario_hashes": {
+      "scenario.json": "55e22fd454fa2ab7606336ff5d784537eeb212edd6cce3b381e80581f9b33244",
+      "keflavik.json": "b9796d09db22ab638fab83492bdf02c01c6e98142ebeba9ad5e6129a848960ab"
+    }
+  },
+  "invocations": [
+    {
+      "exit_code": 1,
+      "wall_seconds": 33.8859267350017,
+      "prompt": "compact",
+      "backend": "typesafe",
+      "text_model": "inception/mercury-2.5",
+      "artifact_directory": "artifacts/iceland-flights/default-1"
+    },
+    {
+      "exit_code": 1,
+      "wall_seconds": 5.431220430000394,
+      "prompt": "upstream",
+      "backend": "typesafe",
+      "text_model": "inception/mercury-2.5",
+      "artifact_directory": "artifacts/iceland-flights/keflavik-upstream-1"
+    },
+    {
+      "exit_code": 1,
+      "wall_seconds": 7.77489122499901,
+      "prompt": "upstream",
+      "backend": "typesafe",
+      "text_model": "inception/mercury-2.5",
+      "artifact_directory": "artifacts/iceland-flights/keflavik-upstream-repeats"
+    }
+  ],
+  "runs": [
+    {
+      "arm": "original-default",
+      "invocation": "default-1",
+      "run": 0,
+      "artifacts": "artifacts/iceland-flights/default-1/variant-00-run-00/trace.json",
+      "summary": {
+        "status": "error",
+        "elapsed_ms": 32763.618576,
+        "setup_ms": 1097.540532,
+        "error": "action budget exhausted",
+        "verification": {
+          "passed": false
+        },
+        "actions": 60,
+        "decisions": 80,
+        "accepted_responses": 80,
+        "decision_median_ms": 302.525077,
+        "decision_total_ms": 24761.80355299999,
+        "text_calls": 3,
+        "text_total_ms": 2237.506827,
+        "cdp_calls": 478,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "decision_p95_ms": 352.880982,
+      "reported_decision_usage": {
+        "input_tokens": 305639,
+        "output_tokens": 40419
+      },
+      "final_url": "https://www.google.com/travel/flights?tfs=CBwQARopEgoyMDI2LTEwLTAxag0IAhIJL20vMDIycGZtcgwIBBIIL20vMDNyajBAAUgBcAGCAQsI____________AZgBAg&tfu=KgIIAw&hl=en&curr=BRL",
+      "final_visible_text": "Reset\nFebruary 2027\n2\n3\n4\n5\n6\n9\n10\n11\n12\n13\n16\n17\n18\n19\n20\n23\n24\n25\n26\n27\nMarch 2027\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nApril 2027\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n2\n9\n16\n23\n30\nDone",
+      "final_flight_options": [],
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where to? ",
+          "text": "Iceland"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Iceland",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        },
+        {
+          "operation": "WAIT",
+          "action": "Wait for the page to update",
+          "text": null
+        },
+        {
+          "operation": "WAIT",
+          "action": "Wait for the page to update",
+          "text": null
+        },
+        {
+          "operation": "WAIT",
+          "action": "Wait for the page to update",
+          "text": null
+        },
+        {
+          "operation": "WAIT",
+          "action": "Wait for the page to update",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "One way",
+          "text": null
+        },
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Departure",
+          "text": "São Paulo, Brazil"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. ",
+          "text": null
+        },
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Departure",
+          "text": "Iceland"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Thursday, October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Previous",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Previous",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Previous",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Next",
+          "text": null
+        }
+      ],
+      "cheapest_month_verified": false
+    },
+    {
+      "arm": "adjusted-keflavik-upstream",
+      "invocation": "keflavik-upstream-1",
+      "run": 0,
+      "artifacts": "artifacts/iceland-flights/keflavik-upstream-1/variant-00-run-00/trace.json",
+      "summary": {
+        "status": "blocked",
+        "elapsed_ms": 4362.910551999999,
+        "setup_ms": 1061.576115,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 4,
+        "decisions": 7,
+        "accepted_responses": 7,
+        "decision_median_ms": 368.797376,
+        "decision_total_ms": 3004.0454520000003,
+        "text_calls": 1,
+        "text_total_ms": 828.168944,
+        "cdp_calls": 41,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "decision_p95_ms": 948.125063,
+      "reported_decision_usage": {
+        "input_tokens": 26582,
+        "output_tokens": 1821
+      },
+      "final_url": "https://www.google.com/travel/flights?tfs=CBwQARoYag0IAhIJL20vMDIycGZtcgcIARIDS0VGGhhqBwgBEgNLRUZyDQgCEgkvbS8wMjJwZm1AAUgBcAGCAQsI____________AZgBAQ&tfu=KgIIAw&hl=en&curr=BRL",
+      "final_visible_text": "",
+      "final_flight_options": [],
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where to? ",
+          "text": "Keflavík"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Keflavík International Airport (KEF)",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        }
+      ],
+      "cheapest_month_verified": false
+    },
+    {
+      "arm": "adjusted-keflavik-upstream",
+      "invocation": "keflavik-upstream-repeats",
+      "run": 0,
+      "artifacts": "artifacts/iceland-flights/keflavik-upstream-repeats/variant-00-run-00/trace.json",
+      "summary": {
+        "status": "error",
+        "elapsed_ms": 1721.045946,
+        "setup_ms": 1024.736343,
+        "error": "text helper returned invalid JSON; nothing typed: trailing characters at line 2 column 1",
+        "verification": {
+          "passed": false
+        },
+        "actions": 0,
+        "decisions": 1,
+        "accepted_responses": 1,
+        "decision_median_ms": 891.9242509999999,
+        "decision_total_ms": 891.9242509999999,
+        "text_calls": 1,
+        "text_total_ms": 820.138227,
+        "cdp_calls": 2,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "decision_p95_ms": 891.9242509999999,
+      "reported_decision_usage": {
+        "input_tokens": 4430,
+        "output_tokens": 321
+      },
+      "final_url": "https://www.google.com/travel/flights?hl=en&curr=BRL",
+      "final_visible_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals\nFlights\n1\nExplore\nFlexible? Discover the best flight deals with AI\nDescribe your ideal trip, and let Google Flights find the best deals for you\nExplore deals with AI\nFind and book cheap flights worldwide and track prices\nFind cheap flights from Brazil to anywhere\nSão Paulo\nRio de Janeiro\nBrasília\nBelo Horizonte",
+      "final_flight_options": [],
+      "history": [],
+      "cheapest_month_verified": false
+    },
+    {
+      "arm": "adjusted-keflavik-upstream",
+      "invocation": "keflavik-upstream-repeats",
+      "run": 1,
+      "artifacts": "artifacts/iceland-flights/keflavik-upstream-repeats/variant-00-run-01/trace.json",
+      "summary": {
+        "status": "blocked",
+        "elapsed_ms": 3921.8431769999997,
+        "setup_ms": 1093.607623,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 4,
+        "decisions": 9,
+        "accepted_responses": 9,
+        "decision_median_ms": 321.533005,
+        "decision_total_ms": 2959.6349870000004,
+        "text_calls": 1,
+        "text_total_ms": 435.050113,
+        "cdp_calls": 47,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "decision_p95_ms": 377.717148,
+      "reported_decision_usage": {
+        "input_tokens": 34046,
+        "output_tokens": 2309
+      },
+      "final_url": "https://www.google.com/travel/flights?tfs=CBwQARoYag0IAhIJL20vMDIycGZtcgcIARIDS0VGGhhqBwgBEgNLRUZyDQgCEgkvbS8wMjJwZm1AAUgBcAGCAQsI____________AZgBAQ&tfu=KgIIAw&hl=en&curr=BRL",
+      "final_visible_text": "",
+      "final_flight_options": [],
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where to? ",
+          "text": "KEF"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Keflavík International Airport (KEF)",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        }
+      ],
+      "cheapest_month_verified": false
+    }
+  ]
+}
