@@ -1,0 +1,20 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "url",
+    "url": "https://store.steampowered.com/"
+  },
+  "goal": "Navigate to the signed-in Steam account purchase history (account statements). Open the page listing past purchases and transactions, and stop with that history visible. Do not open individual transactions, request refunds, buy anything, add funds, change account settings, or sign out. If sign-in or Steam Guard is required, stop without entering credentials.",
+  "variants": [
+    {
+      "name": "purchase-history"
+    }
+  ],
+  "verify": [
+    "(() => {",
+    "  const url = new URL(page.url);",
+    "  return url.hostname === 'store.steampowered.com' && /^\\/account\\/history\\/?$/.test(url.pathname)",
+    "    && /purchase history|histórico de compras/i.test(page.text);",
+    "})()"
+  ]
+}

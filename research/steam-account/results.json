@@ -1,0 +1,69 @@
+{
+  "runtime_commit": "e29d5c1d1097",
+  "backend": "typesafe",
+  "prompt": "upstream",
+  "max_steps": 30,
+  "screenshots": false,
+  "runs": [
+    {
+      "name": "purchase-history-1",
+      "starting_page": "store homepage",
+      "summary": {
+        "status": "blocked",
+        "elapsed_ms": 3308.0530120000003,
+        "setup_ms": 1583.194211,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 1,
+        "decisions": 4,
+        "accepted_responses": 4,
+        "decision_median_ms": 304.969148,
+        "decision_total_ms": 1671.1781810000002,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 16,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "actions": [
+        {
+          "operation": "CLICK",
+          "label": "View your profile"
+        }
+      ]
+    },
+    {
+      "name": "purchase-history-from-account-1",
+      "starting_page": "account details",
+      "summary": {
+        "status": "done",
+        "elapsed_ms": 2320.245376,
+        "setup_ms": 1073.9852560000002,
+        "error": null,
+        "verification": {
+          "passed": true
+        },
+        "actions": 1,
+        "decisions": 3,
+        "accepted_responses": 3,
+        "decision_median_ms": 329.06548000000004,
+        "decision_total_ms": 1568.265983,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 15,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "actions": [
+        {
+          "operation": "CLICK",
+          "label": "View purchase history"
+        }
+      ]
+    }
+  ]
+}
