@@ -1,0 +1,371 @@
+{
+  "configuration": {
+    "date": "2026-09-20",
+    "vs1_revision": "5d309ed21624",
+    "ultrafast_revision": "b8d45982393915a52d935aec30080cd2aea8f411",
+    "ultrafast_source_modified": false,
+    "browser_harness": "0.1.13",
+    "browser": "Chrome/152.0.7977.82",
+    "backend": "jev-latest",
+    "text_helper": "inception/mercury-2.5",
+    "text_endpoint": "https://openrouter.ai/api/v1",
+    "text_reasoning": "none",
+    "max_actions": 60,
+    "max_decisions": 120,
+    "vs1_prompt": "upstream",
+    "repetitions": 1,
+    "order": "ultrafast then vs1 for each task; hotel, reading room, Wikipedia, Flights",
+    "shared_fixture": "crates/vs1-browser/assets/fixture.html",
+    "scenario_sha256": {
+      "wikipedia.json": "9465cce69570f3097bf3e65f221488a0df4c3d027d75999b2eb25172e493ea68",
+      "hotel-agent.json": "d4cc009b808795bc978a042df49de7fa492735ab6d1859ea1b7e104ecdb395ff",
+      "flights.json": "f5517423b605c5229bef5ae1aeae374a71f990ded4d88c00442dcda25fe3a455",
+      "reading-room-agent.json": "192094897295c71486ca0be4c674f4b5a4a30b60d68d92c8d655081ffe78f0dc"
+    },
+    "ultrafast_source_sha256": {
+      "snapshot.js": "e50473501c8fb8e70f3b21866d987393e3f2315c639d638bd477d170e81ed78d",
+      "demo.py": "a0cfb10909b370efb284cbbe16bdb4b7e7e06ba6385827404169027645a1d8a4",
+      "agent.py": "aaf8b271cb0ee6643fe7beb525328ab80de8568c7ac044d02b9c6721161e7c8b",
+      "model.py": "a85ada8458d23642c5c8a4095acf0565e6268f81dcda26f6308942b653e9c9f3",
+      "browser.py": "ee08dafa93d731bd292aa0263a578a29c8001cf22eef3c59fe44a159649155ee",
+      "questions.py": "66a7054b85040b949e1757311257ea0c5a843c635f9a40c99f6d15ad660fb422",
+      "__init__.py": "60f025b8d24465e2c0f7a3547d43b8020fd8843de7b6cb3f892ef63f5548cf63"
+    }
+  },
+  "runs": [
+    {
+      "task": "hotel-agent",
+      "runtime": "ultrafast",
+      "passed": true,
+      "status": "done",
+      "error": null,
+      "elapsed_ms": 3529.777624000417,
+      "native_elapsed_ms": 3529,
+      "wall_ms": 3987.392154002009,
+      "actions": 5,
+      "decisions": 6,
+      "decision_median_ms": 315.5,
+      "text_calls": 1,
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Destination",
+          "text": "Lisbon"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find stays",
+          "text": null
+        },
+        {
+          "operation": "SELECT",
+          "action": "Stay category → Design",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Free cancellation",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "View Casa Flora",
+          "text": null
+        }
+      ],
+      "artifacts": "artifacts/ultrafast-comparison-20260920/hotel-agent-ultrafast"
+    },
+    {
+      "task": "hotel-agent",
+      "runtime": "vs1",
+      "wall_ms": 33792.06126700228,
+      "exit_code": 0,
+      "artifacts": "artifacts/ultrafast-comparison-20260920/hotel-agent-vs1",
+      "status": "done",
+      "elapsed_ms": 3471.52846,
+      "setup_ms": 39.080444,
+      "error": null,
+      "verification": {
+        "passed": true
+      },
+      "actions": 5,
+      "decisions": 6,
+      "accepted_responses": 6,
+      "decision_median_ms": 320.7271035,
+      "decision_total_ms": 2380.488203,
+      "text_calls": 1,
+      "text_total_ms": 805.867642,
+      "cdp_calls": 39,
+      "browser": "Chrome/152.0.7977.82",
+      "recording_error": null,
+      "screenshot_error": "CDP connection interrupted; browser mutation must not be retried",
+      "passed": true,
+      "model_calls": 6,
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Destination",
+          "text": "Lisbon"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find stays",
+          "text": null
+        },
+        {
+          "operation": "SELECT",
+          "action": "Stay category → Design",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Free cancellation",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "View Casa Flora",
+          "text": null
+        }
+      ]
+    },
+    {
+      "task": "reading-room-agent",
+      "runtime": "ultrafast",
+      "passed": true,
+      "status": "done",
+      "error": null,
+      "elapsed_ms": 1325.6542939998326,
+      "native_elapsed_ms": 1325,
+      "wall_ms": 1366.0192210008972,
+      "actions": 1,
+      "decisions": 2,
+      "decision_median_ms": 639.0,
+      "text_calls": 0,
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "A browser is a choice, not a conversation",
+          "text": null
+        }
+      ],
+      "artifacts": "artifacts/ultrafast-comparison-20260920/reading-room-agent-ultrafast"
+    },
+    {
+      "task": "reading-room-agent",
+      "runtime": "vs1",
+      "wall_ms": 31400.01309500076,
+      "exit_code": 0,
+      "artifacts": "artifacts/ultrafast-comparison-20260920/reading-room-agent-vs1",
+      "status": "done",
+      "elapsed_ms": 1080.165851,
+      "setup_ms": 27.2858,
+      "error": null,
+      "verification": {
+        "passed": true
+      },
+      "actions": 1,
+      "decisions": 2,
+      "accepted_responses": 2,
+      "decision_median_ms": 526.6065249999999,
+      "decision_total_ms": 1053.2130499999998,
+      "text_calls": 0,
+      "text_total_ms": -0.0,
+      "cdp_calls": 9,
+      "browser": "Chrome/152.0.7977.82",
+      "recording_error": null,
+      "screenshot_error": "CDP connection interrupted; browser mutation must not be retried",
+      "passed": true,
+      "model_calls": 2,
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "A browser is a choice, not a conversation",
+          "text": null
+        }
+      ]
+    },
+    {
+      "task": "wikipedia",
+      "runtime": "ultrafast",
+      "passed": true,
+      "status": "done",
+      "error": null,
+      "elapsed_ms": 3699.194856999384,
+      "native_elapsed_ms": 3698,
+      "wall_ms": 4401.752300000226,
+      "actions": 2,
+      "decisions": 5,
+      "decision_median_ms": 348,
+      "text_calls": 1,
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Search Wikipedia",
+          "text": "Gödel's incompleteness theorems"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Search",
+          "text": null
+        }
+      ],
+      "artifacts": "artifacts/ultrafast-comparison-20260920/wikipedia-ultrafast"
+    },
+    {
+      "task": "wikipedia",
+      "runtime": "vs1",
+      "wall_ms": 31092.701835001208,
+      "exit_code": 0,
+      "artifacts": "artifacts/ultrafast-comparison-20260920/wikipedia-vs1",
+      "status": "done",
+      "elapsed_ms": 3546.5295810000002,
+      "setup_ms": 687.054892,
+      "error": null,
+      "verification": {
+        "passed": true
+      },
+      "actions": 2,
+      "decisions": 5,
+      "accepted_responses": 5,
+      "decision_median_ms": 336.780163,
+      "decision_total_ms": 2305.06015,
+      "text_calls": 1,
+      "text_total_ms": 526.049255,
+      "cdp_calls": 28,
+      "browser": "Chrome/152.0.7977.82",
+      "recording_error": null,
+      "screenshot_error": null,
+      "passed": true,
+      "model_calls": 5,
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Search Wikipedia",
+          "text": "Gödel’s incompleteness theorems"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Search",
+          "text": null
+        }
+      ]
+    },
+    {
+      "task": "flights",
+      "runtime": "ultrafast",
+      "passed": false,
+      "status": "blocked",
+      "error": null,
+      "elapsed_ms": 2279.8358330001065,
+      "native_elapsed_ms": 2279,
+      "wall_ms": 3604.5933360001072,
+      "actions": 2,
+      "decisions": 5,
+      "decision_median_ms": 283,
+      "text_calls": 0,
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        }
+      ],
+      "artifacts": "artifacts/ultrafast-comparison-20260920/flights-ultrafast"
+    },
+    {
+      "task": "flights",
+      "runtime": "vs1",
+      "wall_ms": 16259.086802001548,
+      "exit_code": 0,
+      "artifacts": "artifacts/ultrafast-comparison-20260920/flights-vs1",
+      "status": "done",
+      "elapsed_ms": 11206.214396,
+      "setup_ms": 1038.313993,
+      "error": null,
+      "verification": {
+        "passed": true
+      },
+      "actions": 12,
+      "decisions": 21,
+      "accepted_responses": 21,
+      "decision_median_ms": 332.867988,
+      "decision_total_ms": 8004.074465,
+      "text_calls": 2,
+      "text_total_ms": 1227.719982,
+      "cdp_calls": 112,
+      "browser": "Chrome/152.0.7977.82",
+      "recording_error": null,
+      "screenshot_error": null,
+      "passed": true,
+      "model_calls": 21,
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "One way",
+          "text": null
+        },
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where from?",
+          "text": "Zurich"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Zürich, Switzerland",
+          "text": null
+        },
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where to? ",
+          "text": "London"
+        },
+        {
+          "operation": "CLICK",
+          "action": "London, United Kingdom",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Departure",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Sunday, September 20, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on September 20, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Search",
+          "text": null
+        },
+        {
+          "operation": "WAIT",
+          "action": "Wait for the page to update",
+          "text": null
+        },
+        {
+          "operation": "WAIT",
+          "action": "Wait for the page to update",
+          "text": null
+        }
+      ]
+    }
+  ]
+}
