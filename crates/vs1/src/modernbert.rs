@@ -208,6 +208,20 @@ impl RotaryEmbedding {
                 let sin = self.sin.index_select(positions, 0)?;
                 Ok((cos, sin))
             })?;
+        let paired = q.device().is_cuda()
+            && q.dtype() == DType::BF16
+            && q.is_contiguous()
+            && k.is_contiguous()
+            && q.dim(D::Minus1)?.is_multiple_of(2)
+            && q.elem_count() > 0
+            && q.elem_count() <= u32::MAX as usize / 2;
+        #[cfg(test)]
+        let paired = paired
+            && !crate::rope_cuda::REFERENCE_ROPE
+                .load(std::sync::atomic::Ordering::Relaxed);
+        if paired {
+            return crate::rope_cuda::forward(q, k, &cos, &sin);
+        }
         let q = q.unsqueeze(0)?;
         let k = k.unsqueeze(0)?;
         let q = if q.is_contiguous() {

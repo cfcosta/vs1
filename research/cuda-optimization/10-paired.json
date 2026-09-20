@@ -1,0 +1,47 @@
+[
+  {
+    "name": "one",
+    "baseline_p50_ms": 6.800753,
+    "fused_p50_ms": 6.7167785,
+    "paired_change_percent": -1.1530198202730046,
+    "faster_pairs": 52,
+    "pairs": 60,
+    "outputs_exact": true
+  },
+  {
+    "name": "thirty",
+    "baseline_p50_ms": 80.7724535,
+    "fused_p50_ms": 78.603133,
+    "paired_change_percent": -1.2092484146219662,
+    "faster_pairs": 43,
+    "pairs": 60,
+    "outputs_exact": true
+  },
+  {
+    "name": "mixed_lengths",
+    "baseline_p50_ms": 103.5585275,
+    "fused_p50_ms": 102.330275,
+    "paired_change_percent": -1.2454544968022452,
+    "faster_pairs": 51,
+    "pairs": 60,
+    "outputs_exact": true
+  },
+  {
+    "name": "browser_call3",
+    "baseline_p50_ms": 19.390349999999998,
+    "fused_p50_ms": 19.096796499999996,
+    "paired_change_percent": -1.4032860143916581,
+    "faster_pairs": 50,
+    "pairs": 60,
+    "outputs_exact": true
+  },
+  {
+    "name": "browser_call5",
+    "baseline_p50_ms": 36.245580000000004,
+    "fused_p50_ms": 35.867817,
+    "paired_change_percent": -1.117957705930761,
+    "faster_pairs": 45,
+    "pairs": 60,
+    "outputs_exact": true
+  }
+]

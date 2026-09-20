@@ -41,3 +41,30 @@ All 600 paired comparisons match exactly. A separate 30-iteration run against
 the saved pre-change baseline also passes across all six workloads, alternate
 content and changing shapes. The finite-BF16 sweep, 44 default tests, formatting
 and FlashAttention Clippy with warnings denied pass before committing.
+
+## 10. Pair Q/K rotary application — accepted
+
+Baseline includes experiment 9. Apply rotary position embeddings to Q and K in
+one launch and one output allocation, reusing each cosine/sine lookup. Keep
+the separate Q/K/V GEMMs and preserve every BF16 multiply/add/subtract rounding
+step. F32/F16 and unsupported layouts continue through Candle's existing path.
+
+The isolated check compares both outputs against Candle at head widths 16, 64
+and 80, multiple token/head counts, nonzero input/table offsets, and a case
+containing every finite BF16 activation value. All bit patterns match. Two
+whole-model paired runs and a standalone six-workload comparison also pass
+exact response/action equality, including alternate inputs and shape changes.
+
+| Workload      | First paired change | Repeat paired change |
+| ------------- | ------------------: | -------------------: |
+| one           |              -1.15% |               -1.25% |
+| thirty        |              -1.21% |               -1.14% |
+| mixed_lengths |              -1.25% |               -1.11% |
+| browser_call3 |              -1.40% |               -1.40% |
+| browser_call5 |              -1.12% |               -1.07% |
+
+This is a small repeatable gain across all five paired workloads; all 600
+paired output checks pass. The standalone timings vary more with GPU conditions
+and are not used to claim larger speedups. Detailed numbers are in
+`10-paired.json` and `10-paired-repeat.json`; raw runs use the `10-` prefix.
+44 default tests, formatting and FlashAttention Clippy pass before committing.

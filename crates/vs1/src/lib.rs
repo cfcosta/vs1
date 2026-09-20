@@ -49,6 +49,9 @@ pub mod types;
 #[cfg(feature = "cuda")]
 mod geglu_cuda;
 
+#[cfg(feature = "flash-attn")]
+mod rope_cuda;
+
 #[cfg(all(test, feature = "flash-attn"))]
 mod geglu_bench;
 
