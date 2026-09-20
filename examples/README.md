@@ -55,7 +55,8 @@ helper (`TEXT_MODEL_API_KEY`, optionally `TEXT_MODEL_BASE_URL` and `TEXT_MODEL`)
 See the root README for backend configuration.
 
 The flight verifier ports upstream's route, one-way, date/year, and visible-result
-checks. It retains **September 20, 2026** for comparability; update the goal and all
+checks. Origin/destination checks accept Google's labels with appended airport
+text while still requiring the exact field values. It retains **September 20, 2026** for comparability; update the goal and all
 verification date strings together when choosing a future date. Like upstream,
 it does not independently check passenger count or cabin. Website changes, consent
 screens, model quality, and missing text-helper credentials can fail these live

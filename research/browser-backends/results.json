@@ -1,0 +1,1142 @@
+{
+  "configuration": {
+    "date": "2026-09-20",
+    "code_commit": "9e7200fc9512",
+    "laya_checkpoint": "convaiinnovations/laya@c5d78730f3493e4fe16d61507ef4b78eef7318cf",
+    "laya_device": "cpu",
+    "laya_dtype": "F32",
+    "max_len": 512,
+    "head_max_len": 192,
+    "jev_requested_model": "jev-latest",
+    "text_helper": "inception/mercury-2.5 via OpenRouter",
+    "max_steps": 20,
+    "repeat_per_arm": 1,
+    "scenario_sha256": {
+      "hotel.json": "f6ae962e3a3188aaa309790c0955a60affb099456f319a660a0a92730b3f7ac4",
+      "wikipedia.json": "9465cce69570f3097bf3e65f221488a0df4c3d027d75999b2eb25172e493ea68",
+      "reading-room.json": "a4958249a3593edf57cb324d11a9ebe0a8a4c908ecd9990056759fafd0604c68",
+      "hotel-agent.json": "d4cc009b808795bc978a042df49de7fa492735ab6d1859ea1b7e104ecdb395ff",
+      "flights.json": "f5517423b605c5229bef5ae1aeae374a71f990ded4d88c00442dcda25fe3a455",
+      "reading-room-agent.json": "192094897295c71486ca0be4c674f4b5a4a30b60d68d92c8d655081ffe78f0dc"
+    },
+    "note": "Initial compact Flights used the old strict-label verifier and failed; its captured final page passed the corrected verifier. The subsequent compact-flight-recheck is a fresh live rerun with the corrected verifier. Do not silently reinterpret the initial exit status."
+  },
+  "results": [
+    {
+      "task": "hotel-agent",
+      "backend": "local",
+      "exit_code": 1,
+      "wall_seconds": 7.871988389000762,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 4898.853017,
+        "setup_ms": 43.693771,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 0,
+        "decisions": 1,
+        "accepted_responses": 1,
+        "decision_median_ms": 4895.382476,
+        "decision_total_ms": 4895.382476,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 2,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 1
+      },
+      "arm": "compact",
+      "artifacts": "artifacts/backend-comparison-20260920/hotel-agent-local",
+      "history": [],
+      "returned_models": ["rl-agent"],
+      "final_url": "file:///home/cfcosta/Code/cfcosta/vs1/crates/vs1-browser/assets/fixture.html"
+    },
+    {
+      "task": "hotel-agent",
+      "backend": "typesafe",
+      "exit_code": 1,
+      "wall_seconds": 4.261132497998915,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 3442.417894,
+        "setup_ms": 34.193732,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 4,
+        "decisions": 5,
+        "accepted_responses": 5,
+        "decision_median_ms": 327.395619,
+        "decision_total_ms": 2113.774577,
+        "text_calls": 1,
+        "text_total_ms": 1094.4543449999999,
+        "cdp_calls": 32,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 5
+      },
+      "arm": "compact",
+      "artifacts": "artifacts/backend-comparison-20260920/hotel-agent-typesafe",
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Destination",
+          "text": "Lisbon"
+        },
+        {
+          "operation": "SELECT",
+          "action": "Stay category → Design",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Free cancellation",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "View Casa Flora",
+          "text": null
+        }
+      ],
+      "returned_models": ["jev-1.13.0"],
+      "final_url": "file:///home/cfcosta/Code/cfcosta/vs1/crates/vs1-browser/assets/fixture.html#casa-flora"
+    },
+    {
+      "task": "reading-room-agent",
+      "backend": "local",
+      "exit_code": 1,
+      "wall_seconds": 3.5715104260016233,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 2247.5450760000003,
+        "setup_ms": 27.949616,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 0,
+        "decisions": 1,
+        "accepted_responses": 1,
+        "decision_median_ms": 2245.299245,
+        "decision_total_ms": 2245.299245,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 2,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 1
+      },
+      "arm": "compact",
+      "artifacts": "artifacts/backend-comparison-20260920/reading-room-agent-local",
+      "history": [],
+      "returned_models": ["rl-agent"],
+      "final_url": "file:///home/cfcosta/Code/cfcosta/vs1/crates/vs1-browser/assets/fixture.html?scenario=research"
+    },
+    {
+      "task": "reading-room-agent",
+      "backend": "typesafe",
+      "exit_code": 0,
+      "wall_seconds": 1.1020511200003966,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 1018.606479,
+        "setup_ms": 31.612095,
+        "error": null,
+        "verification": {
+          "passed": true
+        },
+        "actions": 1,
+        "decisions": 2,
+        "accepted_responses": 2,
+        "decision_median_ms": 496.90377849999993,
+        "decision_total_ms": 993.8075569999999,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 9,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": true,
+        "model_calls": 2
+      },
+      "arm": "compact",
+      "artifacts": "artifacts/backend-comparison-20260920/reading-room-agent-typesafe",
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "A browser is a choice, not a conversation",
+          "text": null
+        }
+      ],
+      "returned_models": ["jev-1.13.0"],
+      "final_url": "file:///home/cfcosta/Code/cfcosta/vs1/crates/vs1-browser/assets/fixture.html?scenario=research#choices"
+    },
+    {
+      "task": "wikipedia",
+      "backend": "local",
+      "exit_code": 1,
+      "wall_seconds": 9.761726977998478,
+      "result": {
+        "status": "blocked",
+        "elapsed_ms": 7421.365868,
+        "setup_ms": 653.462903,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 1,
+        "decisions": 3,
+        "accepted_responses": 3,
+        "decision_median_ms": 3354.060552,
+        "decision_total_ms": 7328.658240000001,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 12,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 3
+      },
+      "arm": "compact",
+      "artifacts": "artifacts/backend-comparison-20260920/wikipedia-local",
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "Misti as seen from Arequipa",
+          "text": null
+        }
+      ],
+      "returned_models": ["rl-agent"],
+      "final_url": "https://en.wikipedia.org/wiki/Main_Page#/media/File:Volcano_Misti,_Peru.jpg"
+    },
+    {
+      "task": "wikipedia",
+      "backend": "typesafe",
+      "exit_code": 0,
+      "wall_seconds": 4.856486822001898,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 3441.97088,
+        "setup_ms": 638.996201,
+        "error": null,
+        "verification": {
+          "passed": true
+        },
+        "actions": 2,
+        "decisions": 5,
+        "accepted_responses": 5,
+        "decision_median_ms": 351.19811899999996,
+        "decision_total_ms": 2091.840241,
+        "text_calls": 1,
+        "text_total_ms": 661.866498,
+        "cdp_calls": 28,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": true,
+        "model_calls": 5
+      },
+      "arm": "compact",
+      "artifacts": "artifacts/backend-comparison-20260920/wikipedia-typesafe",
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Search Wikipedia",
+          "text": "Gödel's incompleteness theorems"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Search",
+          "text": null
+        }
+      ],
+      "returned_models": ["jev-1.13.0"],
+      "final_url": "https://en.wikipedia.org/wiki/G%C3%B6del%27s_incompleteness_theorems"
+    },
+    {
+      "task": "flights",
+      "backend": "local",
+      "exit_code": 1,
+      "wall_seconds": 8.163010188000044,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 4928.147317,
+        "setup_ms": 1075.491022,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 0,
+        "decisions": 1,
+        "accepted_responses": 1,
+        "decision_median_ms": 4919.781436,
+        "decision_total_ms": 4919.781436,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 2,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 1
+      },
+      "arm": "compact",
+      "artifacts": "artifacts/backend-comparison-20260920/flights-local",
+      "history": [],
+      "returned_models": ["rl-agent"],
+      "final_url": "https://www.google.com/travel/flights?hl=en"
+    },
+    {
+      "task": "flights",
+      "backend": "typesafe",
+      "exit_code": 1,
+      "wall_seconds": 14.45767273599995,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 11101.464290999998,
+        "setup_ms": 636.474363,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 11,
+        "decisions": 22,
+        "accepted_responses": 22,
+        "decision_median_ms": 312.4721075,
+        "decision_total_ms": 7217.601449999999,
+        "text_calls": 3,
+        "text_total_ms": 1983.5000960000002,
+        "cdp_calls": 117,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 22
+      },
+      "arm": "compact",
+      "artifacts": "artifacts/backend-comparison-20260920/flights-typesafe",
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "One way",
+          "text": null
+        },
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where from?",
+          "text": "Zurich"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Zurich Airport (ZRH)",
+          "text": null
+        },
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where to? ",
+          "text": "London"
+        },
+        {
+          "operation": "CLICK",
+          "action": "London, United Kingdom",
+          "text": null
+        },
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Departure",
+          "text": "Zurich"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Sunday, September 20, 2026 , 694 Brazilian reals",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on September 20, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Search",
+          "text": null
+        },
+        {
+          "operation": "WAIT",
+          "action": "Wait for the page to update",
+          "text": null
+        }
+      ],
+      "returned_models": ["jev-1.13.0"],
+      "final_url": "https://www.google.com/travel/flights/search?tfs=CBwQAhojEgoyMDI2LTA5LTIwagcIARIDWlJIcgwIAxIIL20vMDRqcGxAAUgBcAGCAQsI____________AZgBAg&hl=en"
+    },
+    {
+      "task": "hotel-agent",
+      "backend": "local",
+      "exit_code": 1,
+      "wall_seconds": 105.66949982000006,
+      "result": {
+        "status": "error",
+        "elapsed_ms": 104343.588425,
+        "setup_ms": 33.331607999999996,
+        "error": "action budget exhausted",
+        "verification": {
+          "passed": false
+        },
+        "actions": 20,
+        "decisions": 21,
+        "accepted_responses": 21,
+        "decision_median_ms": 4914.220188,
+        "decision_total_ms": 103257.96012499998,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 141,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 21
+      },
+      "arm": "upstream",
+      "artifacts": "artifacts/backend-comparison-upstream-20260920/hotel-agent-local",
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Find a stay",
+          "text": null
+        }
+      ],
+      "returned_models": ["rl-agent"],
+      "final_url": "file:///home/cfcosta/Code/cfcosta/vs1/crates/vs1-browser/assets/fixture.html"
+    },
+    {
+      "task": "hotel-agent",
+      "backend": "typesafe",
+      "exit_code": 1,
+      "wall_seconds": 29.892737792000844,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 3502.0131169999995,
+        "setup_ms": 33.786439,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 4,
+        "decisions": 5,
+        "accepted_responses": 5,
+        "decision_median_ms": 344.339512,
+        "decision_total_ms": 1981.1288610000001,
+        "text_calls": 1,
+        "text_total_ms": 1290.8547910000002,
+        "cdp_calls": 32,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 5
+      },
+      "arm": "upstream",
+      "artifacts": "artifacts/backend-comparison-upstream-20260920/hotel-agent-typesafe",
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Destination",
+          "text": "Lisbon"
+        },
+        {
+          "operation": "SELECT",
+          "action": "Stay category → Design",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Free cancellation",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "View Casa Flora",
+          "text": null
+        }
+      ],
+      "returned_models": ["jev-1.13.0"],
+      "final_url": "file:///home/cfcosta/Code/cfcosta/vs1/crates/vs1-browser/assets/fixture.html#casa-flora"
+    },
+    {
+      "task": "reading-room-agent",
+      "backend": "local",
+      "exit_code": 1,
+      "wall_seconds": 15.155665598998894,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 3345.7324000000003,
+        "setup_ms": 26.099381,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 0,
+        "decisions": 1,
+        "accepted_responses": 1,
+        "decision_median_ms": 3343.466587,
+        "decision_total_ms": 3343.466587,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 2,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 1
+      },
+      "arm": "upstream",
+      "artifacts": "artifacts/backend-comparison-upstream-20260920/reading-room-agent-local",
+      "history": [],
+      "returned_models": ["rl-agent"],
+      "final_url": "file:///home/cfcosta/Code/cfcosta/vs1/crates/vs1-browser/assets/fixture.html?scenario=research"
+    },
+    {
+      "task": "reading-room-agent",
+      "backend": "typesafe",
+      "exit_code": 0,
+      "wall_seconds": 31.3548080569999,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 1085.729197,
+        "setup_ms": 43.343502,
+        "error": null,
+        "verification": {
+          "passed": true
+        },
+        "actions": 1,
+        "decisions": 2,
+        "accepted_responses": 2,
+        "decision_median_ms": 528.5342264999999,
+        "decision_total_ms": 1057.0684529999999,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 9,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": "CDP connection interrupted; browser mutation must not be retried",
+        "passed": true,
+        "model_calls": 2
+      },
+      "arm": "upstream",
+      "artifacts": "artifacts/backend-comparison-upstream-20260920/reading-room-agent-typesafe",
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "A browser is a choice, not a conversation",
+          "text": null
+        }
+      ],
+      "returned_models": ["jev-1.13.0"],
+      "final_url": "file:///home/cfcosta/Code/cfcosta/vs1/crates/vs1-browser/assets/fixture.html?scenario=research#choices"
+    },
+    {
+      "task": "wikipedia",
+      "backend": "local",
+      "exit_code": 1,
+      "wall_seconds": 13.618882987997495,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 6807.390153,
+        "setup_ms": 648.204206,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 0,
+        "decisions": 2,
+        "accepted_responses": 2,
+        "decision_median_ms": 3387.883574,
+        "decision_total_ms": 6775.767148,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 5,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 2
+      },
+      "arm": "upstream",
+      "artifacts": "artifacts/backend-comparison-upstream-20260920/wikipedia-local",
+      "history": [],
+      "returned_models": ["rl-agent"],
+      "final_url": "https://en.wikipedia.org/wiki/Main_Page"
+    },
+    {
+      "task": "wikipedia",
+      "backend": "typesafe",
+      "exit_code": 0,
+      "wall_seconds": 6.9545098610033165,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 4307.146084,
+        "setup_ms": 644.815246,
+        "error": null,
+        "verification": {
+          "passed": true
+        },
+        "actions": 2,
+        "decisions": 5,
+        "accepted_responses": 5,
+        "decision_median_ms": 511.31845300000003,
+        "decision_total_ms": 2732.9253270000004,
+        "text_calls": 1,
+        "text_total_ms": 863.5805600000001,
+        "cdp_calls": 28,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": true,
+        "model_calls": 5
+      },
+      "arm": "upstream",
+      "artifacts": "artifacts/backend-comparison-upstream-20260920/wikipedia-typesafe",
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Search Wikipedia",
+          "text": "Gödel's incompleteness theorems"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Search",
+          "text": null
+        }
+      ],
+      "returned_models": ["jev-1.13.0"],
+      "final_url": "https://en.wikipedia.org/wiki/G%C3%B6del%27s_incompleteness_theorems"
+    },
+    {
+      "task": "flights",
+      "backend": "local",
+      "exit_code": 1,
+      "wall_seconds": 7.99152614400009,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 4795.110315999999,
+        "setup_ms": 1029.874307,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 0,
+        "decisions": 1,
+        "accepted_responses": 1,
+        "decision_median_ms": 4786.850786999999,
+        "decision_total_ms": 4786.850786999999,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 2,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 1
+      },
+      "arm": "upstream",
+      "artifacts": "artifacts/backend-comparison-upstream-20260920/flights-local",
+      "history": [],
+      "returned_models": ["rl-agent"],
+      "final_url": "https://www.google.com/travel/flights?hl=en"
+    },
+    {
+      "task": "flights",
+      "backend": "typesafe",
+      "exit_code": 1,
+      "wall_seconds": 2.8068355879986484,
+      "result": {
+        "status": "blocked",
+        "elapsed_ms": 1767.686416,
+        "setup_ms": 673.879762,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 2,
+        "decisions": 4,
+        "accepted_responses": 4,
+        "decision_median_ms": 305.7037835,
+        "decision_total_ms": 1626.045881,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 19,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 4
+      },
+      "arm": "upstream",
+      "artifacts": "artifacts/backend-comparison-upstream-20260920/flights-typesafe",
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        }
+      ],
+      "returned_models": ["jev-1.13.0"],
+      "final_url": "https://www.google.com/travel/flights?hl=en"
+    },
+    {
+      "task": "flights",
+      "backend": "local",
+      "exit_code": 1,
+      "wall_seconds": 7.347614374997647,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 4820.5616310000005,
+        "setup_ms": 1014.398075,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 0,
+        "decisions": 1,
+        "accepted_responses": 1,
+        "decision_median_ms": 4812.057533,
+        "decision_total_ms": 4812.057533,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 2,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": false,
+        "model_calls": 1
+      },
+      "arm": "compact-flight-recheck",
+      "artifacts": "artifacts/backend-comparison-flights-recheck-20260920/flights-local",
+      "history": [],
+      "returned_models": ["rl-agent"],
+      "final_url": "https://www.google.com/travel/flights?hl=en"
+    },
+    {
+      "task": "flights",
+      "backend": "typesafe",
+      "exit_code": 0,
+      "wall_seconds": 13.50237791499967,
+      "result": {
+        "status": "done",
+        "elapsed_ms": 11072.896017,
+        "setup_ms": 600.374264,
+        "error": null,
+        "verification": {
+          "passed": true
+        },
+        "actions": 11,
+        "decisions": 21,
+        "accepted_responses": 21,
+        "decision_median_ms": 320.867711,
+        "decision_total_ms": 7454.510297,
+        "text_calls": 3,
+        "text_total_ms": 1934.5552460000001,
+        "cdp_calls": 114,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null,
+        "passed": true,
+        "model_calls": 21
+      },
+      "arm": "compact-flight-recheck",
+      "artifacts": "artifacts/backend-comparison-flights-recheck-20260920/flights-typesafe",
+      "history": [
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "One way",
+          "text": null
+        },
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where from?",
+          "text": "Zurich"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Zurich Airport (ZRH)",
+          "text": null
+        },
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where to? ",
+          "text": "London"
+        },
+        {
+          "operation": "CLICK",
+          "action": "London, United Kingdom",
+          "text": null
+        },
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Departure",
+          "text": "Zurich"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Sunday, September 20, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done. Search for one-way flights, departing on September 20, 2026",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Search",
+          "text": null
+        },
+        {
+          "operation": "WAIT",
+          "action": "Wait for the page to update",
+          "text": null
+        }
+      ],
+      "returned_models": ["jev-1.13.0"],
+      "final_url": "https://www.google.com/travel/flights/search?tfs=CBwQAhojEgoyMDI2LTA5LTIwagcIARIDWlJIcgwIAxIIL20vMDRqcGxAAUgBcAGCAQsI____________AZgBAg&hl=en"
+    },
+    {
+      "task": "hotel",
+      "backend": "local",
+      "exit_code": 0,
+      "wall_seconds": 4.140862427000684,
+      "arm": "constrained",
+      "artifacts": "artifacts/backend-comparison-constrained-20260920/hotel-local",
+      "runs": [
+        {
+          "variant": "base",
+          "passed": true,
+          "error": null,
+          "model_calls": 1,
+          "forced_singletons": 4,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 620.6260420000001
+        },
+        {
+          "variant": "distractors",
+          "passed": true,
+          "error": null,
+          "model_calls": 2,
+          "forced_singletons": 3,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 1041.73352
+        },
+        {
+          "variant": "reordered",
+          "passed": true,
+          "error": null,
+          "model_calls": 2,
+          "forced_singletons": 3,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 1022.6718720000001
+        },
+        {
+          "variant": "already_filtered",
+          "passed": true,
+          "error": null,
+          "model_calls": 0,
+          "forced_singletons": 1,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 19.370759
+        },
+        {
+          "variant": "complete",
+          "passed": true,
+          "error": null,
+          "model_calls": 0,
+          "forced_singletons": 0,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 3.6649030000000002
+        }
+      ]
+    },
+    {
+      "task": "hotel",
+      "backend": "typesafe",
+      "exit_code": 0,
+      "wall_seconds": 2.8959624150011223,
+      "arm": "constrained",
+      "artifacts": "artifacts/backend-comparison-constrained-20260920/hotel-typesafe",
+      "runs": [
+        {
+          "variant": "base",
+          "passed": true,
+          "error": null,
+          "model_calls": 1,
+          "forced_singletons": 4,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 1012.322841
+        },
+        {
+          "variant": "distractors",
+          "passed": true,
+          "error": null,
+          "model_calls": 2,
+          "forced_singletons": 3,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 823.827863
+        },
+        {
+          "variant": "reordered",
+          "passed": true,
+          "error": null,
+          "model_calls": 2,
+          "forced_singletons": 3,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 826.377676
+        },
+        {
+          "variant": "already_filtered",
+          "passed": true,
+          "error": null,
+          "model_calls": 0,
+          "forced_singletons": 1,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 23.588899
+        },
+        {
+          "variant": "complete",
+          "passed": true,
+          "error": null,
+          "model_calls": 0,
+          "forced_singletons": 0,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 5.433491
+        }
+      ]
+    },
+    {
+      "task": "reading-room",
+      "backend": "local",
+      "exit_code": 0,
+      "wall_seconds": 1.3249162690008234,
+      "arm": "constrained",
+      "artifacts": "artifacts/backend-comparison-constrained-20260920/reading-room-local",
+      "runs": [
+        {
+          "variant": "base",
+          "passed": true,
+          "error": null,
+          "model_calls": 0,
+          "forced_singletons": 1,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 14.137376999999999
+        },
+        {
+          "variant": "reordered",
+          "passed": true,
+          "error": null,
+          "model_calls": 0,
+          "forced_singletons": 1,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 18.960072
+        },
+        {
+          "variant": "complete",
+          "passed": true,
+          "error": null,
+          "model_calls": 0,
+          "forced_singletons": 0,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 3.868982
+        }
+      ]
+    },
+    {
+      "task": "reading-room",
+      "backend": "typesafe",
+      "exit_code": 0,
+      "wall_seconds": 0.15844226999979583,
+      "arm": "constrained",
+      "artifacts": "artifacts/backend-comparison-constrained-20260920/reading-room-typesafe",
+      "runs": [
+        {
+          "variant": "base",
+          "passed": true,
+          "error": null,
+          "model_calls": 0,
+          "forced_singletons": 1,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 23.072672999999998
+        },
+        {
+          "variant": "reordered",
+          "passed": true,
+          "error": null,
+          "model_calls": 0,
+          "forced_singletons": 1,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 23.857626
+        },
+        {
+          "variant": "complete",
+          "passed": true,
+          "error": null,
+          "model_calls": 0,
+          "forced_singletons": 0,
+          "independent_verification": {
+            "passed": true
+          },
+          "elapsed_ms": 3.518994
+        }
+      ]
+    }
+  ]
+}
