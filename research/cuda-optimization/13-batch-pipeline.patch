@@ -1,0 +1,220 @@
+diff --git a/crates/vs1/src/batch_bench.rs b/crates/vs1/src/batch_bench.rs
+index feb7f69d77..be613203e5 100644
+--- a/crates/vs1/src/batch_bench.rs
++++ b/crates/vs1/src/batch_bench.rs
+@@ -282,6 +282,42 @@
+ 
+ #[test]
+ #[ignore = "requires CUDA and checkpoint; run alone"]
++fn paired_pipeline_latency() -> anyhow::Result<()> {
++    run_paired(&REFERENCE_PIPELINE)
++}
++
++#[test]
++#[ignore = "requires CUDA and checkpoint; run alone"]
++fn pipeline_preserves_partial_and_mixed_batches() -> anyhow::Result<()> {
++    use std::sync::atomic::Ordering;
++    let model = model()?;
++    let all = cases();
++    let source = &all.iter().find(|(name, _)| name == "mixed128").unwrap().1;
++    for n in [0, 1, 31, 32, 33, 63, 65, 97, 128] {
++        let mut requests = source[..n].to_vec();
++        if n > 0 {
++            requests.extend(
++                all.iter()
++                    .find(|(name, _)| name == "browser_call5")
++                    .unwrap()
++                    .1
++                    .clone(),
++            );
++        }
++        REFERENCE_PIPELINE.store(true, Ordering::Relaxed);
++        let expected = snapshot(&model.system_one_batch(&requests)?);
++        REFERENCE_PIPELINE.store(false, Ordering::Relaxed);
++        assert_eq!(
++            snapshot(&model.system_one_batch(&requests)?),
++            expected,
++            "n={n}"
++        );
++    }
++    Ok(())
++}
++
++#[test]
++#[ignore = "requires CUDA and checkpoint; run alone"]
+ fn parallel_preparation_preserves_sequences_and_errors() -> anyhow::Result<()> {
+     let model = model()?;
+     for (_, requests) in cases() {
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index 8bf9fac477..873b35ff15 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -54,6 +54,10 @@
+ static REFERENCE_PREP: std::sync::atomic::AtomicBool =
+     std::sync::atomic::AtomicBool::new(false);
+ 
++#[cfg(all(test, feature = "flash-attn"))]
++static REFERENCE_PIPELINE: std::sync::atomic::AtomicBool =
++    std::sync::atomic::AtomicBool::new(false);
++
+ // Bound CPU preparation independently of the application's Rayon pool.
+ static PREP_POOL: std::sync::OnceLock<Option<rayon::ThreadPool>> =
+     std::sync::OnceLock::new();
+@@ -82,6 +86,29 @@
+     act_probability: f32,
+ }
+ 
++#[cfg(feature = "flash-attn")]
++struct QueuedScores {
++    hidden: Tensor,
++    logits: Tensor,
++    offsets: Vec<u32>,
++}
++
++#[cfg(feature = "flash-attn")]
++impl QueuedScores {
++    fn read_and_pool(self) -> Result<(Tensor, Vec<Vec<f32>>)> {
++        let logits = self.logits.to_vec2::<f32>()?;
++        let batch = self.offsets.len();
++        let cls_index =
++            Tensor::from_vec(self.offsets, batch, self.hidden.device())?;
++        let pooled = self
++            .hidden
++            .index_select(&cls_index, 0)?
++            .to_dtype(DType::F32)?
++            .contiguous()?;
++        Ok((pooled, logits))
++    }
++}
++
+ /// A laya-style System One decision model.
+ ///
+ /// Build one with [`SystemOne::from`], then call
+@@ -278,15 +305,56 @@
+         order.sort_by_key(|&i| std::cmp::Reverse(items[i].2.ids.len()));
+ 
+         let mut outputs: Vec<Option<ItemOutput>> = vec![None; items.len()];
++        #[cfg(feature = "flash-attn")]
++        let pipeline = self.device.is_cuda() && items.len() > self.batch_size;
++        #[cfg(all(test, feature = "flash-attn"))]
++        let pipeline = pipeline
++            && !REFERENCE_PIPELINE.load(std::sync::atomic::Ordering::Relaxed);
++        #[cfg(feature = "flash-attn")]
++        let mut pending: Option<(&[usize], Vec<usize>, QueuedScores)> = None;
+         for chunk in order.chunks(self.batch_size) {
+             let batch: Vec<&EncodedItem> =
+                 chunk.iter().map(|&i| &items[i].2).collect();
++            #[cfg(feature = "flash-attn")]
++            if pipeline {
++                let previous = pending
++                    .take()
++                    .map(|(indices, counts, scores)| {
++                        scores.read_and_pool().map(|(pooled, rows)| {
++                            (indices, counts, pooled, rows)
++                        })
++                    })
++                    .transpose()?;
++                let collated = collate(&batch, self.special.pad);
++                let scores = self.queue_marker_logits_packed(&collated)?;
++                pending = Some((chunk, collated.option_counts, scores));
++                // The next encoder is already queued while the CPU computes
++                // this batch's confidence features. Keep every GEMM shape.
++                if let Some((indices, counts, pooled, rows)) = previous {
++                    let results = self.finish_batch(pooled, rows, &counts)?;
++                    for (&i, output) in indices.iter().zip(results) {
++                        outputs[i] = Some(output);
++                    }
++                }
++                continue;
++            }
+             let results = self.forward_batch(&batch)?;
+             for (&i, output) in chunk.iter().zip(results) {
+                 outputs[i] = Some(output);
+             }
+         }
+ 
++        #[cfg(feature = "flash-attn")]
++        if let Some((indices, counts, scores)) = pending {
++            let (pooled, rows) = scores.read_and_pool()?;
++            for (&i, output) in indices
++                .iter()
++                .zip(self.finish_batch(pooled, rows, &counts)?)
++            {
++                outputs[i] = Some(output);
++            }
++        }
++
+         let mut responses: Vec<SystemOneResponse> = requests
+             .iter()
+             .map(|_| SystemOneResponse {
+@@ -385,14 +453,23 @@
+         let collated = collate(items, self.special.pad);
+         let logits = self.marker_logits(&collated)?;
+         let (pooled, logits_rows) = logits;
++        self.finish_batch(pooled, logits_rows, &collated.option_counts)
++    }
++
++    fn finish_batch(
++        &self,
++        pooled: Tensor,
++        logits_rows: Vec<Vec<f32>>,
++        counts: &[usize],
++    ) -> Result<Vec<ItemOutput>> {
+         let features: Vec<f32> = logits_rows
+             .iter()
+-            .zip(&collated.option_counts)
++            .zip(counts)
+             .flat_map(|(row, &k)| action_features(row, k))
+             .collect();
+         let features = Tensor::from_vec(
+             features,
+-            (collated.batch, crate::head::ACTION_FEATURES),
++            (counts.len(), crate::head::ACTION_FEATURES),
+             &self.device,
+         )?;
+         let act = self
+@@ -401,7 +478,7 @@
+             .to_vec2::<f32>()?;
+         Ok(logits_rows
+             .into_iter()
+-            .zip(&collated.option_counts)
++            .zip(counts)
+             .zip(act)
+             .map(|((row, &k), act_row)| ItemOutput {
+                 logits: row[..k].to_vec(),
+@@ -420,6 +497,14 @@
+         &self,
+         collated: &Collated,
+     ) -> Result<(Tensor, Vec<Vec<f32>>)> {
++        self.queue_marker_logits_packed(collated)?.read_and_pool()
++    }
++
++    #[cfg(feature = "flash-attn")]
++    fn queue_marker_logits_packed(
++        &self,
++        collated: &Collated,
++    ) -> Result<QueuedScores> {
+         let shape = (collated.batch, collated.seq_len);
+         let input_ids =
+             Tensor::from_slice(&collated.input_ids, shape, &self.device)?;
+@@ -469,14 +554,12 @@
+             collated.max_markers,
+             hidden_size,
+         ))?;
+-        let logits = self.scorer.forward(&marked)?.to_vec2::<f32>()?;
+-        let cls_index =
+-            Tensor::from_vec(offsets, collated.batch, &self.device)?;
+-        let pooled = hidden
+-            .index_select(&cls_index, 0)?
+-            .to_dtype(DType::F32)?
+-            .contiguous()?;
+-        Ok((pooled, logits))
++        let logits = self.scorer.forward(&marked)?;
++        Ok(QueuedScores {
++            hidden,
++            logits,
++            offsets,
++        })
+     }
+ 
+     /// Runs the encoder and head; returns the F32 pooled `[CLS]`

@@ -96,3 +96,71 @@ pre-change binary passes too (`12-f32-baseline.json` / `12-f32-candidate.json`,
 10 measured calls each). All 44 default tests, FlashAttention all-target Clippy
 with warnings denied, formatting and Nix derivation evaluation pass before
 committing. No full Nix package rebuild is claimed.
+
+## 13. Pipeline existing GPU batches — rejected as inconclusive
+
+Fresh baseline includes experiment 12 (`996c60a68551`):
+`artifacts/cuda-optimization/13-baseline.json`, 10 measured calls per workload.
+The prototype splits packed scoring from response finalization. It reads and
+pools batch A, queues batch B's encoder and decision head, then computes A's
+CPU confidence features and queues A's action head. Only two batches are in
+flight; their membership, token order and matrix shapes stay unchanged. It
+applies only to CUDA/FlashAttention calls exceeding one batch.
+
+Forty adjacent pairs per workload give these median latency ratios:
+
+| Workload  | Paired change | Faster pairs |
+| --------- | ------------: | -----------: |
+| 64        |        +0.08% |        19/40 |
+| 128       |        +0.18% |        17/40 |
+| mixed128  |        +0.11% |        15/40 |
+| shared128 |        -0.12% |        22/40 |
+
+The target cases are essentially tied, with three slightly worse. Smaller
+calls do not use the pipeline and serve as noisy controls; their deltas range
+from -0.73% to +0.35%. There is no demonstrated throughput/latency improvement
+worth retaining the scheduling complexity. All 360 paired full-response/action
+checks pass, as does a separate comparison of partial batches and mixed question
+kinds. No claim of an isolated regression of 0.1% is made.
+
+The profile explains the limited opportunity: CPU confidence is tiny compared
+with encoder/head execution, and this prototype preserves a single sequential
+GPU stream. Reordering work does not reduce GPU arithmetic or eliminate the
+necessary readbacks. This is an explanation from stage measurements and code,
+not an occupancy trace or proof that all pipelining designs would fail.
+
+The implementation and opt-in tests are archived in `13-batch-pipeline.patch`
+against `996c60a68551`; their source changes were restored with Jujutsu.
+`13-paired.json` retains every measured workload. The production runtime remains
+the already validated parallel-preparation commit.
+
+## Scope and reproduction
+
+Concurrent CUDA streams were conditional on finding spare GPU capacity. The
+available profile establishes that GPU computation dominates but does not
+resolve kernel occupancy or stream-overlap potential. No concurrent-stream
+optimization was implemented or benchmarked, and no speedup/rejection is
+claimed for it. A kernel timeline/occupancy trace is still needed to assess that
+separate experiment. The changes above improve local inference; they do not
+measure Jev service or complete browser-task latency.
+
+Fresh expanded standalone baseline:
+
+```sh
+direnv exec . bash -c 'export LD_LIBRARY_PATH=/run/opengl-driver/lib:$LD_LIBRARY_PATH; VS1_BENCH_LARGE=1 cargo run --release -p vs1 --features flash-attn --example cuda_bench -- artifacts/cuda-optimization/baseline.json 20'
+```
+
+After applying a candidate, pass the baseline file as the third example argument
+to check full response/action equality, alternate content and changing shapes.
+Opt-in paired preparation measurement:
+
+```sh
+direnv exec . bash -c 'export LD_LIBRARY_PATH=/run/opengl-driver/lib:$LD_LIBRARY_PATH; cargo test --release -p vs1 --features flash-attn paired_preparation_latency -- --ignored --nocapture --test-threads=1'
+```
+
+Other test filters are `preparation_cpu_latency`,
+`parallel_preparation_preserves_sequences_and_errors` and `profile_batch_stages`.
+The stage profiler intentionally retains serial preparation to reproduce the
+pre-change diagnostic. To reproduce experiment 13, apply its archived patch in
+an isolated checkout and run `paired_pipeline_latency` and
+`pipeline_preserves_partial_and_mixed_batches`. Never overlap GPU benchmark runs.
