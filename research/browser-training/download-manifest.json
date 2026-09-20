@@ -1,0 +1,116 @@
+{
+  "scope": "Training splits only. Convenience samples, not population estimates.",
+  "sources": {
+    "mind2web": ["osunlp/Mind2Web", "17ece8eb89862368edc0cc806acee6fca5163474"],
+    "typed-decisions": ["LocalLLaMA/typed-decisions", "ea9306458d6e9563628369a3d1e72e362fb381d2"],
+    "webworld": ["Qwen/WebWorldData", "e108c5f8e35445c9ddff71cde2a5b1fc4db4020c"]
+  },
+  "mind2web": {
+    "downloads": [
+      {
+        "dataset": "osunlp/Mind2Web",
+        "revision": "17ece8eb89862368edc0cc806acee6fca5163474",
+        "path": "data/train/train_0.json",
+        "url": "https://huggingface.co/datasets/osunlp/Mind2Web/resolve/17ece8eb89862368edc0cc806acee6fca5163474/data/train/train_0.json",
+        "http_status": 206,
+        "content_range": "bytes 0-8388607/616000823",
+        "bytes_received": 8388608,
+        "sha256": "4345b19c3391888ccf4ddb4b4e0c0d8e4e6d46ebafe97e077cbbc1969820d864"
+      },
+      {
+        "dataset": "osunlp/Mind2Web",
+        "revision": "17ece8eb89862368edc0cc806acee6fca5163474",
+        "path": "data/train/train_5.json",
+        "url": "https://huggingface.co/datasets/osunlp/Mind2Web/resolve/17ece8eb89862368edc0cc806acee6fca5163474/data/train/train_5.json",
+        "http_status": 206,
+        "content_range": "bytes 0-8388607/605777777",
+        "bytes_received": 8388608,
+        "sha256": "66afea5e69783340fe69b42d872720ef25bc03e1317a1faeb84b630c07623f3d"
+      },
+      {
+        "dataset": "osunlp/Mind2Web",
+        "revision": "17ece8eb89862368edc0cc806acee6fca5163474",
+        "path": "data/train/train_5.json",
+        "url": "https://huggingface.co/datasets/osunlp/Mind2Web/resolve/17ece8eb89862368edc0cc806acee6fca5163474/data/train/train_5.json",
+        "http_status": 206,
+        "content_range": "bytes 0-16777215/605777777",
+        "bytes_received": 16777216,
+        "sha256": "c7ee9c4150f867d51ac24b9cc882c99f84bbe86cc6d6505ea5b971e2c3f65b40"
+      },
+      {
+        "dataset": "osunlp/Mind2Web",
+        "revision": "17ece8eb89862368edc0cc806acee6fca5163474",
+        "path": "data/train/train_10.json",
+        "url": "https://huggingface.co/datasets/osunlp/Mind2Web/resolve/17ece8eb89862368edc0cc806acee6fca5163474/data/train/train_10.json",
+        "http_status": 206,
+        "content_range": "bytes 0-8388607/28366146",
+        "bytes_received": 8388608,
+        "sha256": "8a5f0c6a93f7386b6c7375032eddcb6088e191c942c3cf90daf0cc49ad92aee9"
+      }
+    ],
+    "sample": {
+      "file": "artifacts/browser-training/samples/mind2web-sample.jsonl",
+      "records": 6,
+      "sha256": "62d33e2c03d3bec2477b20a561bdd8804a2179f8103a4bdaef04c780cbe4228e"
+    }
+  },
+  "typed-decisions": {
+    "downloads": [
+      {
+        "dataset": "LocalLLaMA/typed-decisions",
+        "revision": "ea9306458d6e9563628369a3d1e72e362fb381d2",
+        "path": "all/train-00000-of-00001.parquet",
+        "url": "https://huggingface.co/datasets/LocalLLaMA/typed-decisions/resolve/ea9306458d6e9563628369a3d1e72e362fb381d2/all/train-00000-of-00001.parquet",
+        "http_status": 200,
+        "content_range": null,
+        "bytes_received": 598824,
+        "sha256": "46a58d63edfd86e23229c78afe8b72307bb4ca9fb0e8df180cabb3c67ec9dcd5"
+      }
+    ],
+    "full_train_rows": 1200,
+    "sample": {
+      "file": "artifacts/browser-training/samples/typed-decisions-sample.jsonl",
+      "records": 12,
+      "sha256": "59b34dc2ae8ed5dfa0a65cf3648587e65a5110d8ea5d1d4531c86329f3836e4a"
+    }
+  },
+  "webworld": {
+    "downloads": [
+      {
+        "dataset": "Qwen/WebWorldData",
+        "revision": "e108c5f8e35445c9ddff71cde2a5b1fc4db4020c",
+        "path": "WebWorld_Training.jsonl",
+        "url": "https://huggingface.co/datasets/Qwen/WebWorldData/resolve/e108c5f8e35445c9ddff71cde2a5b1fc4db4020c/WebWorld_Training.jsonl",
+        "http_status": 206,
+        "content_range": "bytes 0-8388607/52243347728",
+        "bytes_received": 8388608,
+        "sha256": "43d233fc995e8c6aa6528c690b722bf3b5d1b293667a1f5f7b5c0b249d272aa7"
+      },
+      {
+        "dataset": "Qwen/WebWorldData",
+        "revision": "e108c5f8e35445c9ddff71cde2a5b1fc4db4020c",
+        "path": "WebWorld_Training.jsonl",
+        "url": "https://huggingface.co/datasets/Qwen/WebWorldData/resolve/e108c5f8e35445c9ddff71cde2a5b1fc4db4020c/WebWorld_Training.jsonl",
+        "http_status": 206,
+        "content_range": "bytes 17414449242-17422837849/52243347728",
+        "bytes_received": 8388608,
+        "sha256": "ecc51101ef1a60f87af8ece12a7c4b23832e06d0ffc0bde1497c7b1700f1fcec"
+      },
+      {
+        "dataset": "Qwen/WebWorldData",
+        "revision": "e108c5f8e35445c9ddff71cde2a5b1fc4db4020c",
+        "path": "WebWorld_Training.jsonl",
+        "url": "https://huggingface.co/datasets/Qwen/WebWorldData/resolve/e108c5f8e35445c9ddff71cde2a5b1fc4db4020c/WebWorld_Training.jsonl",
+        "http_status": 206,
+        "content_range": "bytes 34828898485-34837287092/52243347728",
+        "bytes_received": 8388608,
+        "sha256": "fd35481f6446beffc10bf3e15f1a842efb809c5c6fcd18f91336f39b88d924eb"
+      }
+    ],
+    "sample": {
+      "file": "artifacts/browser-training/samples/webworld-sample.jsonl",
+      "records": 12,
+      "sha256": "c31711d66c37d7974dcfcb8506cee8a576e432790e3722195e6c777975740008"
+    }
+  }
+}

@@ -1,0 +1,222 @@
+{
+  "scope": "Small convenience samples; no population-quality estimate.",
+  "tokenizer_sha256": "6c8aaa9a542084f2457eab775d4eeb51f92a70c0fd9de28d5edb0ddec3c08d30",
+  "token_counts": "Source text only, without question/options; no truncation.",
+  "mind2web": {
+    "tasks": 6,
+    "websites": ["exploretock", "sports.yahoo", "yelp"],
+    "steps": 49,
+    "task_keys": [
+      "website",
+      "domain",
+      "subdomain",
+      "annotation_id",
+      "confirmed_task",
+      "action_reprs",
+      "actions"
+    ],
+    "step_keys": [
+      "action_uid",
+      "raw_html",
+      "cleaned_html",
+      "operation",
+      "pos_candidates",
+      "neg_candidates"
+    ],
+    "operations": {
+      "SELECT": 6,
+      "CLICK": 38,
+      "TYPE": 5
+    },
+    "original_operations": {
+      "SELECT": 6,
+      "CLICK": 36,
+      "TYPE": 5,
+      "HOVER": 2
+    },
+    "steps_without_positive_candidates": 6,
+    "steps_with_multiple_positive_candidates": 0,
+    "positive_candidates_missing_in_raw_html": 0,
+    "positive_tags": {
+      "select": 6,
+      "svg": 8,
+      "input": 10,
+      "button": 13,
+      "a": 6
+    },
+    "positive_attribute_names": {
+      "backend_node_id": 43,
+      "bounding_box_rect": 43,
+      "class": 43,
+      "id": 16,
+      "name": 13,
+      "data_pw_testid_buckeye_candidate": 43,
+      "placeholder": 7,
+      "type": 17,
+      "value": 11,
+      "input_value": 10,
+      "is_clickable": 18,
+      "aria_label": 11,
+      "role": 7,
+      "title": 1
+    },
+    "positive_counts": {
+      "n": 49,
+      "min": 0,
+      "median": 1,
+      "p95_nearest_rank": 1,
+      "max": 1
+    },
+    "negative_counts": {
+      "n": 49,
+      "min": 56,
+      "median": 213,
+      "p95_nearest_rank": 673,
+      "max": 684
+    },
+    "raw_html_tokens": {
+      "n": 49,
+      "min": 11798,
+      "median": 38309,
+      "p95_nearest_rank": 208689,
+      "max": 212072
+    },
+    "cleaned_html_tokens": {
+      "n": 49,
+      "min": 3746,
+      "median": 13203,
+      "p95_nearest_rank": 59676,
+      "max": 81590
+    },
+    "select_mapping_checks": [
+      {
+        "annotation_value": "Pickup",
+        "option_count": 6,
+        "matches_value": false,
+        "matches_text": true,
+        "alphanumeric_label_match_count": 1,
+        "resolved_value_if_unique": "pickup"
+      },
+      {
+        "annotation_value": "5 00 PM",
+        "option_count": 48,
+        "matches_value": false,
+        "matches_text": false,
+        "alphanumeric_label_match_count": 1,
+        "resolved_value_if_unique": "17:00"
+      },
+      {
+        "annotation_value": "1 guest",
+        "option_count": 11,
+        "matches_value": false,
+        "matches_text": true,
+        "alphanumeric_label_match_count": 1,
+        "resolved_value_if_unique": "1"
+      },
+      {
+        "annotation_value": "Wineries",
+        "option_count": 6,
+        "matches_value": false,
+        "matches_text": true,
+        "alphanumeric_label_match_count": 1,
+        "resolved_value_if_unique": "wineries"
+      },
+      {
+        "annotation_value": "10 00 AM",
+        "option_count": 48,
+        "matches_value": false,
+        "matches_text": false,
+        "alphanumeric_label_match_count": 1,
+        "resolved_value_if_unique": "10:00"
+      },
+      {
+        "annotation_value": "4 guests",
+        "option_count": 10,
+        "matches_value": false,
+        "matches_text": true,
+        "alphanumeric_label_match_count": 1,
+        "resolved_value_if_unique": "4"
+      }
+    ]
+  },
+  "typed_decisions": {
+    "sample_cases": 12,
+    "questions": 60,
+    "question_types": {
+      "choice": 18,
+      "noul": 18,
+      "score": 24
+    },
+    "workflows": {
+      "agent_trace_observability": 3,
+      "customer_service": 3,
+      "invoice_processing": 3,
+      "security_incidents": 3
+    },
+    "record_keys": [
+      "id",
+      "workflow",
+      "split",
+      "state",
+      "questions",
+      "gold",
+      "factors",
+      "label_agreement",
+      "n_questions"
+    ],
+    "json_encoded_columns": ["state", "questions", "gold", "factors", "label_agreement"],
+    "state_tokens": {
+      "n": 12,
+      "min": 92,
+      "median": 244.0,
+      "p95_nearest_rank": 301,
+      "max": 301
+    },
+    "options_per_question": {
+      "n": 60,
+      "min": 2,
+      "median": 4.0,
+      "p95_nearest_rank": 5,
+      "max": 5
+    },
+    "maximum_probability_sum_error": 1.000000000139778e-6
+  },
+  "webworld": {
+    "trajectories": 12,
+    "record_keys": ["conversations"],
+    "conversation_roles": {
+      "human": 42,
+      "gpt": 42
+    },
+    "conversation_message_counts": {
+      "n": 12,
+      "min": 2,
+      "median": 6.0,
+      "p95_nearest_rank": 16,
+      "max": 16
+    },
+    "transitions": 42,
+    "operations": {
+      "click": 31,
+      "goto": 5,
+      "send_msg_to_user": 1,
+      "fill": 2,
+      "noop": 2,
+      "focus": 1
+    },
+    "parse_errors": [],
+    "element_actions_with_missing_target": 1,
+    "identical_state_transitions": 0,
+    "pre_state_tokens": {
+      "n": 42,
+      "min": 14,
+      "median": 2219.5,
+      "p95_nearest_rank": 11139,
+      "max": 18049
+    },
+    "pre_states_over_2048_tokens": 24,
+    "pre_states_over_8192_tokens": 3,
+    "explicit_goal_or_success_metadata": false,
+    "metadata_observation": "Only conversations keys; user turns request state prediction, not a goal-directed policy."
+  }
+}
