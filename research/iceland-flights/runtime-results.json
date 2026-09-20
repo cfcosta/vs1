@@ -1,0 +1,975 @@
+{
+  "runs": [
+    {
+      "name": "runtime-keflavik-1",
+      "stage": "before semantic cycle recovery",
+      "summary": {
+        "status": "error",
+        "elapsed_ms": 54926.625197999994,
+        "setup_ms": 1028.6560279999999,
+        "error": "action budget exhausted",
+        "verification": {
+          "passed": false
+        },
+        "actions": 60,
+        "decisions": 85,
+        "accepted_responses": 85,
+        "decision_median_ms": 491.518959,
+        "decision_total_ms": 37035.779969,
+        "text_calls": 1,
+        "text_total_ms": 815.1757160000001,
+        "cdp_calls": 500,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "history": [
+        {
+          "step": 1,
+          "action": "Where to? ",
+          "kind": "fill",
+          "page_changed": true
+        },
+        {
+          "step": 2,
+          "action": "Keflavík International Airport (KEF)",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 3,
+          "action": "Change ticket type. Round trip",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 4,
+          "action": "One way",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 5,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 6,
+          "action": "Thursday, October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 7,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 8,
+          "action": "Search",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 9,
+          "action": "Wait for the page to update",
+          "kind": "wait",
+          "page_changed": true
+        },
+        {
+          "step": 10,
+          "action": "Cheapest from   Fetching results   3676 Brazilian reals Learn more about ranking Looking for the lowest fares?   These additional budget picks help you save but may involve trade-offs, such as flying back to a different airport in the same city you departed from, self-transferring luggage, or booking via a third-party site.   Learn more about how flights are ranked",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 11,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 12,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 13,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 14,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 15,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 16,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 17,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 18,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 19,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 20,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 21,
+          "action": "Done. Search for one-way flights, departing on October 20, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 22,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 23,
+          "action": "Thursday, October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 24,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 25,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 26,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 27,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 28,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 29,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 30,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 31,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 32,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 33,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 34,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 35,
+          "action": "Done. Search for one-way flights, departing on October 20, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 36,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 37,
+          "action": "Thursday, October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 38,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 39,
+          "action": "Tuesday, October 20, 2026, departure date. , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": false
+        },
+        {
+          "step": 40,
+          "action": "Thursday, October 22, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 41,
+          "action": "Done. Search for one-way flights, departing on October 22, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 42,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 43,
+          "action": "Thursday, October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 44,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 45,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 46,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 47,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 48,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 49,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 50,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 51,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 52,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 53,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 54,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 55,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 56,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 57,
+          "action": "Done. Search for one-way flights, departing on October 20, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 58,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 59,
+          "action": "Thursday, October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 60,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        }
+      ],
+      "keyboard_observations": [],
+      "final_text": "Reset\nSeptember\n20\n5,780\n21\n5,790\n22\n9,220\n23\n13.6K\n24\n9,220\n25\n5,820\n26\n4,750\n27\n4,750\n28\n4,800\n29\n4,800\n30\n4,800\nOctober\n1\n5,320\n2\n2,750\n3\n4,080\n4\n6,140\n5\n5,350\n6\n4,800\n7\n5,320\n8\n5,850\n9\n4,980\n10\n4,950\n11\n4,800\n12\n4,800\n13\n4,140\n14\n4,060\n15\n4,140\n16\n2,890\n17\n3,400\n18\n4,070\n19\n3,530\n20\n2,720\n21\n3,780\n22\n2,720\n23\n2,950\n24\n2,720\n25\n6,720\n26\n4,550\n27\n2,910\n28\n5,320\n29\n4,590\n30\n4,590\n31\n5,190\n1\n8\n15\n22\n29\nUnderlined prices indicate cheapest compared with other prices shown\nfrom R$2,720\none way price\nDone"
+    },
+    {
+      "name": "runtime-keflavik-2",
+      "stage": "semantic cycle recovery, before snapshot hit testing",
+      "summary": {
+        "status": "error",
+        "elapsed_ms": 57201.995945,
+        "setup_ms": 1018.540215,
+        "error": "model-call budget exhausted",
+        "verification": {
+          "passed": false
+        },
+        "actions": 43,
+        "decisions": 120,
+        "accepted_responses": 120,
+        "decision_median_ms": 290.19359499999996,
+        "decision_total_ms": 37330.68261999999,
+        "text_calls": 1,
+        "text_total_ms": 691.480222,
+        "cdp_calls": 683,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "history": [
+        {
+          "step": 1,
+          "action": "Where to? ",
+          "kind": "fill",
+          "page_changed": true
+        },
+        {
+          "step": 2,
+          "action": "Keflavík International Airport (KEF)",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 3,
+          "action": "Change ticket type. Round trip",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 4,
+          "action": "One way",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 5,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 6,
+          "action": "Thursday, October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 7,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 8,
+          "action": "Search",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 9,
+          "action": "Wait for the page to update",
+          "kind": "wait",
+          "page_changed": true
+        },
+        {
+          "step": 10,
+          "action": "Price graph",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 11,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 12,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 13,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 14,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 15,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 16,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 17,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 18,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 19,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 20,
+          "action": "Price graph → End",
+          "kind": "key",
+          "page_changed": false
+        },
+        {
+          "step": 21,
+          "action": "Price graph → Home",
+          "kind": "key",
+          "page_changed": false
+        },
+        {
+          "step": 22,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 23,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 24,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 25,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 26,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 27,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 28,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 29,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 30,
+          "action": "Price graph → End",
+          "kind": "key",
+          "page_changed": false
+        },
+        {
+          "step": 31,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 32,
+          "action": "Price graph → Home",
+          "kind": "key",
+          "page_changed": false
+        },
+        {
+          "step": 33,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 34,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 35,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 36,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 37,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 38,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 39,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 40,
+          "action": "Price graph → ArrowRight",
+          "kind": "key",
+          "page_changed": true
+        },
+        {
+          "step": 41,
+          "action": "Price graph → End",
+          "kind": "key",
+          "page_changed": false
+        },
+        {
+          "step": 42,
+          "action": "Price graph → Home",
+          "kind": "key",
+          "page_changed": false
+        },
+        {
+          "step": 43,
+          "action": "Dates",
+          "kind": "click",
+          "page_changed": true
+        }
+      ],
+      "keyboard_observations": [
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nGetting prices\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nFri, Oct 2\nFrom\nR$2,749\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSat, Oct 3\nFrom\nR$4,076\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSun, Oct 4\nFrom\nR$6,137\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nMon, Oct 5\nFrom\nR$5,351\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nTue, Oct 6\nFrom\nR$4,797\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nWed, Oct 7\nFrom\nR$5,323\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nThu, Oct 8\nFrom\nR$5,849\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nFri, Oct 9\nFrom\nR$4,977\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → End",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSat, Oct 10\nFrom\nR$4,948\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → Home",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSat, Oct 10\nFrom\nR$4,948\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSat, Oct 10\nFrom\nR$4,948\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSun, Oct 11\nFrom\nR$4,797\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nMon, Oct 12\nFrom\nR$4,797\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nTue, Oct 13\nFrom\nR$4,137\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nWed, Oct 14\nFrom\nR$4,064\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nThu, Oct 15\nFrom\nR$4,137\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nFri, Oct 16\nFrom\nR$2,888\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSat, Oct 17\nFrom\nR$3,401\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → End",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSun, Oct 18\nFrom\nR$4,067\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSun, Oct 18\nFrom\nR$4,067\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → Home",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nMon, Oct 19\nFrom\nR$3,528\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nMon, Oct 19\nFrom\nR$3,528\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nTue, Oct 20\nFrom\nR$2,720\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nWed, Oct 21\nFrom\nR$3,775\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nThu, Oct 22\nFrom\nR$2,720\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nFri, Oct 23\nFrom\nR$2,950\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSat, Oct 24\nFrom\nR$2,720\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nSun, Oct 25\nFrom\nR$6,719\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → ArrowRight",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nMon, Oct 26\nFrom\nR$4,546\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → End",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nTue, Oct 27\nFrom\nR$2,906\nCancel\nOK"
+        },
+        {
+          "action": "Price graph → Home",
+          "text": "Dates\nPrice graph\nOne-way trip\nThu, Oct 1\nFrom\nR$5,320\nOne-way trip\nTue, Oct 27\nFrom\nR$2,906\nCancel\nOK"
+        }
+      ],
+      "final_text": "Dates\nPrice graph\nCheapest\nCompared with other prices shown\nDeparture\n0000\nMon\nSep 28\nTue\nSep 29\nWed\nSep 30\nThu\nOct 1\nFri\nOct 2\nSat\nOct 3\nSun\nOct 4\nMon\nOct 5\nR$4,797\nR$4,797\nR$4,797\nR$5,320\nR$2,749\nR$4,076\nR$6,137\nR$5,351\nOct 1\nR$5,320\n· One way\nCancel\nOK"
+    },
+    {
+      "name": "graph-keyboard-smoke",
+      "stage": "semantic cycle recovery, before snapshot hit testing",
+      "summary": {
+        "status": "blocked",
+        "elapsed_ms": 3723.61305,
+        "setup_ms": 1456.565989,
+        "error": null,
+        "verification": {
+          "passed": null,
+          "reason": "No independent verifier supplied; DONE is only a model claim."
+        },
+        "actions": 5,
+        "decisions": 7,
+        "accepted_responses": 7,
+        "decision_median_ms": 291.768355,
+        "decision_total_ms": 2748.24694,
+        "text_calls": 0,
+        "text_total_ms": -0.0,
+        "cdp_calls": 34,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "history": [
+        {
+          "step": 1,
+          "action": "View price history",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 2,
+          "action": "View price history",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 3,
+          "action": "Wait for the page to update",
+          "kind": "wait",
+          "page_changed": true
+        },
+        {
+          "step": 4,
+          "action": "View price history",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 5,
+          "action": "View price history",
+          "kind": "click",
+          "page_changed": true
+        }
+      ],
+      "keyboard_observations": [],
+      "final_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals\nFlight search\n1\nFilters\nAll filters\nStops\nAirlines\nBags\nPrice\nTimes\nEmissions\nConnecting airports\nDuration\nSearch results\n12 results returned.\nBest\nCheapest\nfrom\nR$2,570\nTop flights\nRanked based on price and convenience\nPrices include required taxes + fees for 1 adult.\nOptional charges and\nbag fees\nmay apply.\nPassenger assistance\ninfo.\nSorted by top flights\n10:20 PM\n–\n8:50 AM\n+\n2\nUnited\n31 hr 30 min\n1 stop\n14 hr 50 min\nORD\nR$2,720\n9:35 PM\n–\n8:45 AM\n+\n2\nAir Canada\nOperated by Air Canada Rouge\n32 hr 10 min\n1 stop\n16 hr 26 min\nYYZ\nR$3,799\n9:45 PM\n–\n7:00 PM\n+\n1\nKLM, Transavia\n18 hr 15 min\n1 stop\n3 hr 25 min\nAMS\nR$4,221\n7:10 PM\n–\n7:00 PM\n+\n1\nGol, KLM, Transavia\n20 hr 50 min\n2 stops\nGIG\n,\nAMS\nR$4,433\nPrice insights\nPrices are currently\nlow\n—\nR$1,641\ncheaper than usual for your search"
+    },
+    {
+      "name": "runtime-keflavik-3",
+      "stage": "final runtime with snapshot hit testing",
+      "summary": {
+        "status": "blocked",
+        "elapsed_ms": 8334.842489,
+        "setup_ms": 995.419697,
+        "error": null,
+        "verification": {
+          "passed": false
+        },
+        "actions": 9,
+        "decisions": 12,
+        "accepted_responses": 12,
+        "decision_median_ms": 302.343833,
+        "decision_total_ms": 4393.5980660000005,
+        "text_calls": 1,
+        "text_total_ms": 921.845916,
+        "cdp_calls": 80,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "history": [
+        {
+          "step": 1,
+          "action": "Where to? ",
+          "kind": "fill",
+          "page_changed": true
+        },
+        {
+          "step": 2,
+          "action": "Open Where to? ",
+          "kind": "click",
+          "page_changed": false
+        },
+        {
+          "step": 3,
+          "action": "Destination, Select multiple airports",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 4,
+          "action": "Done",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 5,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 6,
+          "action": "Thursday, October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 7,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 8,
+          "action": "Explore destinations",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 9,
+          "action": "Flights",
+          "kind": "click",
+          "page_changed": true
+        }
+      ],
+      "final_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals"
+    }
+  ],
+  "manual_graph_probe": {
+    "before": {
+      "text": "Dates\nPrice graph\nOne-way trip\nTue, Oct 20\nFrom\nR$2,720\nOne-way trip\nThu, Oct 22\nFrom\nR$2,720\nCancel\nOK",
+      "graphics": [
+        {
+          "label": "Price graph",
+          "text": "November | December | R$7,500 | R$5,000 | R$2,500 | R$0",
+          "keyboard": true,
+          "limitation": "Only rendered labels are observed; plotted values are not inferred. Use keyboard inspection or an alternative table/calendar when needed."
+        }
+      ]
+    },
+    "after": {
+      "text": "Dates\nPrice graph\nOne-way trip\nTue, Oct 20\nFrom\nR$2,720\nOne-way trip\nFri, Oct 23\nFrom\nR$2,950\nCancel\nOK",
+      "graphics": [
+        {
+          "label": "Price graph",
+          "text": "November | December | R$7,500 | R$5,000 | R$2,500 | R$0",
+          "keyboard": true,
+          "limitation": "Only rendered labels are observed; plotted values are not inferred. Use keyboard inspection or an alternative table/calendar when needed."
+        }
+      ]
+    }
+  }
+}

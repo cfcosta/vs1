@@ -191,6 +191,18 @@ impl Browser {
         Err(Stale("page did not settle").into())
     }
 
+    pub fn observe_effect(&mut self, previous: &Value) -> Result<Value> {
+        let mut page = self.observe()?;
+        let deadline = Instant::now() + Duration::from_millis(1200);
+        while page["fingerprint"] == previous["fingerprint"]
+            && Instant::now() < deadline
+        {
+            thread::sleep(Duration::from_millis(100));
+            page = self.observe()?;
+        }
+        Ok(page)
+    }
+
     fn settle_after_input(
         &mut self,
         action: &Value,
@@ -232,9 +244,9 @@ impl Browser {
         page: &Value,
         action: Option<&Value>,
     ) -> Result<bool> {
-        if let Some(action) =
-            action.filter(|a| a["kind"] == "click" || a["kind"] == "select")
-        {
+        if let Some(action) = action.filter(|a| {
+            a["kind"] == "click" || a["kind"] == "select" || a["kind"] == "key"
+        }) {
             let node =
                 action["node"].as_u64().context("invalid observed node")?;
             let script = format!(
@@ -267,7 +279,7 @@ impl Browser {
             "scroll" => {
                 self.call("Input.dispatchMouseEvent", json!({"type":"mouseWheel","x":550,"y":650,"deltaX":0,"deltaY":action["delta"]}))?;
             }
-            "click" | "fill" | "select" => {
+            "click" | "fill" | "select" | "key" => {
                 ensure!(
                     action["node"].as_u64().is_some(),
                     "invalid observed node"
@@ -293,7 +305,20 @@ impl Browser {
                 {
                     return Err(Stale("target changed or is covered").into());
                 }
-                if kind != "select" {
+                if kind == "key" {
+                    let key = action["key"].as_str().context("missing key")?;
+                    let code = match key {
+                        "ArrowLeft" => 37,
+                        "ArrowRight" => 39,
+                        "Home" => 36,
+                        "End" => 35,
+                        "Enter" => 13,
+                        _ => bail!("unsupported key"),
+                    };
+                    for event in ["keyDown", "keyUp"] {
+                        self.call("Input.dispatchKeyEvent", json!({"type":event,"key":key,"code":key,"windowsVirtualKeyCode":code}))?;
+                    }
+                } else if kind != "select" {
                     let p = &result["result"]["value"];
                     for event in ["mousePressed", "mouseReleased"] {
                         self.call("Input.dispatchMouseEvent", json!({"type":event,"x":p["x"],"y":p["y"],"button":"left","clickCount":1}))?;
@@ -356,8 +381,25 @@ impl Browser {
 }
 
 fn fingerprint(page: &mut Value) {
-    let content =
-        json!([page["url"], page["text"], page["actions"], page["scroll"]]);
+    // Progress is semantic. DOM identity and geometry remain in freshness guards,
+    // but replacing an identical node or animating it is not task progress.
+    let mut actions = page["actions"].clone();
+    if let Some(actions) = actions.as_array_mut() {
+        for action in actions {
+            if let Some(action) = action.as_object_mut() {
+                for key in ["node", "id", "rect"] {
+                    action.remove(key);
+                }
+            }
+        }
+    }
+    let content = json!([
+        page["url"],
+        page["text"],
+        actions,
+        page["scroll"],
+        page["graphics"]
+    ]);
     page["fingerprint"] = json!(format!(
         "{:x}",
         Sha256::digest(content.to_string().as_bytes())
@@ -431,6 +473,20 @@ mod tests {
     }
 
     #[test]
+    fn progress_ignores_geometry_and_replacement_but_tracks_graph_labels() {
+        let mut a = json!({"text":"Chart", "actions":[{"node":1,"id":"e1","rect":{"x":1},"label":"Next","kind":"click"}],"graphics":[{"text":"October"}]});
+        fingerprint(&mut a);
+        let mut b = a.clone();
+        b["actions"][0]["node"] = json!(2);
+        b["actions"][0]["rect"]["x"] = json!(300);
+        fingerprint(&mut b);
+        assert_eq!(a["fingerprint"], b["fingerprint"]);
+        b["graphics"][0]["text"] = json!("November");
+        fingerprint(&mut b);
+        assert_ne!(a["fingerprint"], b["fingerprint"]);
+    }
+
+    #[test]
     fn post_input_wait_reobserves_without_replaying_mutations() {
         let (mut browser, worker) = fake(vec![
             json!({"result":{"value":{"ready":false,"waiting_for_menu":true,"page":{"text":"old page"}}}}),
@@ -496,6 +552,90 @@ mod tests {
             .unwrap();
         browser.act(option, &ready, None).unwrap();
         assert_eq!(browser.evaluate("window.selected").unwrap(), true);
+    }
+
+    #[test]
+    #[ignore = "requires Chrome CDP on port 9222"]
+    fn keyboard_graph_exposes_labels_and_inspects_without_clicking() {
+        let html = r#"<title>Chart</title><style>[role=region]{width:400px;height:200px}svg{width:300px;height:100px}</style>
+        <div role="region" tabindex="0" aria-label="Fare chart" onclick="window.clicks=(window.clicks||0)+1"
+          onkeydown="if(event.key==='ArrowRight'){document.querySelector('#value').textContent='October 21: R$3775';window.keys=(window.keys||0)+1}">
+          <svg aria-hidden="true"><text x="10" y="30">October</text><text x="10" y="60" opacity="0">SECRET</text></svg>
+          <p id="value">October 20: R$2720</p>
+        </div><div aria-hidden="true"><svg><text x="10" y="30">HIDDEN</text></svg></div>"#;
+        let url = format!("data:text/html;base64,{}", STANDARD.encode(html));
+        let mut browser =
+            Browser::connect("http://127.0.0.1:9222", &url).unwrap();
+        let page = browser.observe().unwrap();
+        assert_eq!(page["graphics"][0]["text"], "October");
+        assert_eq!(page["graphics"].as_array().unwrap().len(), 1);
+        let action = page["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|a| a["key"] == "ArrowRight")
+            .unwrap();
+        browser.act(action, &page, None).unwrap();
+        let next = browser.observe_effect(&page).unwrap();
+        assert!(
+            next["text"]
+                .as_str()
+                .unwrap()
+                .contains("October 21: R$3775")
+        );
+        assert_ne!(next["fingerprint"], page["fingerprint"]);
+        assert_eq!(browser.evaluate("window.keys").unwrap(), 1);
+        assert_eq!(browser.evaluate("window.clicks || 0").unwrap(), 0);
+        browser.evaluate("document.body.insertAdjacentHTML('beforeend', '<div id=cover style=\"position:fixed;inset:0;background:white;z-index:9999\"></div>')").unwrap();
+        assert!(
+            !browser.observe().unwrap()["actions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|a| a["kind"] == "key")
+        );
+        assert!(
+            browser
+                .act(action, &page, None)
+                .unwrap_err()
+                .downcast_ref::<Stale>()
+                .is_some()
+        );
+        assert_eq!(browser.evaluate("window.keys").unwrap(), 1);
+        browser
+            .evaluate("document.querySelector('#cover').remove()")
+            .unwrap();
+        browser.evaluate("document.querySelector('[role=region]').setAttribute('aria-disabled','true')").unwrap();
+        assert!(
+            !browser.observe().unwrap()["actions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|a| a["kind"] == "key")
+        );
+    }
+
+    #[test]
+    fn interrupted_key_release_is_not_retried() {
+        let (mut browser, worker) = fake(vec![
+            fresh_result(),
+            json!({"result":{"value":{"x":5,"y":5}}}),
+            json!({}),
+            json!({"protocol_error":true}),
+        ]);
+        let action =
+            json!({"id":"e1","kind":"key","node":1,"key":"ArrowRight"});
+        let error = browser.act(&action, &page(), None).unwrap_err();
+        assert!(error.downcast_ref::<Stale>().is_none());
+        assert_eq!(
+            worker.join().unwrap(),
+            [
+                "Runtime.evaluate",
+                "Runtime.evaluate",
+                "Input.dispatchKeyEvent",
+                "Input.dispatchKeyEvent"
+            ]
+        );
     }
 
     #[test]

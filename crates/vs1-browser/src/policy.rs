@@ -24,6 +24,7 @@ pub fn action_space(page: &Value) -> Result<Space> {
             "click" => "CLICK",
             "fill" => "TYPE_TEXT",
             "select" => "SELECT",
+            "key" => "PRESS_KEY",
             _ => {
                 controls.insert(
                     action["id"].as_str().context("missing ID")?.to_uppercase(),
@@ -69,6 +70,12 @@ pub fn action_space(page: &Value) -> Result<Space> {
             ops.push(json!(operation));
         }
         let mut target = (index + 1).to_string();
+        if kind == "key" {
+            target = format!(
+                "{target}:{}",
+                action["key"].as_str().context("missing key")?
+            );
+        }
         if kind == "select" {
             let options = element["options"]
                 .as_array_mut()
@@ -96,11 +103,39 @@ pub fn request(
     history: &[Value],
     compact: bool,
 ) -> Result<(Value, Space)> {
-    let space = action_space(page)?;
+    let mut available = page.clone();
+    let mut suppressed = vec![];
+    if let Some(actions) = available["actions"].as_array_mut() {
+        actions.retain(|a| {
+            let matching: Vec<_> = history
+                .iter()
+                .rev()
+                .take(20)
+                .filter(|h| {
+                    h["before_fingerprint"].is_string()
+                        && h["before_fingerprint"] == page["fingerprint"]
+                        && h["input"]["node"].is_u64()
+                        && a["node"].is_u64()
+                        && ["id", "kind", "label", "key", "value"]
+                            .iter()
+                            .all(|key| h["input"][key] == a[key])
+                })
+                .collect();
+            let failed = a["kind"] != "fill"
+                && (matching.len() >= 2
+                    || matching.iter().any(|h| h["page_changed"] == false));
+            if failed {
+                suppressed.push(a["label"].clone());
+            }
+            !failed
+        });
+    }
+    let space = action_space(&available)?;
     let labels = json!({
         "CLICK":"Click an element, button, menu option, autocomplete suggestion, or calendar day.",
         "TYPE_TEXT":"Enter or replace text in an editable field. A small LLM will supply the value from the goal.",
-        "SELECT":"Select an observed dropdown value."
+        "SELECT":"Select an observed dropdown value.",
+        "PRESS_KEY":"Press an offered key in a focusable graphic. Arrow keys can inspect adjacent values; Enter can select the inspected value."
     });
     let mut operations = Map::new();
     for operation in space.targets.keys() {
@@ -136,6 +171,10 @@ pub fn request(
     }
     let recent: Vec<Value> = history.iter().rev().take(10).rev().map(|h| json!({"action":h["action"],"kind":h["kind"],"text":h["text"],"page_changed":h["page_changed"]})).collect();
     let mut body = json!({"state":{"page":{"url":page["url"],"title":page["title"],"text":page["text"]},"elements":space.elements,"recent_actions":recent},"questions":questions});
+    body["state"]["graphics"] =
+        page.get("graphics").cloned().unwrap_or(json!([]));
+    body["state"]["recovery"] = json!({"temporarily_unavailable":suppressed,
+        "instruction":"Actions with no observed effect, or already executed twice in this same state, are temporarily excluded. Try a different supported control or representation. Graphic labels alone do not prove all plotted values were compared."});
     if compact {
         let controls: Vec<String> = space
             .elements
@@ -160,11 +199,13 @@ pub fn request(
             })
             .collect();
         body["state"] = json!(format!(
-            "Goal: {goal}\nPage: {}\nControls:\n{}\nRecent actions: {}\nVisible text: {}",
+            "Goal: {goal}\nPage: {}\nControls:\n{}\nRecent actions: {}\nVisible text: {}\nGraphics: {}\nRecovery: {}",
             page["title"].as_str().unwrap_or(""),
             controls.join("\n"),
             serde_json::to_string(&recent)?,
-            page["text"].as_str().unwrap_or("")
+            page["text"].as_str().unwrap_or(""),
+            body["state"]["graphics"],
+            body["state"]["recovery"]
         ));
         for (id, q) in body["questions"].as_object_mut().unwrap() {
             q["instructions"] = if id == "operation" {
@@ -317,6 +358,55 @@ mod tests {
         let response = json!({"answers":{"operation":answer(&["CLICK","TYPE_TEXT","DONE","BLOCKED"],"CLICK"),
             "click_target":answer(&["1","2","999"],"999")}});
         assert!(resolve(&request, &space, &response).is_err());
+    }
+    #[test]
+    fn keyboard_choices_preserve_key_and_node_identity() {
+        let page = json!({"actions":[
+            {"id":"a","kind":"key","node":3,"label":"Chart → ArrowLeft","key":"ArrowLeft"},
+            {"id":"b","kind":"key","node":3,"label":"Chart → ArrowRight","key":"ArrowRight"}]});
+        let space = action_space(&page).unwrap();
+        assert_eq!(
+            space.targets["PRESS_KEY"]["1:ArrowRight"]["key"],
+            "ArrowRight"
+        );
+        assert_eq!(space.targets["PRESS_KEY"].as_object().unwrap().len(), 2);
+        assert_eq!(space.elements.len(), 1);
+    }
+    #[test]
+    fn ineffective_actions_are_suppressed_only_in_the_same_state() {
+        let mut page = page();
+        page["fingerprint"] = json!("old");
+        let history =
+            vec![json!({"before_fingerprint":"old","page_changed":false,
+            "input":page["actions"][2]})];
+        for compact in [false, true] {
+            let (body, space) =
+                request(&page, "Search", &history, compact).unwrap();
+            assert_eq!(space.targets["CLICK"].as_object().unwrap().len(), 1);
+            assert!(
+                body["state"]
+                    .to_string()
+                    .contains("temporarily_unavailable")
+            );
+        }
+        page["fingerprint"] = json!("changed");
+        let (_, space) = request(&page, "Search", &history, false).unwrap();
+        assert_eq!(space.targets["CLICK"].as_object().unwrap().len(), 2);
+    }
+    #[test]
+    fn repeated_state_cycles_offer_an_alternative() {
+        let mut page = page();
+        page["fingerprint"] = json!("same");
+        let mut old_action = page["actions"][2].clone();
+        old_action["node"] = json!(999);
+        let entry = json!({"before_fingerprint":"same", "page_changed":true, "input":old_action});
+        let (_, first) =
+            request(&page, "Search", std::slice::from_ref(&entry), false)
+                .unwrap();
+        assert_eq!(first.targets["CLICK"].as_object().unwrap().len(), 2);
+        let (_, repeated) =
+            request(&page, "Search", &[entry.clone(), entry], false).unwrap();
+        assert_eq!(repeated.targets["CLICK"].as_object().unwrap().len(), 1);
     }
     #[test]
     fn select_choices_keep_observed_option_identity() {

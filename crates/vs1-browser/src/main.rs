@@ -344,6 +344,7 @@ fn run_agent_page(
             pending_text = None;
             let entry = json!({"step":history.len()+1,"action":action["label"],"kind":action["kind"],"choice":action["id"],
                 "operation":operation,"target":decision["target"],"text":text,"text_helper":helper,
+                "input":action,"before_fingerprint":page["fingerprint"],
                 "latency_ms":latency,"executed_ms":started.elapsed().as_secs_f64()*1000.0,"page_changed":null});
             // Persist successful execution before observation or settling can fail.
             writeln!(
@@ -354,7 +355,7 @@ fn run_agent_page(
             event_log.flush()?;
             history.push(entry);
             let previous = page["fingerprint"].clone();
-            page = browser.observe()?;
+            page = browser.observe_effect(&page)?;
             let last = history.last_mut().unwrap();
             last["page_changed"] = json!(page["fingerprint"] != previous);
             if args.screenshots {
@@ -370,11 +371,11 @@ fn run_agent_page(
                 operation,
                 action["label"].as_str().unwrap_or("")
             );
-            if history.len() >= 3
+            if history.len() >= 6
                 && history
                     .iter()
                     .rev()
-                    .take(3)
+                    .take(6)
                     .all(|h| h["page_changed"] == false && h["kind"] != "wait")
             {
                 status = "blocked";

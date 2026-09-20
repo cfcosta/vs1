@@ -242,3 +242,61 @@ The live regression can be run against Chrome CDP on port 9222 with:
 ```sh
 cargo test -p vs1-browser --bin vs1-browser delayed_transparent_menu -- --ignored
 ```
+
+## Graphic observation and recovery improvements
+
+Chrome-CDP confirmed the graph uses an `aria-hidden` SVG inside a focusable
+ARIA region. Its accessible tree exposes the navigation arrows but not the bars.
+Rendered SVG month/axis labels were missing from our model input. Focusing the
+region and sending native ArrowRight reveals an HTML date/fare tooltip; there
+is no need to infer a price from bar height or inject application state.
+
+The runtime now includes bounded visible graphic labels and explicit observation
+limits, and offers guarded native keyboard actions for focusable graphic regions.
+A live probe using the same target-resolution script changed the observed tooltip
+from October 22/R$2,720 to October 23/R$2,950. This is a control/observation test,
+not a recommendation or a month-wide cheapest-fare result.
+
+Progress fingerprints now ignore node IDs and geometry while retaining semantic
+controls, text, scroll state, and graphic labels. Freshness and hit-testing still
+check actual DOM identity and current geometry. If the first post-input snapshot
+is unchanged, read-only polling allows another 1.2 seconds. A no-effect action is
+excluded in that same state; repeating the same action twice after returning to
+the same state also excludes it, using a 20-action history window. The model sees
+recovery guidance and the excluded labels in both prompt formats. Six consecutive
+ineffective non-wait actions terminate the loop; total budgets are unchanged.
+No Google-specific selectors or fare logic were added to the runtime.
+
+The first experimental run (before semantic cycle recovery) exhausted 60 actions
+in 54.93 seconds while revisiting the calendar. The next experimental rerun reached
+the price graph and executed keyboard inspection actions, but still failed:
+**43 actions, 120 decisions, 57.20 seconds**, ending at the model-call budget.
+Median decision latency was 290 ms. The last decisions repeatedly chose a fare
+cell rejected before input; covered targets were still being offered. The final
+patch applies the executor's center-point hit test during snapshot construction
+as well, so stable covered targets no longer consume repeated model calls. A separate 15-action graph-navigation smoke
+attempt selected “View price history” instead of reaching the price graph and
+stopped BLOCKED after five actions. These are failures, not successful benchmarks.
+The model still needs better navigation and retention/comparison of observed
+values to finish the full October task. Runtime support does not establish that
+all dates were compared or that the displayed fare is the cheapest itinerary.
+
+[runtime-results.json](runtime-results.json) preserves reduced histories,
+keyboard observations, summaries, and the direct graph probe. Raw traces remain
+under ignored artifacts. Validation covers hosted/local unit tests and Clippy,
+live Chrome menu and graph regressions, existing browser input guards, and all
+five constrained hotel variants. The graph regression checks rendered labels,
+hidden/transparent exclusions, native key dispatch exactly once without a mouse
+click, changed observations, and disabled controls. Tests also cover interrupted
+key release, state-specific suppression, repeated cycles, and fingerprints that
+ignore geometry while tracking graphic labels.
+
+The final build's full-task rerun stopped BLOCKED after **9 actions, 12 decisions,
+8.33 seconds** (302 ms median decision latency). It typed the destination but
+chose the multiple-airport control and then Explore destinations rather than a
+valid KEF search, so it never reached the graph. Verification failed. This final
+run does not demonstrate an end-to-end improvement; the graph capability is
+supported by the direct live probe, the preceding agent run's native key actions,
+and the deterministic Chrome regression. Covered-target filtering also passes
+the overlay regression and all five hotel variants. Further work should separate
+navigation-policy failures, chart-value memory, and task completion checks.

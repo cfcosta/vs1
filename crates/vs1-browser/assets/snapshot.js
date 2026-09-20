@@ -61,6 +61,7 @@
     "textbox",
     "searchbox",
     "spinbutton",
+    "region",
   ];
   const selector =
     'a[href],button,input,textarea,select,summary,[contenteditable="true"],' +
@@ -131,7 +132,12 @@
       y >= innerHeight
     )
       continue;
+    // Offer only targets whose actual click/focus point is reachable. The
+    // executor repeats this hit test immediately before input to catch races.
+    if (!e.contains(document.elementFromPoint(x, y))) continue;
     if (rname === "gridcell" && e.querySelector('button,[role="button"]')) continue;
+    const graphic = rname === "region" && e.tabIndex >= 0 && e.querySelector("svg,canvas");
+    if (rname === "region" && !graphic) continue;
     const base = {
       node: identity(e),
       role: rname,
@@ -143,7 +149,10 @@
       if (value !== null) base[key] = value;
     }
     if (["checkbox", "radio"].includes(e.type)) base.checked = String(e.checked);
-    if (e.tagName === "SELECT") {
+    if (graphic) {
+      for (const key of ["ArrowLeft", "ArrowRight", "Home", "End", "Enter"])
+        actions.push({ ...base, kind: "key", key, label: base.label + " → " + key });
+    } else if (e.tagName === "SELECT") {
       for (const o of e.options)
         if (!o.selected && !o.disabled && !o.closest("optgroup[disabled]"))
           actions.push({
@@ -193,6 +202,59 @@
       length += value.length;
     }
   }
+  // A visible SVG may be hidden from accessibility while still drawing useful
+  // axis labels. Read rendered text only; never infer values from path geometry.
+  const graphics = [];
+  for (const svg of document.querySelectorAll("svg,canvas")) {
+    if (graphics.length >= 12) break;
+    if (svg.parentElement?.closest('[aria-hidden="true"],[inert]')) continue;
+    const r = svg.getBoundingClientRect();
+    if (
+      !r.width ||
+      !r.height ||
+      r.bottom <= 0 ||
+      r.top >= innerHeight ||
+      r.right <= 0 ||
+      r.left >= innerWidth ||
+      !svg.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
+    )
+      continue;
+    const labels = [];
+    for (const t of svg.querySelectorAll("text")) {
+      const b = t.getBoundingClientRect();
+      let painted = true;
+      for (let a = t; a; a = a.parentElement) {
+        const css = getComputedStyle(a);
+        if (css.display === "none" || css.visibility !== "visible" || Number(css.opacity) === 0) {
+          painted = false;
+          break;
+        }
+      }
+      const text = t.textContent.trim();
+      if (
+        painted &&
+        text &&
+        b.width > 0 &&
+        b.height > 0 &&
+        b.bottom > 0 &&
+        b.top < innerHeight &&
+        b.right > 0 &&
+        b.left < innerWidth
+      )
+        labels.push(text.slice(0, 200));
+      if (labels.length >= 40) break;
+    }
+    const region = svg.closest('[role="region"][tabindex]');
+    // Ignore decorative icons; report charts and opaque canvas surfaces.
+    if (labels.length || region || svg.tagName === "CANVAS")
+      graphics.push({
+        label: region ? name(region) : svg.getAttribute("aria-label") || "Graphic",
+        text: labels.join(" | "),
+        keyboard: Boolean(region && region.tabIndex >= 0),
+        limitation:
+          "Only rendered labels are observed; plotted values are not inferred. Use keyboard inspection or an alternative table/calendar when needed.",
+      });
+  }
   const text = words.join("\n").slice(0, 6000),
     height = document.documentElement.scrollHeight;
   const page_key = cache.pageKey(),
@@ -211,6 +273,7 @@
     document.title,
     text,
     semantics,
+    graphics,
     page_key[6],
   ];
   const omitted_actions = Math.max(0, actions.length - 250);
@@ -233,5 +296,6 @@
     page_key,
     guards,
     omitted_actions,
+    graphics,
   };
 })();

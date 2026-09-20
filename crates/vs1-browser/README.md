@@ -90,6 +90,26 @@ opening a non-editable popup control waits for visible menu options or a dialog.
 A readiness timeout stops the run without replaying input. The CDP transport has
 its own timeout. Screenshots and foreground activation are not required.
 
+Visible SVG labels are included as graphic observations, even when the SVG itself
+is hidden from accessibility. Hidden ancestors and transparent labels stay
+excluded. This does not infer prices or other values from bar heights. Focusable
+ARIA regions containing SVG/canvas expose a small `PRESS_KEY` action set
+(Left/Right, Home/End, Enter). Execution checks the observed node, visibility,
+coverage, and focus before sending native CDP keys; it does not click the graphic.
+Keyboard behavior remains application-defined. Snapshots omit controls whose
+center is covered, using the same hit test that execution repeats before input.
+
+If input initially appears ineffective, the observer allows another 1.2 seconds
+of read-only polling. Progress fingerprints include graphic labels and ignore
+node replacement and geometry; input freshness still checks identity and current
+geometry separately. The agent temporarily removes actions that had no observed
+effect in the same state, or were already executed twice there within the last
+20 actions. Both prompt formats list excluded actions and suggest another
+control or representation. Six consecutive ineffective non-wait actions stop
+the run; the overall action and decision budgets still apply. State changes
+allow previously excluded actions again. These heuristics can miss longer cycles
+and do not prove that a visually changing graph has been fully inspected.
+
 Text generation is cached across stale retries only if the entire helper context
 is identical. Targets are code-owned DOM node references; model output cannot
 become a selector, coordinate, or executable script.

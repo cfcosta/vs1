@@ -14,6 +14,12 @@
     y = r.y + r.height / 2;
   if (!r.width || !r.height || x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) return null;
   if (!e.contains(document.elementFromPoint(x, y))) return null;
+  if (action.kind === "key") {
+    if (e.tabIndex < 0 || !["ArrowLeft", "ArrowRight", "Home", "End", "Enter"].includes(action.key))
+      return null;
+    e.focus({ preventScroll: true });
+    if (document.activeElement !== e) return null;
+  }
   if (action.kind === "select") {
     if (
       e.tagName !== "SELECT" ||
