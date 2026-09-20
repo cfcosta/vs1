@@ -1,0 +1,5390 @@
+{
+  "prompt-probe-v2": {
+    "scope": "Controlled states, not rollouts. No target accuracy inferred from operation selection.",
+    "summary": {
+      "upstream": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 1,
+        "correct_done": 0,
+        "noul_correct": 10,
+        "completion_choice_correct": 9,
+        "sequences_at_limit": 5
+      },
+      "compact": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 8,
+        "correct_done": 2,
+        "noul_correct": 3,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 3
+      },
+      "short_instruction": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 8,
+        "correct_done": 2,
+        "noul_correct": 3,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 0
+      },
+      "short_labels": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 5,
+        "correct_done": 0,
+        "noul_correct": 3,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 0
+      },
+      "observations": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 8,
+        "completion_choice_correct": 7,
+        "sequences_at_limit": 5
+      },
+      "next_requirement": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 8,
+        "completion_choice_correct": 7,
+        "sequences_at_limit": 5
+      },
+      "facts": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 4,
+        "correct_done": 1,
+        "noul_correct": 2,
+        "completion_choice_correct": 1,
+        "sequences_at_limit": 0
+      },
+      "flat_actions": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 2,
+        "completion_choice_correct": 1,
+        "sequences_at_limit": 2
+      }
+    },
+    "rows": [
+      {
+        "case": "initial",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.024134458974003792,
+        "noul_probability": 0.4665689170360565,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "initial",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4360641539096832,
+        "noul_probability": 0.5290170907974243,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "initial",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.34737876057624817,
+        "noul_probability": 0.5241073369979858,
+        "completion_choice": "unfinished",
+        "operation_tokens": 500
+      },
+      {
+        "case": "initial",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2566543221473694,
+        "noul_probability": 0.5241073369979858,
+        "completion_choice": "unfinished",
+        "operation_tokens": 457
+      },
+      {
+        "case": "initial",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.07100863009691238,
+        "noul_probability": 0.3416760265827179,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "initial",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.18050327897071838,
+        "noul_probability": 0.3416760265827179,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "initial",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.187204509973526,
+        "noul_probability": 0.6538802981376648,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "initial",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "e1",
+        "done_probability": 1.0306788061908989e-10,
+        "noul_probability": 0.6424279808998108,
+        "completion_choice": "complete",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.024131400510668755,
+        "noul_probability": 0.46020257472991943,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "DONE",
+        "done_probability": 0.4487173855304718,
+        "noul_probability": 0.5524892807006836,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "DONE",
+        "done_probability": 0.3300040662288666,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "unfinished",
+        "operation_tokens": 504
+      },
+      {
+        "case": "typed",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.2681035101413727,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "unfinished",
+        "operation_tokens": 461
+      },
+      {
+        "case": "typed",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.07199747115373611,
+        "noul_probability": 0.32375189661979675,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.18695341050624847,
+        "noul_probability": 0.32375189661979675,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.1938132345676422,
+        "noul_probability": 0.5653550624847412,
+        "completion_choice": "complete",
+        "operation_tokens": 426
+      },
+      {
+        "case": "typed",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "e1",
+        "done_probability": 2.9323921069135395e-9,
+        "noul_probability": 0.5653550624847412,
+        "completion_choice": "complete",
+        "operation_tokens": 512
+      },
+      {
+        "case": "searched",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.18721924722194672,
+        "noul_probability": 0.48474133014678955,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "searched",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.5016618967056274,
+        "noul_probability": 0.798454225063324,
+        "completion_choice": "complete",
+        "operation_tokens": 512
+      },
+      {
+        "case": "searched",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4063720405101776,
+        "noul_probability": 0.798454225063324,
+        "completion_choice": "complete",
+        "operation_tokens": 465
+      },
+      {
+        "case": "searched",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.311585932970047,
+        "noul_probability": 0.798454225063324,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "searched",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.18765343725681305,
+        "noul_probability": 0.43005308508872986,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "searched",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.20213422179222107,
+        "noul_probability": 0.43005308508872986,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "searched",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.17389175295829773,
+        "noul_probability": 0.6319566965103149,
+        "completion_choice": "complete",
+        "operation_tokens": 383
+      },
+      {
+        "case": "searched",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "e12",
+        "done_probability": 1.312837755174101e-10,
+        "noul_probability": 0.6319566965103149,
+        "completion_choice": "complete",
+        "operation_tokens": 464
+      },
+      {
+        "case": "design",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09320519864559174,
+        "noul_probability": 0.4935995638370514,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "design",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.40158596634864807,
+        "noul_probability": 0.8661177158355713,
+        "completion_choice": "complete",
+        "operation_tokens": 475
+      },
+      {
+        "case": "design",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.44415736198425293,
+        "noul_probability": 0.8661177158355713,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "design",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3709123134613037,
+        "noul_probability": 0.8661177158355713,
+        "completion_choice": "complete",
+        "operation_tokens": 379
+      },
+      {
+        "case": "design",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.06296375393867493,
+        "noul_probability": 0.49901527166366577,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "design",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.166668102145195,
+        "noul_probability": 0.49901527166366577,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "design",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.1896551251411438,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "complete",
+        "operation_tokens": 335
+      },
+      {
+        "case": "design",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 3.034066997642526e-9,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "complete",
+        "operation_tokens": 408
+      },
+      {
+        "case": "filtered",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09320519864559174,
+        "noul_probability": 0.4935995638370514,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "filtered",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.40212830901145935,
+        "noul_probability": 0.8591169714927673,
+        "completion_choice": "complete",
+        "operation_tokens": 475
+      },
+      {
+        "case": "filtered",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4313461184501648,
+        "noul_probability": 0.8591169714927673,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "filtered",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3609270751476288,
+        "noul_probability": 0.8591169714927673,
+        "completion_choice": "complete",
+        "operation_tokens": 379
+      },
+      {
+        "case": "filtered",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.051103755831718445,
+        "noul_probability": 0.4867091774940491,
+        "completion_choice": "complete",
+        "operation_tokens": 512
+      },
+      {
+        "case": "filtered",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.186607226729393,
+        "noul_probability": 0.4867091774940491,
+        "completion_choice": "complete",
+        "operation_tokens": 512
+      },
+      {
+        "case": "filtered",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.18134130537509918,
+        "noul_probability": 0.542242705821991,
+        "completion_choice": "complete",
+        "operation_tokens": 335
+      },
+      {
+        "case": "filtered",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 6.9913830280654565e-9,
+        "noul_probability": 0.5339211821556091,
+        "completion_choice": "complete",
+        "operation_tokens": 408
+      },
+      {
+        "case": "complete",
+        "variant": "upstream",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.2791880965232849,
+        "noul_probability": 0.7708637714385986,
+        "completion_choice": "complete",
+        "operation_tokens": 498
+      },
+      {
+        "case": "complete",
+        "variant": "compact",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.3182004988193512,
+        "noul_probability": 0.5645079612731934,
+        "completion_choice": "unfinished",
+        "operation_tokens": 307
+      },
+      {
+        "case": "complete",
+        "variant": "short_instruction",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.38182002305984497,
+        "noul_probability": 0.5645079612731934,
+        "completion_choice": "unfinished",
+        "operation_tokens": 254
+      },
+      {
+        "case": "complete",
+        "variant": "short_labels",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.33374452590942383,
+        "noul_probability": 0.5645079612731934,
+        "completion_choice": "unfinished",
+        "operation_tokens": 232
+      },
+      {
+        "case": "complete",
+        "variant": "observations",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.19451019167900085,
+        "noul_probability": 0.31689152121543884,
+        "completion_choice": "unfinished",
+        "operation_tokens": 409
+      },
+      {
+        "case": "complete",
+        "variant": "next_requirement",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.2303701937198639,
+        "noul_probability": 0.31689152121543884,
+        "completion_choice": "unfinished",
+        "operation_tokens": 441
+      },
+      {
+        "case": "complete",
+        "variant": "facts",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.30001628398895264,
+        "noul_probability": 0.45922422409057617,
+        "completion_choice": "unfinished",
+        "operation_tokens": 241
+      },
+      {
+        "case": "complete",
+        "variant": "flat_actions",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "e1",
+        "done_probability": 0.13051658868789673,
+        "noul_probability": 0.45922422409057617,
+        "completion_choice": "unfinished",
+        "operation_tokens": 266
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2606245279312134,
+        "noul_probability": 0.7791056632995605,
+        "completion_choice": "complete",
+        "operation_tokens": 498
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.28008338809013367,
+        "noul_probability": 0.2696197032928467,
+        "completion_choice": "unfinished",
+        "operation_tokens": 307
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3444348871707916,
+        "noul_probability": 0.2696197032928467,
+        "completion_choice": "unfinished",
+        "operation_tokens": 254
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2969202399253845,
+        "noul_probability": 0.2696197032928467,
+        "completion_choice": "unfinished",
+        "operation_tokens": 232
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.17228536307811737,
+        "noul_probability": 0.29392120242118835,
+        "completion_choice": "unfinished",
+        "operation_tokens": 409
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.22332164645195007,
+        "noul_probability": 0.29392120242118835,
+        "completion_choice": "unfinished",
+        "operation_tokens": 441
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3396533727645874,
+        "noul_probability": 0.7350088953971863,
+        "completion_choice": "complete",
+        "operation_tokens": 241
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.09756497293710709,
+        "noul_probability": 0.7350088953971863,
+        "completion_choice": "complete",
+        "operation_tokens": 266
+      },
+      {
+        "case": "wrong_property",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3310281038284302,
+        "noul_probability": 0.8019179701805115,
+        "completion_choice": "complete",
+        "operation_tokens": 493
+      },
+      {
+        "case": "wrong_property",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.30466145277023315,
+        "noul_probability": 0.6458138823509216,
+        "completion_choice": "unfinished",
+        "operation_tokens": 303
+      },
+      {
+        "case": "wrong_property",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4308646321296692,
+        "noul_probability": 0.6458138823509216,
+        "completion_choice": "unfinished",
+        "operation_tokens": 250
+      },
+      {
+        "case": "wrong_property",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.36070767045021057,
+        "noul_probability": 0.6458138823509216,
+        "completion_choice": "unfinished",
+        "operation_tokens": 228
+      },
+      {
+        "case": "wrong_property",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1636851578950882,
+        "noul_probability": 0.3050764501094818,
+        "completion_choice": "unfinished",
+        "operation_tokens": 405
+      },
+      {
+        "case": "wrong_property",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2219262421131134,
+        "noul_probability": 0.3050764501094818,
+        "completion_choice": "unfinished",
+        "operation_tokens": 437
+      },
+      {
+        "case": "wrong_property",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.344135582447052,
+        "noul_probability": 0.4935995638370514,
+        "completion_choice": "complete",
+        "operation_tokens": 237
+      },
+      {
+        "case": "wrong_property",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.10125698149204254,
+        "noul_probability": 0.4935995638370514,
+        "completion_choice": "complete",
+        "operation_tokens": 262
+      },
+      {
+        "case": "form_empty",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.12717169523239136,
+        "noul_probability": 0.37286612391471863,
+        "completion_choice": "unfinished",
+        "operation_tokens": 380
+      },
+      {
+        "case": "form_empty",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.39697691798210144,
+        "noul_probability": 0.9182281494140625,
+        "completion_choice": "complete",
+        "operation_tokens": 232
+      },
+      {
+        "case": "form_empty",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.41213271021842957,
+        "noul_probability": 0.9182281494140625,
+        "completion_choice": "complete",
+        "operation_tokens": 183
+      },
+      {
+        "case": "form_empty",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3412673771381378,
+        "noul_probability": 0.9182281494140625,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_empty",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09945505112409592,
+        "noul_probability": 0.5978119373321533,
+        "completion_choice": "complete",
+        "operation_tokens": 316
+      },
+      {
+        "case": "form_empty",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.14600756764411926,
+        "noul_probability": 0.5978119373321533,
+        "completion_choice": "complete",
+        "operation_tokens": 344
+      },
+      {
+        "case": "form_empty",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3203469514846802,
+        "noul_probability": 0.89573073387146,
+        "completion_choice": "complete",
+        "operation_tokens": 141
+      },
+      {
+        "case": "form_empty",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "e4",
+        "done_probability": 0.061341654509305954,
+        "noul_probability": 0.89573073387146,
+        "completion_choice": "complete",
+        "operation_tokens": 155
+      },
+      {
+        "case": "form_named",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.13432079553604126,
+        "noul_probability": 0.3546367287635803,
+        "completion_choice": "unfinished",
+        "operation_tokens": 382
+      },
+      {
+        "case": "form_named",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.27134349942207336,
+        "noul_probability": 0.8071826100349426,
+        "completion_choice": "complete",
+        "operation_tokens": 234
+      },
+      {
+        "case": "form_named",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.28207874298095703,
+        "noul_probability": 0.8071826100349426,
+        "completion_choice": "complete",
+        "operation_tokens": 185
+      },
+      {
+        "case": "form_named",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2533082365989685,
+        "noul_probability": 0.8071826100349426,
+        "completion_choice": "complete",
+        "operation_tokens": 145
+      },
+      {
+        "case": "form_named",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09205448627471924,
+        "noul_probability": 0.6719213128089905,
+        "completion_choice": "complete",
+        "operation_tokens": 318
+      },
+      {
+        "case": "form_named",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.13040798902511597,
+        "noul_probability": 0.6719213128089905,
+        "completion_choice": "complete",
+        "operation_tokens": 346
+      },
+      {
+        "case": "form_named",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.27918949723243713,
+        "noul_probability": 0.8400090932846069,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_named",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.045200757682323456,
+        "noul_probability": 0.8400090932846069,
+        "completion_choice": "complete",
+        "operation_tokens": 157
+      },
+      {
+        "case": "form_ready",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.13531845808029175,
+        "noul_probability": 0.3377002775669098,
+        "completion_choice": "complete",
+        "operation_tokens": 382
+      },
+      {
+        "case": "form_ready",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2588605284690857,
+        "noul_probability": 0.7794443964958191,
+        "completion_choice": "complete",
+        "operation_tokens": 234
+      },
+      {
+        "case": "form_ready",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.28064772486686707,
+        "noul_probability": 0.7794443964958191,
+        "completion_choice": "complete",
+        "operation_tokens": 185
+      },
+      {
+        "case": "form_ready",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.24670375883579254,
+        "noul_probability": 0.7794443964958191,
+        "completion_choice": "complete",
+        "operation_tokens": 145
+      },
+      {
+        "case": "form_ready",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09354585409164429,
+        "noul_probability": 0.680116593837738,
+        "completion_choice": "complete",
+        "operation_tokens": 318
+      },
+      {
+        "case": "form_ready",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1269690841436386,
+        "noul_probability": 0.680116593837738,
+        "completion_choice": "complete",
+        "operation_tokens": 346
+      },
+      {
+        "case": "form_ready",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2815014123916626,
+        "noul_probability": 0.8452321887016296,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_ready",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.04392164945602417,
+        "noul_probability": 0.8452321887016296,
+        "completion_choice": "complete",
+        "operation_tokens": 157
+      },
+      {
+        "case": "form_complete",
+        "variant": "upstream",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.2452753484249115,
+        "noul_probability": 0.7422329187393188,
+        "completion_choice": "complete",
+        "operation_tokens": 313
+      },
+      {
+        "case": "form_complete",
+        "variant": "compact",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.5141431093215942,
+        "noul_probability": 0.9506471157073975,
+        "completion_choice": "complete",
+        "operation_tokens": 193
+      },
+      {
+        "case": "form_complete",
+        "variant": "short_instruction",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.5370214581489563,
+        "noul_probability": 0.9506471157073975,
+        "completion_choice": "complete",
+        "operation_tokens": 144
+      },
+      {
+        "case": "form_complete",
+        "variant": "short_labels",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.29684340953826904,
+        "noul_probability": 0.9506471157073975,
+        "completion_choice": "complete",
+        "operation_tokens": 122
+      },
+      {
+        "case": "form_complete",
+        "variant": "observations",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.3070148527622223,
+        "noul_probability": 0.9167370796203613,
+        "completion_choice": "complete",
+        "operation_tokens": 163
+      },
+      {
+        "case": "form_complete",
+        "variant": "next_requirement",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.3590400815010071,
+        "noul_probability": 0.9164358973503113,
+        "completion_choice": "complete",
+        "operation_tokens": 191
+      },
+      {
+        "case": "form_complete",
+        "variant": "facts",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.32656925916671753,
+        "noul_probability": 0.9308424592018127,
+        "completion_choice": "complete",
+        "operation_tokens": 116
+      },
+      {
+        "case": "form_complete",
+        "variant": "flat_actions",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "e1",
+        "done_probability": 0.20981144905090332,
+        "noul_probability": 0.9308424592018127,
+        "completion_choice": "complete",
+        "operation_tokens": 118
+      }
+    ]
+  },
+  "prompt-probe-context-1024": {
+    "scope": "Controlled states, not rollouts. No target accuracy inferred from operation selection.",
+    "summary": {
+      "upstream": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 4,
+        "correct_done": 0,
+        "noul_correct": 8,
+        "completion_choice_correct": 7,
+        "sequences_at_limit": 0
+      },
+      "compact": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 8,
+        "correct_done": 2,
+        "noul_correct": 3,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 0
+      },
+      "short_instruction": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 8,
+        "correct_done": 2,
+        "noul_correct": 3,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 0
+      },
+      "short_labels": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 5,
+        "correct_done": 0,
+        "noul_correct": 3,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 0
+      },
+      "observations": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 3,
+        "completion_choice_correct": 8,
+        "sequences_at_limit": 0
+      },
+      "next_requirement": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 2,
+        "correct_done": 0,
+        "noul_correct": 3,
+        "completion_choice_correct": 8,
+        "sequences_at_limit": 2
+      },
+      "facts": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 4,
+        "correct_done": 1,
+        "noul_correct": 2,
+        "completion_choice_correct": 1,
+        "sequences_at_limit": 0
+      },
+      "flat_actions": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 2,
+        "completion_choice_correct": 1,
+        "sequences_at_limit": 0
+      }
+    },
+    "rows": [
+      {
+        "case": "initial",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.21039116382598877,
+        "noul_probability": 0.5078772306442261,
+        "completion_choice": "complete",
+        "operation_tokens": 864
+      },
+      {
+        "case": "initial",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4072590172290802,
+        "noul_probability": 0.5290170907974243,
+        "completion_choice": "unfinished",
+        "operation_tokens": 553
+      },
+      {
+        "case": "initial",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3473397195339203,
+        "noul_probability": 0.5241073369979858,
+        "completion_choice": "unfinished",
+        "operation_tokens": 500
+      },
+      {
+        "case": "initial",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2566543221473694,
+        "noul_probability": 0.5241073369979858,
+        "completion_choice": "unfinished",
+        "operation_tokens": 457
+      },
+      {
+        "case": "initial",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.1683429777622223,
+        "noul_probability": 0.5004923939704895,
+        "completion_choice": "unfinished",
+        "operation_tokens": 1015
+      },
+      {
+        "case": "initial",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.21164743602275848,
+        "noul_probability": 0.5004923939704895,
+        "completion_choice": "unfinished",
+        "operation_tokens": 1024
+      },
+      {
+        "case": "initial",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.187204509973526,
+        "noul_probability": 0.6538802981376648,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "initial",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "e1",
+        "done_probability": 1.0306788061908989e-10,
+        "noul_probability": 0.6424279808998108,
+        "completion_choice": "complete",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "DONE",
+        "done_probability": 0.20755067467689514,
+        "noul_probability": 0.5024617910385132,
+        "completion_choice": "complete",
+        "operation_tokens": 868
+      },
+      {
+        "case": "typed",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "DONE",
+        "done_probability": 0.45307478308677673,
+        "noul_probability": 0.5524892807006836,
+        "completion_choice": "unfinished",
+        "operation_tokens": 557
+      },
+      {
+        "case": "typed",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "DONE",
+        "done_probability": 0.3296559751033783,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "unfinished",
+        "operation_tokens": 504
+      },
+      {
+        "case": "typed",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.2681035101413727,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "unfinished",
+        "operation_tokens": 461
+      },
+      {
+        "case": "typed",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.16364686191082,
+        "noul_probability": 0.5009847283363342,
+        "completion_choice": "unfinished",
+        "operation_tokens": 1021
+      },
+      {
+        "case": "typed",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "DONE",
+        "done_probability": 0.2090156525373459,
+        "noul_probability": 0.5009847283363342,
+        "completion_choice": "unfinished",
+        "operation_tokens": 1024
+      },
+      {
+        "case": "typed",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.1938132345676422,
+        "noul_probability": 0.5653550624847412,
+        "completion_choice": "complete",
+        "operation_tokens": 426
+      },
+      {
+        "case": "typed",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "e7",
+        "done_probability": 2.3355599676477823e-9,
+        "noul_probability": 0.5653550624847412,
+        "completion_choice": "complete",
+        "operation_tokens": 516
+      },
+      {
+        "case": "searched",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.21825340390205383,
+        "noul_probability": 0.4881853759288788,
+        "completion_choice": "unfinished",
+        "operation_tokens": 801
+      },
+      {
+        "case": "searched",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4203091263771057,
+        "noul_probability": 0.798454225063324,
+        "completion_choice": "complete",
+        "operation_tokens": 518
+      },
+      {
+        "case": "searched",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4063720405101776,
+        "noul_probability": 0.798454225063324,
+        "completion_choice": "complete",
+        "operation_tokens": 465
+      },
+      {
+        "case": "searched",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.311585932970047,
+        "noul_probability": 0.798454225063324,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "searched",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.16544708609580994,
+        "noul_probability": 0.5009847283363342,
+        "completion_choice": "unfinished",
+        "operation_tokens": 933
+      },
+      {
+        "case": "searched",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.18010960519313812,
+        "noul_probability": 0.5009847283363342,
+        "completion_choice": "unfinished",
+        "operation_tokens": 965
+      },
+      {
+        "case": "searched",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.17389175295829773,
+        "noul_probability": 0.6319566965103149,
+        "completion_choice": "complete",
+        "operation_tokens": 383
+      },
+      {
+        "case": "searched",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "e12",
+        "done_probability": 1.312837755174101e-10,
+        "noul_probability": 0.6319566965103149,
+        "completion_choice": "complete",
+        "operation_tokens": 464
+      },
+      {
+        "case": "design",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.19017013907432556,
+        "noul_probability": 0.49556881189346313,
+        "completion_choice": "unfinished",
+        "operation_tokens": 730
+      },
+      {
+        "case": "design",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.40158596634864807,
+        "noul_probability": 0.8661177158355713,
+        "completion_choice": "complete",
+        "operation_tokens": 475
+      },
+      {
+        "case": "design",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.44415736198425293,
+        "noul_probability": 0.8661177158355713,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "design",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3709123134613037,
+        "noul_probability": 0.8661177158355713,
+        "completion_choice": "complete",
+        "operation_tokens": 379
+      },
+      {
+        "case": "design",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.16157187521457672,
+        "noul_probability": 0.5378398299217224,
+        "completion_choice": "unfinished",
+        "operation_tokens": 841
+      },
+      {
+        "case": "design",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.18271245062351227,
+        "noul_probability": 0.5378398299217224,
+        "completion_choice": "unfinished",
+        "operation_tokens": 873
+      },
+      {
+        "case": "design",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.1896551251411438,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "complete",
+        "operation_tokens": 335
+      },
+      {
+        "case": "design",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 3.034066997642526e-9,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "complete",
+        "operation_tokens": 408
+      },
+      {
+        "case": "filtered",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1882750540971756,
+        "noul_probability": 0.49458417296409607,
+        "completion_choice": "unfinished",
+        "operation_tokens": 730
+      },
+      {
+        "case": "filtered",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.40212830901145935,
+        "noul_probability": 0.8591169714927673,
+        "completion_choice": "complete",
+        "operation_tokens": 475
+      },
+      {
+        "case": "filtered",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4313461184501648,
+        "noul_probability": 0.8591169714927673,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "filtered",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3609270751476288,
+        "noul_probability": 0.8591169714927673,
+        "completion_choice": "complete",
+        "operation_tokens": 379
+      },
+      {
+        "case": "filtered",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.16090887784957886,
+        "noul_probability": 0.5344113111495972,
+        "completion_choice": "unfinished",
+        "operation_tokens": 841
+      },
+      {
+        "case": "filtered",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.18133127689361572,
+        "noul_probability": 0.5344113111495972,
+        "completion_choice": "unfinished",
+        "operation_tokens": 873
+      },
+      {
+        "case": "filtered",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.18134130537509918,
+        "noul_probability": 0.542242705821991,
+        "completion_choice": "complete",
+        "operation_tokens": 335
+      },
+      {
+        "case": "filtered",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 6.9913830280654565e-9,
+        "noul_probability": 0.5339211821556091,
+        "completion_choice": "complete",
+        "operation_tokens": 408
+      },
+      {
+        "case": "complete",
+        "variant": "upstream",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.2791880965232849,
+        "noul_probability": 0.7708637714385986,
+        "completion_choice": "complete",
+        "operation_tokens": 498
+      },
+      {
+        "case": "complete",
+        "variant": "compact",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.3182004988193512,
+        "noul_probability": 0.5645079612731934,
+        "completion_choice": "unfinished",
+        "operation_tokens": 307
+      },
+      {
+        "case": "complete",
+        "variant": "short_instruction",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.38182002305984497,
+        "noul_probability": 0.5645079612731934,
+        "completion_choice": "unfinished",
+        "operation_tokens": 254
+      },
+      {
+        "case": "complete",
+        "variant": "short_labels",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.33374452590942383,
+        "noul_probability": 0.5645079612731934,
+        "completion_choice": "unfinished",
+        "operation_tokens": 232
+      },
+      {
+        "case": "complete",
+        "variant": "observations",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.19451019167900085,
+        "noul_probability": 0.31689152121543884,
+        "completion_choice": "unfinished",
+        "operation_tokens": 409
+      },
+      {
+        "case": "complete",
+        "variant": "next_requirement",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.2303701937198639,
+        "noul_probability": 0.31689152121543884,
+        "completion_choice": "unfinished",
+        "operation_tokens": 441
+      },
+      {
+        "case": "complete",
+        "variant": "facts",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.30001628398895264,
+        "noul_probability": 0.45922422409057617,
+        "completion_choice": "unfinished",
+        "operation_tokens": 241
+      },
+      {
+        "case": "complete",
+        "variant": "flat_actions",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "e1",
+        "done_probability": 0.13051658868789673,
+        "noul_probability": 0.45922422409057617,
+        "completion_choice": "unfinished",
+        "operation_tokens": 266
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2606245279312134,
+        "noul_probability": 0.7791056632995605,
+        "completion_choice": "complete",
+        "operation_tokens": 498
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.28008338809013367,
+        "noul_probability": 0.2696197032928467,
+        "completion_choice": "unfinished",
+        "operation_tokens": 307
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3444348871707916,
+        "noul_probability": 0.2696197032928467,
+        "completion_choice": "unfinished",
+        "operation_tokens": 254
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2969202399253845,
+        "noul_probability": 0.2696197032928467,
+        "completion_choice": "unfinished",
+        "operation_tokens": 232
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.17228536307811737,
+        "noul_probability": 0.29392120242118835,
+        "completion_choice": "unfinished",
+        "operation_tokens": 409
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.22332164645195007,
+        "noul_probability": 0.29392120242118835,
+        "completion_choice": "unfinished",
+        "operation_tokens": 441
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3396533727645874,
+        "noul_probability": 0.7350088953971863,
+        "completion_choice": "complete",
+        "operation_tokens": 241
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.09756497293710709,
+        "noul_probability": 0.7350088953971863,
+        "completion_choice": "complete",
+        "operation_tokens": 266
+      },
+      {
+        "case": "wrong_property",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3310281038284302,
+        "noul_probability": 0.8019179701805115,
+        "completion_choice": "complete",
+        "operation_tokens": 493
+      },
+      {
+        "case": "wrong_property",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.30466145277023315,
+        "noul_probability": 0.6458138823509216,
+        "completion_choice": "unfinished",
+        "operation_tokens": 303
+      },
+      {
+        "case": "wrong_property",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4308646321296692,
+        "noul_probability": 0.6458138823509216,
+        "completion_choice": "unfinished",
+        "operation_tokens": 250
+      },
+      {
+        "case": "wrong_property",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.36070767045021057,
+        "noul_probability": 0.6458138823509216,
+        "completion_choice": "unfinished",
+        "operation_tokens": 228
+      },
+      {
+        "case": "wrong_property",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1636851578950882,
+        "noul_probability": 0.3050764501094818,
+        "completion_choice": "unfinished",
+        "operation_tokens": 405
+      },
+      {
+        "case": "wrong_property",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2219262421131134,
+        "noul_probability": 0.3050764501094818,
+        "completion_choice": "unfinished",
+        "operation_tokens": 437
+      },
+      {
+        "case": "wrong_property",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.344135582447052,
+        "noul_probability": 0.4935995638370514,
+        "completion_choice": "complete",
+        "operation_tokens": 237
+      },
+      {
+        "case": "wrong_property",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.10125698149204254,
+        "noul_probability": 0.4935995638370514,
+        "completion_choice": "complete",
+        "operation_tokens": 262
+      },
+      {
+        "case": "form_empty",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.12717169523239136,
+        "noul_probability": 0.37286612391471863,
+        "completion_choice": "unfinished",
+        "operation_tokens": 380
+      },
+      {
+        "case": "form_empty",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.39697691798210144,
+        "noul_probability": 0.9182281494140625,
+        "completion_choice": "complete",
+        "operation_tokens": 232
+      },
+      {
+        "case": "form_empty",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.41213271021842957,
+        "noul_probability": 0.9182281494140625,
+        "completion_choice": "complete",
+        "operation_tokens": 183
+      },
+      {
+        "case": "form_empty",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3412673771381378,
+        "noul_probability": 0.9182281494140625,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_empty",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09945505112409592,
+        "noul_probability": 0.5978119373321533,
+        "completion_choice": "complete",
+        "operation_tokens": 316
+      },
+      {
+        "case": "form_empty",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.14600756764411926,
+        "noul_probability": 0.5978119373321533,
+        "completion_choice": "complete",
+        "operation_tokens": 344
+      },
+      {
+        "case": "form_empty",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3203469514846802,
+        "noul_probability": 0.89573073387146,
+        "completion_choice": "complete",
+        "operation_tokens": 141
+      },
+      {
+        "case": "form_empty",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "e4",
+        "done_probability": 0.061341654509305954,
+        "noul_probability": 0.89573073387146,
+        "completion_choice": "complete",
+        "operation_tokens": 155
+      },
+      {
+        "case": "form_named",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.13432079553604126,
+        "noul_probability": 0.3546367287635803,
+        "completion_choice": "unfinished",
+        "operation_tokens": 382
+      },
+      {
+        "case": "form_named",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.27134349942207336,
+        "noul_probability": 0.8071826100349426,
+        "completion_choice": "complete",
+        "operation_tokens": 234
+      },
+      {
+        "case": "form_named",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.28207874298095703,
+        "noul_probability": 0.8071826100349426,
+        "completion_choice": "complete",
+        "operation_tokens": 185
+      },
+      {
+        "case": "form_named",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2533082365989685,
+        "noul_probability": 0.8071826100349426,
+        "completion_choice": "complete",
+        "operation_tokens": 145
+      },
+      {
+        "case": "form_named",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09205448627471924,
+        "noul_probability": 0.6719213128089905,
+        "completion_choice": "complete",
+        "operation_tokens": 318
+      },
+      {
+        "case": "form_named",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.13040798902511597,
+        "noul_probability": 0.6719213128089905,
+        "completion_choice": "complete",
+        "operation_tokens": 346
+      },
+      {
+        "case": "form_named",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.27918949723243713,
+        "noul_probability": 0.8400090932846069,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_named",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.045200757682323456,
+        "noul_probability": 0.8400090932846069,
+        "completion_choice": "complete",
+        "operation_tokens": 157
+      },
+      {
+        "case": "form_ready",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.13531845808029175,
+        "noul_probability": 0.3377002775669098,
+        "completion_choice": "complete",
+        "operation_tokens": 382
+      },
+      {
+        "case": "form_ready",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2588605284690857,
+        "noul_probability": 0.7794443964958191,
+        "completion_choice": "complete",
+        "operation_tokens": 234
+      },
+      {
+        "case": "form_ready",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.28064772486686707,
+        "noul_probability": 0.7794443964958191,
+        "completion_choice": "complete",
+        "operation_tokens": 185
+      },
+      {
+        "case": "form_ready",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.24670375883579254,
+        "noul_probability": 0.7794443964958191,
+        "completion_choice": "complete",
+        "operation_tokens": 145
+      },
+      {
+        "case": "form_ready",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09354585409164429,
+        "noul_probability": 0.680116593837738,
+        "completion_choice": "complete",
+        "operation_tokens": 318
+      },
+      {
+        "case": "form_ready",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1269690841436386,
+        "noul_probability": 0.680116593837738,
+        "completion_choice": "complete",
+        "operation_tokens": 346
+      },
+      {
+        "case": "form_ready",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2815014123916626,
+        "noul_probability": 0.8452321887016296,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_ready",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.04392164945602417,
+        "noul_probability": 0.8452321887016296,
+        "completion_choice": "complete",
+        "operation_tokens": 157
+      },
+      {
+        "case": "form_complete",
+        "variant": "upstream",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.2452753484249115,
+        "noul_probability": 0.7422329187393188,
+        "completion_choice": "complete",
+        "operation_tokens": 313
+      },
+      {
+        "case": "form_complete",
+        "variant": "compact",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.5141431093215942,
+        "noul_probability": 0.9506471157073975,
+        "completion_choice": "complete",
+        "operation_tokens": 193
+      },
+      {
+        "case": "form_complete",
+        "variant": "short_instruction",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.5370214581489563,
+        "noul_probability": 0.9506471157073975,
+        "completion_choice": "complete",
+        "operation_tokens": 144
+      },
+      {
+        "case": "form_complete",
+        "variant": "short_labels",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.29684340953826904,
+        "noul_probability": 0.9506471157073975,
+        "completion_choice": "complete",
+        "operation_tokens": 122
+      },
+      {
+        "case": "form_complete",
+        "variant": "observations",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.3070148527622223,
+        "noul_probability": 0.9167370796203613,
+        "completion_choice": "complete",
+        "operation_tokens": 163
+      },
+      {
+        "case": "form_complete",
+        "variant": "next_requirement",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.3590400815010071,
+        "noul_probability": 0.9164358973503113,
+        "completion_choice": "complete",
+        "operation_tokens": 191
+      },
+      {
+        "case": "form_complete",
+        "variant": "facts",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.32656925916671753,
+        "noul_probability": 0.9308424592018127,
+        "completion_choice": "complete",
+        "operation_tokens": 116
+      },
+      {
+        "case": "form_complete",
+        "variant": "flat_actions",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "e1",
+        "done_probability": 0.20981144905090332,
+        "noul_probability": 0.9308424592018127,
+        "completion_choice": "complete",
+        "operation_tokens": 118
+      }
+    ]
+  },
+  "prompt-probe-context-2048": {
+    "scope": "Controlled states, not rollouts. No target accuracy inferred from operation selection.",
+    "summary": {
+      "upstream": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 2,
+        "correct_done": 1,
+        "noul_correct": 8,
+        "completion_choice_correct": 7,
+        "sequences_at_limit": 0
+      },
+      "compact": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 8,
+        "correct_done": 2,
+        "noul_correct": 3,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 0
+      },
+      "short_instruction": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 8,
+        "correct_done": 2,
+        "noul_correct": 3,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 0
+      },
+      "short_labels": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 5,
+        "correct_done": 0,
+        "noul_correct": 3,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 0
+      },
+      "observations": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 3,
+        "completion_choice_correct": 8,
+        "sequences_at_limit": 0
+      },
+      "next_requirement": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 3,
+        "completion_choice_correct": 8,
+        "sequences_at_limit": 0
+      },
+      "facts": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 3,
+        "correct_done": 1,
+        "noul_correct": 2,
+        "completion_choice_correct": 1,
+        "sequences_at_limit": 0
+      },
+      "flat_actions": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 2,
+        "completion_choice_correct": 1,
+        "sequences_at_limit": 0
+      }
+    },
+    "rows": [
+      {
+        "case": "initial",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.18304994702339172,
+        "noul_probability": 0.5078772306442261,
+        "completion_choice": "complete",
+        "operation_tokens": 1035
+      },
+      {
+        "case": "initial",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4072590172290802,
+        "noul_probability": 0.5290170907974243,
+        "completion_choice": "unfinished",
+        "operation_tokens": 553
+      },
+      {
+        "case": "initial",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.34737876057624817,
+        "noul_probability": 0.5241073369979858,
+        "completion_choice": "unfinished",
+        "operation_tokens": 500
+      },
+      {
+        "case": "initial",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.25660035014152527,
+        "noul_probability": 0.5241073369979858,
+        "completion_choice": "unfinished",
+        "operation_tokens": 457
+      },
+      {
+        "case": "initial",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.1683429777622223,
+        "noul_probability": 0.5004923939704895,
+        "completion_choice": "unfinished",
+        "operation_tokens": 1015
+      },
+      {
+        "case": "initial",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.16681481897830963,
+        "noul_probability": 0.5004923939704895,
+        "completion_choice": "unfinished",
+        "operation_tokens": 1047
+      },
+      {
+        "case": "initial",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.187204509973526,
+        "noul_probability": 0.6538802981376648,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "initial",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "e1",
+        "done_probability": 1.0306788061908989e-10,
+        "noul_probability": 0.6424279808998108,
+        "completion_choice": "complete",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.18444937467575073,
+        "noul_probability": 0.505908191204071,
+        "completion_choice": "complete",
+        "operation_tokens": 1039
+      },
+      {
+        "case": "typed",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "DONE",
+        "done_probability": 0.45307478308677673,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "unfinished",
+        "operation_tokens": 557
+      },
+      {
+        "case": "typed",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "DONE",
+        "done_probability": 0.3300040662288666,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "unfinished",
+        "operation_tokens": 504
+      },
+      {
+        "case": "typed",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.2681035101413727,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "unfinished",
+        "operation_tokens": 461
+      },
+      {
+        "case": "typed",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.16364686191082,
+        "noul_probability": 0.5004923343658447,
+        "completion_choice": "unfinished",
+        "operation_tokens": 1021
+      },
+      {
+        "case": "typed",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.17409084737300873,
+        "noul_probability": 0.5004923343658447,
+        "completion_choice": "unfinished",
+        "operation_tokens": 1053
+      },
+      {
+        "case": "typed",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.1938132345676422,
+        "noul_probability": 0.5653550624847412,
+        "completion_choice": "complete",
+        "operation_tokens": 426
+      },
+      {
+        "case": "typed",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "e7",
+        "done_probability": 2.3355599676477823e-9,
+        "noul_probability": 0.5653550624847412,
+        "completion_choice": "complete",
+        "operation_tokens": 516
+      },
+      {
+        "case": "searched",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.20342549681663513,
+        "noul_probability": 0.4881853759288788,
+        "completion_choice": "unfinished",
+        "operation_tokens": 972
+      },
+      {
+        "case": "searched",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.41080981492996216,
+        "noul_probability": 0.798454225063324,
+        "completion_choice": "complete",
+        "operation_tokens": 518
+      },
+      {
+        "case": "searched",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4063720405101776,
+        "noul_probability": 0.798454225063324,
+        "completion_choice": "complete",
+        "operation_tokens": 465
+      },
+      {
+        "case": "searched",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.311585932970047,
+        "noul_probability": 0.798454225063324,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "searched",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.16544708609580994,
+        "noul_probability": 0.5009847283363342,
+        "completion_choice": "unfinished",
+        "operation_tokens": 933
+      },
+      {
+        "case": "searched",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.18010960519313812,
+        "noul_probability": 0.5009847283363342,
+        "completion_choice": "unfinished",
+        "operation_tokens": 965
+      },
+      {
+        "case": "searched",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.17389175295829773,
+        "noul_probability": 0.6319566965103149,
+        "completion_choice": "complete",
+        "operation_tokens": 383
+      },
+      {
+        "case": "searched",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "e12",
+        "done_probability": 1.312837755174101e-10,
+        "noul_probability": 0.6328723430633545,
+        "completion_choice": "complete",
+        "operation_tokens": 464
+      },
+      {
+        "case": "design",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.192384272813797,
+        "noul_probability": 0.49556881189346313,
+        "completion_choice": "unfinished",
+        "operation_tokens": 901
+      },
+      {
+        "case": "design",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.40158596634864807,
+        "noul_probability": 0.8661177158355713,
+        "completion_choice": "complete",
+        "operation_tokens": 475
+      },
+      {
+        "case": "design",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.44415736198425293,
+        "noul_probability": 0.8661177158355713,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "design",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3709123134613037,
+        "noul_probability": 0.8661177158355713,
+        "completion_choice": "complete",
+        "operation_tokens": 379
+      },
+      {
+        "case": "design",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.16157187521457672,
+        "noul_probability": 0.5378398299217224,
+        "completion_choice": "unfinished",
+        "operation_tokens": 841
+      },
+      {
+        "case": "design",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.18271245062351227,
+        "noul_probability": 0.5378398299217224,
+        "completion_choice": "unfinished",
+        "operation_tokens": 873
+      },
+      {
+        "case": "design",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.18667149543762207,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "complete",
+        "operation_tokens": 335
+      },
+      {
+        "case": "design",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 3.034066997642526e-9,
+        "noul_probability": 0.5522457957267761,
+        "completion_choice": "complete",
+        "operation_tokens": 408
+      },
+      {
+        "case": "filtered",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.19510771334171295,
+        "noul_probability": 0.49458417296409607,
+        "completion_choice": "unfinished",
+        "operation_tokens": 901
+      },
+      {
+        "case": "filtered",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.38700777292251587,
+        "noul_probability": 0.8591169714927673,
+        "completion_choice": "complete",
+        "operation_tokens": 475
+      },
+      {
+        "case": "filtered",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4313461184501648,
+        "noul_probability": 0.8591169714927673,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "filtered",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3609270751476288,
+        "noul_probability": 0.8591169714927673,
+        "completion_choice": "complete",
+        "operation_tokens": 379
+      },
+      {
+        "case": "filtered",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.16090887784957886,
+        "noul_probability": 0.5344113111495972,
+        "completion_choice": "unfinished",
+        "operation_tokens": 841
+      },
+      {
+        "case": "filtered",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "SCROLL_DOWN",
+        "done_probability": 0.18121592700481415,
+        "noul_probability": 0.5344113111495972,
+        "completion_choice": "unfinished",
+        "operation_tokens": 873
+      },
+      {
+        "case": "filtered",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.18134130537509918,
+        "noul_probability": 0.5339211821556091,
+        "completion_choice": "complete",
+        "operation_tokens": 335
+      },
+      {
+        "case": "filtered",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 6.9913830280654565e-9,
+        "noul_probability": 0.5339211821556091,
+        "completion_choice": "complete",
+        "operation_tokens": 408
+      },
+      {
+        "case": "complete",
+        "variant": "upstream",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.33135420083999634,
+        "noul_probability": 0.7708637714385986,
+        "completion_choice": "complete",
+        "operation_tokens": 624
+      },
+      {
+        "case": "complete",
+        "variant": "compact",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.3183160424232483,
+        "noul_probability": 0.5645079612731934,
+        "completion_choice": "unfinished",
+        "operation_tokens": 307
+      },
+      {
+        "case": "complete",
+        "variant": "short_instruction",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.38182002305984497,
+        "noul_probability": 0.5645079612731934,
+        "completion_choice": "unfinished",
+        "operation_tokens": 254
+      },
+      {
+        "case": "complete",
+        "variant": "short_labels",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.33374452590942383,
+        "noul_probability": 0.5645079612731934,
+        "completion_choice": "unfinished",
+        "operation_tokens": 232
+      },
+      {
+        "case": "complete",
+        "variant": "observations",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.19451019167900085,
+        "noul_probability": 0.31689152121543884,
+        "completion_choice": "unfinished",
+        "operation_tokens": 409
+      },
+      {
+        "case": "complete",
+        "variant": "next_requirement",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.22985780239105225,
+        "noul_probability": 0.31689152121543884,
+        "completion_choice": "unfinished",
+        "operation_tokens": 441
+      },
+      {
+        "case": "complete",
+        "variant": "facts",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.30001628398895264,
+        "noul_probability": 0.45922422409057617,
+        "completion_choice": "unfinished",
+        "operation_tokens": 241
+      },
+      {
+        "case": "complete",
+        "variant": "flat_actions",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "e1",
+        "done_probability": 0.13051658868789673,
+        "noul_probability": 0.45922422409057617,
+        "completion_choice": "unfinished",
+        "operation_tokens": 266
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3207804262638092,
+        "noul_probability": 0.7791056632995605,
+        "completion_choice": "complete",
+        "operation_tokens": 624
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.28030693531036377,
+        "noul_probability": 0.2696197032928467,
+        "completion_choice": "unfinished",
+        "operation_tokens": 307
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3444348871707916,
+        "noul_probability": 0.2696197032928467,
+        "completion_choice": "unfinished",
+        "operation_tokens": 254
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2969202399253845,
+        "noul_probability": 0.2696197032928467,
+        "completion_choice": "unfinished",
+        "operation_tokens": 232
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.17228536307811737,
+        "noul_probability": 0.29392120242118835,
+        "completion_choice": "unfinished",
+        "operation_tokens": 409
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.22296500205993652,
+        "noul_probability": 0.29392120242118835,
+        "completion_choice": "unfinished",
+        "operation_tokens": 441
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3396533727645874,
+        "noul_probability": 0.7350088953971863,
+        "completion_choice": "complete",
+        "operation_tokens": 241
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.09756497293710709,
+        "noul_probability": 0.7350088953971863,
+        "completion_choice": "complete",
+        "operation_tokens": 266
+      },
+      {
+        "case": "wrong_property",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.36536309123039246,
+        "noul_probability": 0.8019179701805115,
+        "completion_choice": "complete",
+        "operation_tokens": 619
+      },
+      {
+        "case": "wrong_property",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.30466145277023315,
+        "noul_probability": 0.6458138823509216,
+        "completion_choice": "unfinished",
+        "operation_tokens": 303
+      },
+      {
+        "case": "wrong_property",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4308646321296692,
+        "noul_probability": 0.6458138823509216,
+        "completion_choice": "unfinished",
+        "operation_tokens": 250
+      },
+      {
+        "case": "wrong_property",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.36070767045021057,
+        "noul_probability": 0.6458138823509216,
+        "completion_choice": "unfinished",
+        "operation_tokens": 228
+      },
+      {
+        "case": "wrong_property",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1636851578950882,
+        "noul_probability": 0.3050764501094818,
+        "completion_choice": "unfinished",
+        "operation_tokens": 405
+      },
+      {
+        "case": "wrong_property",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2219262421131134,
+        "noul_probability": 0.3050764501094818,
+        "completion_choice": "unfinished",
+        "operation_tokens": 437
+      },
+      {
+        "case": "wrong_property",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.344135582447052,
+        "noul_probability": 0.4935995638370514,
+        "completion_choice": "complete",
+        "operation_tokens": 237
+      },
+      {
+        "case": "wrong_property",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.10125698149204254,
+        "noul_probability": 0.4935995638370514,
+        "completion_choice": "complete",
+        "operation_tokens": 262
+      },
+      {
+        "case": "form_empty",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.0995883122086525,
+        "noul_probability": 0.37286612391471863,
+        "completion_choice": "unfinished",
+        "operation_tokens": 529
+      },
+      {
+        "case": "form_empty",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.39697691798210144,
+        "noul_probability": 0.9182281494140625,
+        "completion_choice": "complete",
+        "operation_tokens": 232
+      },
+      {
+        "case": "form_empty",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.41213271021842957,
+        "noul_probability": 0.9182281494140625,
+        "completion_choice": "complete",
+        "operation_tokens": 183
+      },
+      {
+        "case": "form_empty",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3412673771381378,
+        "noul_probability": 0.9182281494140625,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_empty",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09808161854743958,
+        "noul_probability": 0.5978119373321533,
+        "completion_choice": "complete",
+        "operation_tokens": 316
+      },
+      {
+        "case": "form_empty",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.14600756764411926,
+        "noul_probability": 0.5978119373321533,
+        "completion_choice": "complete",
+        "operation_tokens": 344
+      },
+      {
+        "case": "form_empty",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3203469514846802,
+        "noul_probability": 0.89573073387146,
+        "completion_choice": "complete",
+        "operation_tokens": 141
+      },
+      {
+        "case": "form_empty",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "e4",
+        "done_probability": 0.061341654509305954,
+        "noul_probability": 0.89573073387146,
+        "completion_choice": "complete",
+        "operation_tokens": 155
+      },
+      {
+        "case": "form_named",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.12085676193237305,
+        "noul_probability": 0.3546367287635803,
+        "completion_choice": "unfinished",
+        "operation_tokens": 531
+      },
+      {
+        "case": "form_named",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.27134349942207336,
+        "noul_probability": 0.8071826100349426,
+        "completion_choice": "complete",
+        "operation_tokens": 234
+      },
+      {
+        "case": "form_named",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.28207874298095703,
+        "noul_probability": 0.8071826100349426,
+        "completion_choice": "complete",
+        "operation_tokens": 185
+      },
+      {
+        "case": "form_named",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2533082365989685,
+        "noul_probability": 0.8071826100349426,
+        "completion_choice": "complete",
+        "operation_tokens": 145
+      },
+      {
+        "case": "form_named",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09205448627471924,
+        "noul_probability": 0.671487033367157,
+        "completion_choice": "complete",
+        "operation_tokens": 318
+      },
+      {
+        "case": "form_named",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.13040798902511597,
+        "noul_probability": 0.6719213128089905,
+        "completion_choice": "complete",
+        "operation_tokens": 346
+      },
+      {
+        "case": "form_named",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.27918949723243713,
+        "noul_probability": 0.8400090932846069,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_named",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.045200757682323456,
+        "noul_probability": 0.8400090932846069,
+        "completion_choice": "complete",
+        "operation_tokens": 157
+      },
+      {
+        "case": "form_ready",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.11422913521528244,
+        "noul_probability": 0.3377002775669098,
+        "completion_choice": "complete",
+        "operation_tokens": 531
+      },
+      {
+        "case": "form_ready",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2588605284690857,
+        "noul_probability": 0.7794443964958191,
+        "completion_choice": "complete",
+        "operation_tokens": 234
+      },
+      {
+        "case": "form_ready",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.28064772486686707,
+        "noul_probability": 0.7794443964958191,
+        "completion_choice": "complete",
+        "operation_tokens": 185
+      },
+      {
+        "case": "form_ready",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.24670375883579254,
+        "noul_probability": 0.7794443964958191,
+        "completion_choice": "complete",
+        "operation_tokens": 145
+      },
+      {
+        "case": "form_ready",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09354585409164429,
+        "noul_probability": 0.680116593837738,
+        "completion_choice": "complete",
+        "operation_tokens": 318
+      },
+      {
+        "case": "form_ready",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1269690841436386,
+        "noul_probability": 0.680116593837738,
+        "completion_choice": "complete",
+        "operation_tokens": 346
+      },
+      {
+        "case": "form_ready",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2815014123916626,
+        "noul_probability": 0.8452321887016296,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_ready",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.04392164945602417,
+        "noul_probability": 0.8452321887016296,
+        "completion_choice": "complete",
+        "operation_tokens": 157
+      },
+      {
+        "case": "form_complete",
+        "variant": "upstream",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.22203531861305237,
+        "noul_probability": 0.7422329187393188,
+        "completion_choice": "complete",
+        "operation_tokens": 435
+      },
+      {
+        "case": "form_complete",
+        "variant": "compact",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.5141431093215942,
+        "noul_probability": 0.9506471157073975,
+        "completion_choice": "complete",
+        "operation_tokens": 193
+      },
+      {
+        "case": "form_complete",
+        "variant": "short_instruction",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.5370214581489563,
+        "noul_probability": 0.9506471157073975,
+        "completion_choice": "complete",
+        "operation_tokens": 144
+      },
+      {
+        "case": "form_complete",
+        "variant": "short_labels",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.29684340953826904,
+        "noul_probability": 0.9506471157073975,
+        "completion_choice": "complete",
+        "operation_tokens": 122
+      },
+      {
+        "case": "form_complete",
+        "variant": "observations",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.3070148527622223,
+        "noul_probability": 0.9167370796203613,
+        "completion_choice": "complete",
+        "operation_tokens": 163
+      },
+      {
+        "case": "form_complete",
+        "variant": "next_requirement",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.3590400815010071,
+        "noul_probability": 0.9164358973503113,
+        "completion_choice": "complete",
+        "operation_tokens": 191
+      },
+      {
+        "case": "form_complete",
+        "variant": "facts",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.32656925916671753,
+        "noul_probability": 0.9308424592018127,
+        "completion_choice": "complete",
+        "operation_tokens": 116
+      },
+      {
+        "case": "form_complete",
+        "variant": "flat_actions",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "e1",
+        "done_probability": 0.20981144905090332,
+        "noul_probability": 0.9308424592018127,
+        "completion_choice": "complete",
+        "operation_tokens": 118
+      }
+    ]
+  },
+  "provenance": {
+    "checkpoint_revision": "c5d78730f3493e4fe16d61507ef4b78eef7318cf",
+    "cuda_dtype": "BF16",
+    "batch_size": 4,
+    "request_response_sha256": {
+      "prompt-probe-v2": {
+        "requests.json": "f20fed75fe9b18ba1a96780e8deeebc837b856f7ac378946646b4c2146058cf9",
+        "manifest.json": "80eefefd56bab29d40f51d6cc25d00f3480bc993837b6d5bc9696beb079f514b",
+        "responses.json": "564a3abdbbffc7cb82122c0e99393242db8abc7a1fa450f4b248b7bd4de96d61",
+        "responses-cpu.json": "3e85cb1e3c9a3f85bc2c17aabe7337f08904c5abe8b4ffd76d005d1fb9666547",
+        "responses-cuda-f32.json": "53a0bf6f145ffc205e5cbb8213951870d4ffc50bce99b30774fa8c64c72b98fd"
+      },
+      "prompt-probe-context-1024": {
+        "requests.json": "f20fed75fe9b18ba1a96780e8deeebc837b856f7ac378946646b4c2146058cf9",
+        "manifest.json": "80eefefd56bab29d40f51d6cc25d00f3480bc993837b6d5bc9696beb079f514b",
+        "responses.json": "1b40f0a273049171715953ee97265778263ba82de05bff303313f86012c5ab1d"
+      },
+      "prompt-probe-context-2048": {
+        "requests.json": "f20fed75fe9b18ba1a96780e8deeebc837b856f7ac378946646b4c2146058cf9",
+        "manifest.json": "80eefefd56bab29d40f51d6cc25d00f3480bc993837b6d5bc9696beb079f514b",
+        "responses.json": "37e52a6f6cc61d888d49a50188b6f139979c7a0c19fb828eba30dee445f9041a"
+      },
+      "prompt-probe-atomic": {
+        "requests.json": "a68b4c2cfb92dc5cebfecbbe707c880470074a9493295740f220b605485b7c4d",
+        "manifest.json": "7eb16061639595ecf71ba05ed597094541b37aaadc8bc1aa32b11f164710e912",
+        "responses.json": "b0520d173d1c2bf57b85ece83f0b3437c7d36fc995b8161c6430e332a84902a1"
+      },
+      "prompt-probe-permuted": {
+        "requests.json": "f19413009b67b50d659b86e40a6a294ff9a170798ec910fe93ddccae891ebb3e",
+        "manifest.json": "80eefefd56bab29d40f51d6cc25d00f3480bc993837b6d5bc9696beb079f514b",
+        "responses.json": "e313dd39ee52f392ef04d9b6f3d6763b792f39fa10a60b941a6c0fc9ea5a4a37"
+      }
+    },
+    "cpu_dtype": "F32",
+    "source_parent_commit": "af13a5a6fbba",
+    "inference_binary_sha256": {
+      "target/release/vs1": "acf1c572cd3bfbab5e73b6b76afadfad592232fda30adc9af4b626a4554389c1",
+      "/tmp/vs1-workspace-package/bin/vs1": "cbbb8feb5e6ad1f5528a738de7d1d52f2f9f8c612848e545fe8fffb860a04b5a"
+    }
+  },
+  "atomic": [
+    {
+      "case": "initial",
+      "variant": "compact",
+      "gold": [0, 0, 0, 0],
+      "probabilities": [
+        0.6860852837562561, 0.5800535678863525, 0.6408429741859436, 0.4075266420841217
+      ],
+      "complete_probability": 0.5088617205619812
+    },
+    {
+      "case": "initial",
+      "variant": "natural_controls",
+      "gold": [0, 0, 0, 0],
+      "probabilities": [
+        0.4587351679801941, 0.5334310531616211, 0.595204770565033, 0.7373040914535522
+      ],
+      "complete_probability": 0.6426541209220886
+    },
+    {
+      "case": "typed",
+      "variant": "compact",
+      "gold": [0, 0, 0, 0],
+      "probabilities": [
+        0.6970072388648987, 0.3637024760246277, 0.5527327060699463, 0.3895891308784485
+      ],
+      "complete_probability": 0.49852290749549866
+    },
+    {
+      "case": "typed",
+      "variant": "natural_controls",
+      "gold": [0, 0, 0, 0],
+      "probabilities": [
+        0.49163055419921875, 0.40990638732910156, 0.5064004063606262, 0.6204322576522827
+      ],
+      "complete_probability": 0.6886246800422668
+    },
+    {
+      "case": "searched",
+      "variant": "compact",
+      "gold": [1, 0, 0, 0],
+      "probabilities": [
+        0.788121223449707, 0.8384146094322205, 0.824055016040802, 0.4271591305732727
+      ],
+      "complete_probability": 0.6882022023200989
+    },
+    {
+      "case": "searched",
+      "variant": "natural_controls",
+      "gold": [1, 0, 0, 0],
+      "probabilities": [
+        0.8144326210021973, 0.7173917293548584, 0.7299923300743103, 0.6915730237960815
+      ],
+      "complete_probability": 0.803166389465332
+    },
+    {
+      "case": "design",
+      "variant": "compact",
+      "gold": [1, 1, 0, 0],
+      "probabilities": [
+        0.8472819924354553, 0.8762789368629456, 0.8394789695739746, 0.5940476059913635
+      ],
+      "complete_probability": 0.8346441984176636
+    },
+    {
+      "case": "design",
+      "variant": "natural_controls",
+      "gold": [1, 1, 0, 0],
+      "probabilities": [
+        0.789760947227478, 0.7511721849441528, 0.6999107599258423, 0.6924125552177429
+      ],
+      "complete_probability": 0.8214702606201172
+    },
+    {
+      "case": "filtered",
+      "variant": "compact",
+      "gold": [1, 1, 1, 0],
+      "probabilities": [
+        0.8567163348197937, 0.8732585310935974, 0.8431597948074341, 0.574647068977356
+      ],
+      "complete_probability": 0.8280171155929565
+    },
+    {
+      "case": "filtered",
+      "variant": "natural_controls",
+      "gold": [1, 1, 1, 0],
+      "probabilities": [
+        0.7229481935501099, 0.7418558597564697, 0.7708637714385986, 0.6915730237960815
+      ],
+      "complete_probability": 0.8185636401176453
+    },
+    {
+      "case": "complete",
+      "variant": "compact",
+      "gold": [1, 1, 1, 1],
+      "probabilities": [
+        0.7739795446395874, 0.7828115224838257, 0.7003242373466492, 0.46411892771720886
+      ],
+      "complete_probability": 0.6471642851829529
+    },
+    {
+      "case": "complete",
+      "variant": "natural_controls",
+      "gold": [1, 1, 1, 1],
+      "probabilities": [
+        0.5871129631996155, 0.7884500026702881, 0.5561384558677673, 0.692831814289093
+      ],
+      "complete_probability": 0.7990873456001282
+    },
+    {
+      "case": "wrong_filters",
+      "variant": "compact",
+      "gold": [0, 0, 0, 1],
+      "probabilities": [
+        0.6766791343688965, 0.8037883043289185, 0.5568675398826599, 0.47884082794189453
+      ],
+      "complete_probability": 0.5064004063606262
+    },
+    {
+      "case": "wrong_filters",
+      "variant": "natural_controls",
+      "gold": [0, 0, 0, 1],
+      "probabilities": [
+        0.5441974401473999, 0.6990828514099121, 0.6342440247535706, 0.7659571766853333
+      ],
+      "complete_probability": 0.7551994323730469
+    },
+    {
+      "case": "wrong_property",
+      "variant": "compact",
+      "gold": [1, 1, 1, 0],
+      "probabilities": [
+        0.7459829449653625, 0.804718554019928, 0.7027984261512756, 0.45531409978866577
+      ],
+      "complete_probability": 0.6007530689239502
+    },
+    {
+      "case": "wrong_property",
+      "variant": "natural_controls",
+      "gold": [1, 1, 1, 0],
+      "probabilities": [
+        0.6294336915016174, 0.7732897996902466, 0.6538802981376648, 0.5014771223068237
+      ],
+      "complete_probability": 0.7459829449653625
+    },
+    {
+      "case": "form_empty",
+      "variant": "compact",
+      "gold": [0, 0, 0, 0],
+      "probabilities": [
+        0.6392548680305481, 0.7949452996253967, 0.7787665128707886, 0.46803969144821167
+      ],
+      "complete_probability": 0.890082061290741
+    },
+    {
+      "case": "form_empty",
+      "variant": "natural_controls",
+      "gold": [0, 0, 0, 0],
+      "probabilities": [
+        0.2012290358543396, 0.8068759441375732, 0.7760400772094727, 0.3203120231628418
+      ],
+      "complete_probability": 0.6622996926307678
+    },
+    {
+      "case": "form_named",
+      "variant": "compact",
+      "gold": [1, 0, 0, 0],
+      "probabilities": [
+        0.788121223449707, 0.8368072509765625, 0.8012915849685669, 0.46020257472991943
+      ],
+      "complete_probability": 0.7818052768707275
+    },
+    {
+      "case": "form_named",
+      "variant": "natural_controls",
+      "gold": [1, 0, 0, 0],
+      "probabilities": [
+        0.777746856212616, 0.7994033694267273, 0.8141347765922546, 0.2343960553407669
+      ],
+      "complete_probability": 0.45775729417800903
+    },
+    {
+      "case": "form_ready",
+      "variant": "compact",
+      "gold": [1, 1, 0, 0],
+      "probabilities": [
+        0.8062613010406494, 0.856232225894928, 0.7965458631515503, 0.47049224376678467
+      ],
+      "complete_probability": 0.7821410298347473
+    },
+    {
+      "case": "form_ready",
+      "variant": "natural_controls",
+      "gold": [1, 1, 0, 0],
+      "probabilities": [
+        0.6869329214096069, 0.7330865263938904, 0.7338565587997437, 0.30884721875190735
+      ],
+      "complete_probability": 0.33199793100357056
+    },
+    {
+      "case": "form_complete",
+      "variant": "compact",
+      "gold": [1, 1, 1, 1],
+      "probabilities": [
+        0.8679341673851013, 0.8153238892555237, 0.8462598919868469, 0.9347910284996033
+      ],
+      "complete_probability": 0.93645179271698
+    },
+    {
+      "case": "form_complete",
+      "variant": "natural_controls",
+      "gold": [1, 1, 1, 1],
+      "probabilities": [
+        0.9261364936828613, 0.8467716574668884, 0.8986373543739319, 0.9458165764808655
+      ],
+      "complete_probability": 0.9277369976043701
+    }
+  ],
+  "reversed_options": [
+    {
+      "case": "initial",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "initial",
+      "variant": "compact",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "initial",
+      "variant": "short_instruction",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "initial",
+      "variant": "short_labels",
+      "forward": "CLICK",
+      "reversed": "DONE"
+    },
+    {
+      "case": "initial",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "initial",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "initial",
+      "variant": "facts",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "initial",
+      "variant": "flat_actions",
+      "forward": "e1",
+      "reversed": "e1"
+    },
+    {
+      "case": "typed",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "typed",
+      "variant": "compact",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "typed",
+      "variant": "short_instruction",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "typed",
+      "variant": "short_labels",
+      "forward": "CLICK",
+      "reversed": "DONE"
+    },
+    {
+      "case": "typed",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "typed",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "typed",
+      "variant": "facts",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "typed",
+      "variant": "flat_actions",
+      "forward": "e1",
+      "reversed": "e1"
+    },
+    {
+      "case": "searched",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "searched",
+      "variant": "compact",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "searched",
+      "variant": "short_instruction",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "searched",
+      "variant": "short_labels",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "searched",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "searched",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "searched",
+      "variant": "facts",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "searched",
+      "variant": "flat_actions",
+      "forward": "e12",
+      "reversed": "e1"
+    },
+    {
+      "case": "design",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "design",
+      "variant": "compact",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "design",
+      "variant": "short_instruction",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "design",
+      "variant": "short_labels",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "design",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "design",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "design",
+      "variant": "facts",
+      "forward": "DONE",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "design",
+      "variant": "flat_actions",
+      "forward": "e1",
+      "reversed": "e1"
+    },
+    {
+      "case": "filtered",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "filtered",
+      "variant": "compact",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "filtered",
+      "variant": "short_instruction",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "filtered",
+      "variant": "short_labels",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "filtered",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "filtered",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "filtered",
+      "variant": "facts",
+      "forward": "TYPE_TEXT",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "filtered",
+      "variant": "flat_actions",
+      "forward": "e1",
+      "reversed": "e1"
+    },
+    {
+      "case": "complete",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "complete",
+      "variant": "compact",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "complete",
+      "variant": "short_instruction",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "complete",
+      "variant": "short_labels",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "complete",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "complete",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "complete",
+      "variant": "facts",
+      "forward": "DONE",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "complete",
+      "variant": "flat_actions",
+      "forward": "e1",
+      "reversed": "e1"
+    },
+    {
+      "case": "wrong_filters",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "wrong_filters",
+      "variant": "compact",
+      "forward": "DONE",
+      "reversed": "BLOCKED"
+    },
+    {
+      "case": "wrong_filters",
+      "variant": "short_instruction",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "wrong_filters",
+      "variant": "short_labels",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "wrong_filters",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "wrong_filters",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "wrong_filters",
+      "variant": "facts",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "wrong_filters",
+      "variant": "flat_actions",
+      "forward": "e1",
+      "reversed": "e1"
+    },
+    {
+      "case": "wrong_property",
+      "variant": "upstream",
+      "forward": "DONE",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "wrong_property",
+      "variant": "compact",
+      "forward": "DONE",
+      "reversed": "BLOCKED"
+    },
+    {
+      "case": "wrong_property",
+      "variant": "short_instruction",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "wrong_property",
+      "variant": "short_labels",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "wrong_property",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "wrong_property",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "wrong_property",
+      "variant": "facts",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "wrong_property",
+      "variant": "flat_actions",
+      "forward": "e1",
+      "reversed": "e1"
+    },
+    {
+      "case": "form_empty",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_empty",
+      "variant": "compact",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "form_empty",
+      "variant": "short_instruction",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "form_empty",
+      "variant": "short_labels",
+      "forward": "DONE",
+      "reversed": "TYPE_TEXT"
+    },
+    {
+      "case": "form_empty",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_empty",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_empty",
+      "variant": "facts",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "form_empty",
+      "variant": "flat_actions",
+      "forward": "e4",
+      "reversed": "e1"
+    },
+    {
+      "case": "form_named",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_named",
+      "variant": "compact",
+      "forward": "TYPE_TEXT",
+      "reversed": "TYPE_TEXT"
+    },
+    {
+      "case": "form_named",
+      "variant": "short_instruction",
+      "forward": "TYPE_TEXT",
+      "reversed": "TYPE_TEXT"
+    },
+    {
+      "case": "form_named",
+      "variant": "short_labels",
+      "forward": "TYPE_TEXT",
+      "reversed": "TYPE_TEXT"
+    },
+    {
+      "case": "form_named",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_named",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_named",
+      "variant": "facts",
+      "forward": "TYPE_TEXT",
+      "reversed": "TYPE_TEXT"
+    },
+    {
+      "case": "form_named",
+      "variant": "flat_actions",
+      "forward": "e1",
+      "reversed": "e1"
+    },
+    {
+      "case": "form_ready",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_ready",
+      "variant": "compact",
+      "forward": "TYPE_TEXT",
+      "reversed": "TYPE_TEXT"
+    },
+    {
+      "case": "form_ready",
+      "variant": "short_instruction",
+      "forward": "TYPE_TEXT",
+      "reversed": "TYPE_TEXT"
+    },
+    {
+      "case": "form_ready",
+      "variant": "short_labels",
+      "forward": "TYPE_TEXT",
+      "reversed": "TYPE_TEXT"
+    },
+    {
+      "case": "form_ready",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_ready",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_ready",
+      "variant": "facts",
+      "forward": "TYPE_TEXT",
+      "reversed": "TYPE_TEXT"
+    },
+    {
+      "case": "form_ready",
+      "variant": "flat_actions",
+      "forward": "e1",
+      "reversed": "e1"
+    },
+    {
+      "case": "form_complete",
+      "variant": "upstream",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_complete",
+      "variant": "compact",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "form_complete",
+      "variant": "short_instruction",
+      "forward": "DONE",
+      "reversed": "DONE"
+    },
+    {
+      "case": "form_complete",
+      "variant": "short_labels",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_complete",
+      "variant": "observations",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_complete",
+      "variant": "next_requirement",
+      "forward": "CLICK",
+      "reversed": "DONE"
+    },
+    {
+      "case": "form_complete",
+      "variant": "facts",
+      "forward": "CLICK",
+      "reversed": "CLICK"
+    },
+    {
+      "case": "form_complete",
+      "variant": "flat_actions",
+      "forward": "e1",
+      "reversed": "e1"
+    }
+  ],
+  "cpu_f32": {
+    "scope": "Controlled states, not rollouts. No target accuracy inferred from operation selection.",
+    "summary": {
+      "upstream": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 1,
+        "correct_done": 0,
+        "noul_correct": 10,
+        "completion_choice_correct": 9,
+        "sequences_at_limit": 5
+      },
+      "compact": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 8,
+        "correct_done": 2,
+        "noul_correct": 2,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 3
+      },
+      "short_instruction": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 8,
+        "correct_done": 2,
+        "noul_correct": 2,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 0
+      },
+      "short_labels": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 5,
+        "correct_done": 0,
+        "noul_correct": 2,
+        "completion_choice_correct": 5,
+        "sequences_at_limit": 0
+      },
+      "observations": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 7,
+        "completion_choice_correct": 8,
+        "sequences_at_limit": 5
+      },
+      "next_requirement": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 7,
+        "completion_choice_correct": 8,
+        "sequences_at_limit": 5
+      },
+      "facts": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 3,
+        "correct_done": 1,
+        "noul_correct": 1,
+        "completion_choice_correct": 1,
+        "sequences_at_limit": 0
+      },
+      "flat_actions": {
+        "unfinished": 10,
+        "completed": 2,
+        "premature_done": 0,
+        "correct_done": 0,
+        "noul_correct": 1,
+        "completion_choice_correct": 1,
+        "sequences_at_limit": 2
+      }
+    },
+    "rows": [
+      {
+        "case": "initial",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.023051274940371513,
+        "noul_probability": 0.4748486876487732,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "initial",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.45552846789360046,
+        "noul_probability": 0.546829879283905,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "initial",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3607570230960846,
+        "noul_probability": 0.546829879283905,
+        "completion_choice": "unfinished",
+        "operation_tokens": 500
+      },
+      {
+        "case": "initial",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2677463889122009,
+        "noul_probability": 0.546829879283905,
+        "completion_choice": "unfinished",
+        "operation_tokens": 457
+      },
+      {
+        "case": "initial",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.06557361036539078,
+        "noul_probability": 0.3313247859477997,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "initial",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.17648020386695862,
+        "noul_probability": 0.3313247859477997,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "initial",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.19309040904045105,
+        "noul_probability": 0.6493420004844666,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "initial",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "SELECT", "CLICK"],
+        "decision": "e1",
+        "done_probability": 1.885444994575991e-10,
+        "noul_probability": 0.6493425965309143,
+        "completion_choice": "complete",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.023051274940371513,
+        "noul_probability": 0.46401339769363403,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "DONE",
+        "done_probability": 0.4510834813117981,
+        "noul_probability": 0.5658682584762573,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "DONE",
+        "done_probability": 0.3350088596343994,
+        "noul_probability": 0.5658694505691528,
+        "completion_choice": "unfinished",
+        "operation_tokens": 504
+      },
+      {
+        "case": "typed",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.27504271268844604,
+        "noul_probability": 0.5658694505691528,
+        "completion_choice": "unfinished",
+        "operation_tokens": 461
+      },
+      {
+        "case": "typed",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.06740347295999527,
+        "noul_probability": 0.3295159339904785,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.1847091168165207,
+        "noul_probability": 0.3295159339904785,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "typed",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "CLICK",
+        "done_probability": 0.19540497660636902,
+        "noul_probability": 0.5570796132087708,
+        "completion_choice": "complete",
+        "operation_tokens": 426
+      },
+      {
+        "case": "typed",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK", "SELECT"],
+        "decision": "e1",
+        "done_probability": 4.446525370127574e-9,
+        "noul_probability": 0.5570796132087708,
+        "completion_choice": "complete",
+        "operation_tokens": 512
+      },
+      {
+        "case": "searched",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.18855246901512146,
+        "noul_probability": 0.4868350028991699,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "searched",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.5126206278800964,
+        "noul_probability": 0.7992152571678162,
+        "completion_choice": "complete",
+        "operation_tokens": 512
+      },
+      {
+        "case": "searched",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4153556823730469,
+        "noul_probability": 0.7992152571678162,
+        "completion_choice": "complete",
+        "operation_tokens": 465
+      },
+      {
+        "case": "searched",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.31036511063575745,
+        "noul_probability": 0.7992152571678162,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "searched",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.18552283942699432,
+        "noul_probability": 0.4213048219680786,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "searched",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.202147975564003,
+        "noul_probability": 0.4213048219680786,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "searched",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1750923991203308,
+        "noul_probability": 0.6599593162536621,
+        "completion_choice": "complete",
+        "operation_tokens": 383
+      },
+      {
+        "case": "searched",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["SELECT", "CLICK"],
+        "decision": "e1",
+        "done_probability": 1.5717611934196185e-10,
+        "noul_probability": 0.6599593162536621,
+        "completion_choice": "complete",
+        "operation_tokens": 464
+      },
+      {
+        "case": "design",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09748780727386475,
+        "noul_probability": 0.4892888367176056,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "design",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.39883485436439514,
+        "noul_probability": 0.8656300902366638,
+        "completion_choice": "complete",
+        "operation_tokens": 475
+      },
+      {
+        "case": "design",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4535631537437439,
+        "noul_probability": 0.8656300902366638,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "design",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3659035563468933,
+        "noul_probability": 0.8656300902366638,
+        "completion_choice": "complete",
+        "operation_tokens": 379
+      },
+      {
+        "case": "design",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.05529852956533432,
+        "noul_probability": 0.5069268345832825,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "design",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1688160002231598,
+        "noul_probability": 0.5069268345832825,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "design",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.18951183557510376,
+        "noul_probability": 0.5700337886810303,
+        "completion_choice": "complete",
+        "operation_tokens": 335
+      },
+      {
+        "case": "design",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 4.092564065416582e-9,
+        "noul_probability": 0.5700337886810303,
+        "completion_choice": "complete",
+        "operation_tokens": 408
+      },
+      {
+        "case": "filtered",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09748780727386475,
+        "noul_probability": 0.4892888367176056,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "filtered",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3963775634765625,
+        "noul_probability": 0.8682122826576233,
+        "completion_choice": "complete",
+        "operation_tokens": 475
+      },
+      {
+        "case": "filtered",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.447694331407547,
+        "noul_probability": 0.8682122826576233,
+        "completion_choice": "complete",
+        "operation_tokens": 422
+      },
+      {
+        "case": "filtered",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.36625364422798157,
+        "noul_probability": 0.8682122826576233,
+        "completion_choice": "complete",
+        "operation_tokens": 379
+      },
+      {
+        "case": "filtered",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.04930445924401283,
+        "noul_probability": 0.48144516348838806,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "filtered",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.18545503914356232,
+        "noul_probability": 0.48144516348838806,
+        "completion_choice": "unfinished",
+        "operation_tokens": 512
+      },
+      {
+        "case": "filtered",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.18373939394950867,
+        "noul_probability": 0.548106849193573,
+        "completion_choice": "complete",
+        "operation_tokens": 335
+      },
+      {
+        "case": "filtered",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 5.686753290490287e-9,
+        "noul_probability": 0.548106849193573,
+        "completion_choice": "complete",
+        "operation_tokens": 408
+      },
+      {
+        "case": "complete",
+        "variant": "upstream",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.2754881978034973,
+        "noul_probability": 0.7753281593322754,
+        "completion_choice": "complete",
+        "operation_tokens": 498
+      },
+      {
+        "case": "complete",
+        "variant": "compact",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.31987464427948,
+        "noul_probability": 0.48541101813316345,
+        "completion_choice": "unfinished",
+        "operation_tokens": 307
+      },
+      {
+        "case": "complete",
+        "variant": "short_instruction",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.4010789394378662,
+        "noul_probability": 0.48541101813316345,
+        "completion_choice": "unfinished",
+        "operation_tokens": 254
+      },
+      {
+        "case": "complete",
+        "variant": "short_labels",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.32632824778556824,
+        "noul_probability": 0.48541101813316345,
+        "completion_choice": "unfinished",
+        "operation_tokens": 232
+      },
+      {
+        "case": "complete",
+        "variant": "observations",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.18932169675827026,
+        "noul_probability": 0.31187376379966736,
+        "completion_choice": "unfinished",
+        "operation_tokens": 409
+      },
+      {
+        "case": "complete",
+        "variant": "next_requirement",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.22899916768074036,
+        "noul_probability": 0.31187376379966736,
+        "completion_choice": "unfinished",
+        "operation_tokens": 441
+      },
+      {
+        "case": "complete",
+        "variant": "facts",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.30478426814079285,
+        "noul_probability": 0.46167051792144775,
+        "completion_choice": "unfinished",
+        "operation_tokens": 241
+      },
+      {
+        "case": "complete",
+        "variant": "flat_actions",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "e1",
+        "done_probability": 0.13896536827087402,
+        "noul_probability": 0.46167051792144775,
+        "completion_choice": "unfinished",
+        "operation_tokens": 266
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.2599841058254242,
+        "noul_probability": 0.7790295481681824,
+        "completion_choice": "complete",
+        "operation_tokens": 498
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.27766966819763184,
+        "noul_probability": 0.27136343717575073,
+        "completion_choice": "unfinished",
+        "operation_tokens": 307
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3397551476955414,
+        "noul_probability": 0.27136343717575073,
+        "completion_choice": "unfinished",
+        "operation_tokens": 254
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.29914623498916626,
+        "noul_probability": 0.27136343717575073,
+        "completion_choice": "unfinished",
+        "operation_tokens": 232
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.17389310896396637,
+        "noul_probability": 0.2910173535346985,
+        "completion_choice": "unfinished",
+        "operation_tokens": 409
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.22453248500823975,
+        "noul_probability": 0.2910173535346985,
+        "completion_choice": "unfinished",
+        "operation_tokens": 441
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.34286001324653625,
+        "noul_probability": 0.7481973767280579,
+        "completion_choice": "complete",
+        "operation_tokens": 241
+      },
+      {
+        "case": "wrong_filters",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.10357652604579926,
+        "noul_probability": 0.7481973767280579,
+        "completion_choice": "complete",
+        "operation_tokens": 266
+      },
+      {
+        "case": "wrong_property",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.32868754863739014,
+        "noul_probability": 0.8038275837898254,
+        "completion_choice": "complete",
+        "operation_tokens": 493
+      },
+      {
+        "case": "wrong_property",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3019760549068451,
+        "noul_probability": 0.6004752516746521,
+        "completion_choice": "unfinished",
+        "operation_tokens": 303
+      },
+      {
+        "case": "wrong_property",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.4404764473438263,
+        "noul_probability": 0.6004752516746521,
+        "completion_choice": "unfinished",
+        "operation_tokens": 250
+      },
+      {
+        "case": "wrong_property",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.36569690704345703,
+        "noul_probability": 0.6004752516746521,
+        "completion_choice": "unfinished",
+        "operation_tokens": 228
+      },
+      {
+        "case": "wrong_property",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.16429844498634338,
+        "noul_probability": 0.31263887882232666,
+        "completion_choice": "unfinished",
+        "operation_tokens": 405
+      },
+      {
+        "case": "wrong_property",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.22304922342300415,
+        "noul_probability": 0.31263887882232666,
+        "completion_choice": "unfinished",
+        "operation_tokens": 437
+      },
+      {
+        "case": "wrong_property",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3499738872051239,
+        "noul_probability": 0.5070117712020874,
+        "completion_choice": "complete",
+        "operation_tokens": 237
+      },
+      {
+        "case": "wrong_property",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.10525107383728027,
+        "noul_probability": 0.5070117712020874,
+        "completion_choice": "complete",
+        "operation_tokens": 262
+      },
+      {
+        "case": "form_empty",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.12870563566684723,
+        "noul_probability": 0.36147016286849976,
+        "completion_choice": "unfinished",
+        "operation_tokens": 380
+      },
+      {
+        "case": "form_empty",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.39922186732292175,
+        "noul_probability": 0.9152199029922485,
+        "completion_choice": "complete",
+        "operation_tokens": 232
+      },
+      {
+        "case": "form_empty",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.41397878527641296,
+        "noul_probability": 0.9152199029922485,
+        "completion_choice": "complete",
+        "operation_tokens": 183
+      },
+      {
+        "case": "form_empty",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.3499869406223297,
+        "noul_probability": 0.9152199029922485,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_empty",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09704684466123581,
+        "noul_probability": 0.5962390899658203,
+        "completion_choice": "complete",
+        "operation_tokens": 316
+      },
+      {
+        "case": "form_empty",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1459702104330063,
+        "noul_probability": 0.5962390899658203,
+        "completion_choice": "complete",
+        "operation_tokens": 344
+      },
+      {
+        "case": "form_empty",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "DONE",
+        "done_probability": 0.32380855083465576,
+        "noul_probability": 0.8974258303642273,
+        "completion_choice": "complete",
+        "operation_tokens": 141
+      },
+      {
+        "case": "form_empty",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["TYPE_TEXT", "CLICK"],
+        "decision": "e4",
+        "done_probability": 0.06431308388710022,
+        "noul_probability": 0.8974258303642273,
+        "completion_choice": "complete",
+        "operation_tokens": 155
+      },
+      {
+        "case": "form_named",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1348373293876648,
+        "noul_probability": 0.39591532945632935,
+        "completion_choice": "unfinished",
+        "operation_tokens": 382
+      },
+      {
+        "case": "form_named",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2659236788749695,
+        "noul_probability": 0.7984779477119446,
+        "completion_choice": "complete",
+        "operation_tokens": 234
+      },
+      {
+        "case": "form_named",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2879439890384674,
+        "noul_probability": 0.7984779477119446,
+        "completion_choice": "complete",
+        "operation_tokens": 185
+      },
+      {
+        "case": "form_named",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.24786287546157837,
+        "noul_probability": 0.7984779477119446,
+        "completion_choice": "complete",
+        "operation_tokens": 145
+      },
+      {
+        "case": "form_named",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09033358097076416,
+        "noul_probability": 0.669651985168457,
+        "completion_choice": "complete",
+        "operation_tokens": 318
+      },
+      {
+        "case": "form_named",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.13016434013843536,
+        "noul_probability": 0.669651985168457,
+        "completion_choice": "complete",
+        "operation_tokens": 346
+      },
+      {
+        "case": "form_named",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2792378067970276,
+        "noul_probability": 0.8412443995475769,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_named",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.044459208846092224,
+        "noul_probability": 0.8412443995475769,
+        "completion_choice": "complete",
+        "operation_tokens": 157
+      },
+      {
+        "case": "form_ready",
+        "variant": "upstream",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.1375344693660736,
+        "noul_probability": 0.3704943358898163,
+        "completion_choice": "complete",
+        "operation_tokens": 382
+      },
+      {
+        "case": "form_ready",
+        "variant": "compact",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2633490562438965,
+        "noul_probability": 0.768937349319458,
+        "completion_choice": "complete",
+        "operation_tokens": 234
+      },
+      {
+        "case": "form_ready",
+        "variant": "short_instruction",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.28421324491500854,
+        "noul_probability": 0.768937349319458,
+        "completion_choice": "complete",
+        "operation_tokens": 185
+      },
+      {
+        "case": "form_ready",
+        "variant": "short_labels",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.2503175735473633,
+        "noul_probability": 0.768937349319458,
+        "completion_choice": "complete",
+        "operation_tokens": 145
+      },
+      {
+        "case": "form_ready",
+        "variant": "observations",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.09135088324546814,
+        "noul_probability": 0.6716504096984863,
+        "completion_choice": "complete",
+        "operation_tokens": 318
+      },
+      {
+        "case": "form_ready",
+        "variant": "next_requirement",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "CLICK",
+        "done_probability": 0.12755970656871796,
+        "noul_probability": 0.6716504096984863,
+        "completion_choice": "complete",
+        "operation_tokens": 346
+      },
+      {
+        "case": "form_ready",
+        "variant": "facts",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "TYPE_TEXT",
+        "done_probability": 0.28376340866088867,
+        "noul_probability": 0.8456882238388062,
+        "completion_choice": "complete",
+        "operation_tokens": 143
+      },
+      {
+        "case": "form_ready",
+        "variant": "flat_actions",
+        "complete": false,
+        "valid_operations": ["CLICK"],
+        "decision": "e1",
+        "done_probability": 0.044054508209228516,
+        "noul_probability": 0.8456882238388062,
+        "completion_choice": "complete",
+        "operation_tokens": 157
+      },
+      {
+        "case": "form_complete",
+        "variant": "upstream",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.2393389791250229,
+        "noul_probability": 0.7518556118011475,
+        "completion_choice": "complete",
+        "operation_tokens": 313
+      },
+      {
+        "case": "form_complete",
+        "variant": "compact",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.5098364353179932,
+        "noul_probability": 0.9504932761192322,
+        "completion_choice": "complete",
+        "operation_tokens": 193
+      },
+      {
+        "case": "form_complete",
+        "variant": "short_instruction",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "DONE",
+        "done_probability": 0.5321611762046814,
+        "noul_probability": 0.9504932761192322,
+        "completion_choice": "complete",
+        "operation_tokens": 144
+      },
+      {
+        "case": "form_complete",
+        "variant": "short_labels",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.2978706955909729,
+        "noul_probability": 0.9504932761192322,
+        "completion_choice": "complete",
+        "operation_tokens": 122
+      },
+      {
+        "case": "form_complete",
+        "variant": "observations",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.3137876093387604,
+        "noul_probability": 0.9135556817054749,
+        "completion_choice": "complete",
+        "operation_tokens": 163
+      },
+      {
+        "case": "form_complete",
+        "variant": "next_requirement",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.355196088552475,
+        "noul_probability": 0.9135556817054749,
+        "completion_choice": "complete",
+        "operation_tokens": 191
+      },
+      {
+        "case": "form_complete",
+        "variant": "facts",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "CLICK",
+        "done_probability": 0.3266969919204712,
+        "noul_probability": 0.9263696670532227,
+        "completion_choice": "complete",
+        "operation_tokens": 116
+      },
+      {
+        "case": "form_complete",
+        "variant": "flat_actions",
+        "complete": true,
+        "valid_operations": ["DONE"],
+        "decision": "e1",
+        "done_probability": 0.2171359360218048,
+        "noul_probability": 0.9263696670532227,
+        "completion_choice": "complete",
+        "operation_tokens": 118
+      }
+    ]
+  },
+  "cpu_cuda_comparison": {
+    "requests_with_different_ids": 0,
+    "maximum_absolute_probability_difference": 0.15956634283065796,
+    "operation_flips": [
+      ["searched", "flat_actions", "e12", "e1"],
+      ["design", "facts", "DONE", "CLICK"]
+    ]
+  },
+  "cpu_cuda_f32_comparison": {
+    "maximum_absolute_probability_difference": 0.006655991077423096,
+    "operation_flips": []
+  }
+}
