@@ -300,3 +300,24 @@ supported by the direct live probe, the preceding agent run's native key actions
 and the deterministic Chrome regression. Covered-target filtering also passes
 the overlay regression and all five hotel variants. Further work should separate
 navigation-policy failures, chart-value memory, and task completion checks.
+
+### Unchanged-runtime retest
+
+On the next user-requested run (`runtime-keflavik-4`), the same KEF scenario,
+upstream prompt, Jev backend, Mercury text helper, and 60-action limit still
+failed. The release build matched the committed runtime; no implementation or
+prompt changes were made for this test.
+
+The agent correctly selected KEF and One way, submitted a search, and found the
+calendar's October 20/R$2,720 cheapest-price label. It then repeatedly reopened
+the calendar and changed between October 1, October 20, and October 22. Recovery
+exclusions appeared in nine decision requests, but did not prevent the broader
+cycle. No graph keyboard actions were executed in this run.
+
+The run exhausted its action budget after **60 actions, 78 decisions, and 58.61
+seconds** of loop time (397 ms median decision latency; setup 1.16 seconds).
+Independent verification failed. The final observation showed October 22 flight
+results, including a R$2,720 United option, but the run did not establish the
+cheapest departure across October or finish the requested workflow. This is
+another failed trial, despite reaching priced results. The reduced evidence is
+included in `runtime-results.json`; raw traces remain in ignored artifacts.

@@ -946,6 +946,394 @@
         }
       ],
       "final_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals"
+    },
+    {
+      "name": "runtime-keflavik-4",
+      "stage": "unchanged final runtime rerun requested by user",
+      "summary": {
+        "status": "error",
+        "elapsed_ms": 58607.466788,
+        "setup_ms": 1161.736312,
+        "error": "action budget exhausted",
+        "verification": {
+          "passed": false
+        },
+        "actions": 60,
+        "decisions": 78,
+        "accepted_responses": 78,
+        "decision_median_ms": 396.86615900000004,
+        "decision_total_ms": 32447.581519999992,
+        "text_calls": 1,
+        "text_total_ms": 809.034054,
+        "cdp_calls": 522,
+        "browser": "Chrome/152.0.7977.82",
+        "recording_error": null,
+        "screenshot_error": null
+      },
+      "history": [
+        {
+          "step": 1,
+          "action": "Where to? ",
+          "kind": "fill",
+          "page_changed": true
+        },
+        {
+          "step": 2,
+          "action": "Keflavík International Airport (KEF)",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 3,
+          "action": "Change ticket type. Round trip",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 4,
+          "action": "One way",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 5,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 6,
+          "action": "Thursday, October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 7,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 8,
+          "action": "Search",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 9,
+          "action": "Wait for the page to update",
+          "kind": "wait",
+          "page_changed": true
+        },
+        {
+          "step": 10,
+          "action": "Cheapest from   Fetching results   5320 Brazilian reals Learn more about ranking Looking for the lowest fares?   These additional budget picks help you save but may involve trade-offs, such as flying back to a different airport in the same city you departed from, self-transferring luggage, or booking via a third-party site.   Learn more about how flights are ranked",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 11,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 12,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 13,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 14,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 15,
+          "action": "Done. Search for one-way flights, departing on October 20, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 16,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 17,
+          "action": "Thursday, October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 18,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 19,
+          "action": "Tuesday, October 20, 2026, departure date. , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 20,
+          "action": "Tuesday, October 20, 2026, departure date. , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 21,
+          "action": "Tuesday, October 20, 2026, departure date. , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 22,
+          "action": "Tuesday, October 20, 2026, departure date. , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 23,
+          "action": "Thursday, October 1, 2026 , 5320 Brazilian reals",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 24,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 25,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 26,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 27,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 28,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 29,
+          "action": "Done. Search for one-way flights, departing on October 20, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 30,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 31,
+          "action": "Done. Search for one-way flights, departing on October 20, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 32,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 33,
+          "action": "Done. Search for one-way flights, departing on October 20, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 34,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 35,
+          "action": "Thursday, October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 36,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 37,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 38,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 39,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 40,
+          "action": "Thursday, October 1, 2026, departure date.",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 41,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 42,
+          "action": "Done. Search for one-way flights, departing on October 20, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 43,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 44,
+          "action": "Done. Search for one-way flights, departing on October 20, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 45,
+          "action": "Cheapest from   2720 Brazilian reals Learn more about ranking Looking for the lowest fares?   These additional budget picks help you save but may involve trade-offs, such as flying back to a different airport in the same city you departed from, self-transferring luggage, or booking via a third-party site.   Learn more about how flights are ranked",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 46,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 47,
+          "action": "Tuesday, October 20, 2026, departure date. , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": false
+        },
+        {
+          "step": 48,
+          "action": "Thursday, October 22, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 49,
+          "action": "Done. Search for one-way flights, departing on October 22, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 50,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 51,
+          "action": "Thursday, October 1, 2026 , 5320 Brazilian reals",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 52,
+          "action": "Done. Search for one-way flights, departing on October 1, 2026",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 53,
+          "action": "Open Departure",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 54,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 55,
+          "action": "Tuesday, October 20, 2026, departure date. , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": false
+        },
+        {
+          "step": 56,
+          "action": "Thursday, October 22, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 57,
+          "action": "Thursday, October 22, 2026, departure date. , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": false
+        },
+        {
+          "step": 58,
+          "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 59,
+          "action": "Thursday, October 22, 2026 , 2720 Brazilian reals, Cheapest price",
+          "kind": "click",
+          "page_changed": true
+        },
+        {
+          "step": 60,
+          "action": "Done. Search for one-way flights, departing on October 22, 2026",
+          "kind": "click",
+          "page_changed": true
+        }
+      ],
+      "recovery_decisions": 9,
+      "final_text": "Skip to main content\nAccessibility feedback\nExplore\nFlights\nHotels\nVacation rentals\nFlight search\n1\nFilters\nAll filters\nStops\nAirlines\nBags\nPrice\nTimes\nEmissions\nConnecting airports\nDuration\nSearch results\nBest\nCheapest\nfrom\nR$2,720\nTop flights\nRanked based on price and convenience\nPrices include required taxes + fees for 1 adult.\nOptional charges and bag fees may apply.\nSorted by top flights\n10:20 PM\n–\n8:50 AM\n+\n2\nUnited\n31 hr 30 min\n1 stop\n14 hr 50 min\nORD\nR$2,720\nAvoids\nas much CO2e as\n3,409\ntrees absorb in a day\n2:15 PM\n–\n3:50 PM\n+\n1\nSelf transfer\nITA, Wizz Air, Icelandair\n22 hr 35 min\n2 stops\nFCO\n,\nGDN\nR$3,453\nSelf transfer\n9:45 PM\n–\n6:20 PM\n+\n1\nSelf transfer\nKLM, Icelandair\n17 hr 35 min\n1 stop\n2 hr 45 min\nAMS\nR$4,321\nSelf transfer\nOther flights\n11:00 PM\n–\n6:20 PM\n+\n2\nSelf transfer\nLATAM, Ryanair, Wizz Air\nOperated by Latam Airlines Group\n40 hr 20 min\n2 stops\nMAD\n,\nBUD\nR$3,191\nSelf transfer\n2:15 PM\n–\n6:15 PM\n+\n1\n25 hr\n2 stops\nR$3,598"
     }
   ],
   "manual_graph_probe": {
