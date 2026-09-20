@@ -1,0 +1,209 @@
+{
+  "baseline_revision": "9b4ad6f28a82",
+  "change": "Post-input readiness polling with a five-second budget",
+  "scenario": "keflavik.json",
+  "prompt": "upstream",
+  "backend": {
+    "backend": "typesafe",
+    "model": "jev-latest"
+  },
+  "summary": {
+    "status": "blocked",
+    "elapsed_ms": 29124.524284,
+    "setup_ms": 1081.911783,
+    "error": null,
+    "verification": {
+      "passed": false
+    },
+    "actions": 33,
+    "decisions": 48,
+    "accepted_responses": 48,
+    "decision_median_ms": 340.84651199999996,
+    "decision_total_ms": 19379.930835,
+    "text_calls": 3,
+    "text_total_ms": 2904.138202,
+    "cdp_calls": 268,
+    "browser": "Chrome/152.0.7977.82",
+    "recording_error": null,
+    "screenshot_error": null
+  },
+  "history": [
+    {
+      "operation": "TYPE_TEXT",
+      "action": "Where to? ",
+      "text": "Keflavík (KEF)"
+    },
+    {
+      "operation": "CLICK",
+      "action": "Destination, Select multiple airports",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Done",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Change ticket type. Round trip",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "One way",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "One way",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Open Departure",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Thursday, October 1, 2026",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Done. Search for one-way flights, departing on October 1, 2026",
+      "text": null
+    },
+    {
+      "operation": "WAIT",
+      "action": "Wait for the page to update",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Open Departure",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Done. Search for one-way flights, departing on October 1, 2026",
+      "text": null
+    },
+    {
+      "operation": "TYPE_TEXT",
+      "action": "Where to? ",
+      "text": "Keflavík (KEF), Iceland"
+    },
+    {
+      "operation": "CLICK",
+      "action": "Destination, Select multiple airports",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Done",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Open Departure",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Done. Search for one-way flights, departing on October 1, 2026",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Open Departure",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Done. Search for one-way flights, departing on October 1, 2026",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Open Departure",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Done. Search for one-way flights, departing on October 1, 2026",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Open Departure",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Done. Search for one-way flights, departing on October 1, 2026",
+      "text": null
+    },
+    {
+      "operation": "TYPE_TEXT",
+      "action": "Where to? ",
+      "text": "Keflavík"
+    },
+    {
+      "operation": "CLICK",
+      "action": "Keflavík International Airport (KEF)",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Search",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Open Departure",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Tuesday, October 20, 2026 , 2720 Brazilian reals, Cheapest price",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Done. Search for one-way flights, departing on October 20, 2026",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Price graph",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Scroll forward",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Scroll backward",
+      "text": null
+    },
+    {
+      "operation": "CLICK",
+      "action": "Scroll forward",
+      "text": null
+    }
+  ],
+  "final_url": "https://www.google.com/travel/flights/search?tfs=CBwQAhokEgoyMDI2LTEwLTIwag0IAhIJL20vMDIycGZtcgcIARIDS0VGQAFIAXABggELCP___________wGYAQI&tfu=EgYIABAAGAA&hl=en&curr=BRL",
+  "final_text": "Dates\nPrice graph\nOne-way trip\nTue, Oct 20\nFrom\nR$2,720\nCancel\nOK",
+  "trip_type_menu_passed": true,
+  "full_task_passed": false,
+  "raw_trace": "artifacts/iceland-flights/readiness-keflavik-1/variant-00-run-00/trace.json",
+  "measurement": {
+    "exit_code": 1,
+    "wall_seconds": 30.23254267700031,
+    "prompt": "upstream",
+    "backend": "typesafe",
+    "text_model": "inception/mercury-2.5"
+  }
+}

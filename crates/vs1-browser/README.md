@@ -84,6 +84,12 @@ A final screenshot is saved only with `--screenshots` or `--record`.
 Every run writes `run-NN/trace.json` and an append-only
 `events.jsonl`. Successful execution is flushed before observing its result;
 uncertain mutations stop, while pre-input stale rejections can reobserve.
+After input, the runner polls read-only snapshots for up to five seconds instead
+of relying on background animation frames. Empty snapshots are held back; a click
+opening a non-editable popup control waits for visible menu options or a dialog.
+A readiness timeout stops the run without replaying input. The CDP transport has
+its own timeout. Screenshots and foreground activation are not required.
+
 Text generation is cached across stale retries only if the entire helper context
 is identical. Targets are code-owned DOM node references; model output cannot
 become a selector, coordinate, or executable script.

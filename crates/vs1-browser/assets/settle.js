@@ -1,39 +1,42 @@
-((action) =>
-  new Promise((resolve) => {
-    const field = window.__jevFast?.nodes.get(action.node);
-    const autocomplete = action.kind === "fill" && field?.getAttribute("role") === "combobox";
-    let frames = 0,
-      stopped = false;
-    const finish = () => {
-      stopped = true;
-      resolve();
-    };
-    setTimeout(finish, autocomplete ? 200 : 50);
-    const ready = () => {
-      if (stopped) return;
-      const ids = (field?.getAttribute("aria-controls") || field?.getAttribute("aria-owns") || "")
-        .split(/\s+/)
-        .filter(Boolean);
-      const roots = ids.length
-        ? ids.map((id) => document.getElementById(id)).filter(Boolean)
-        : [document];
-      const options = roots.flatMap((root) => [...root.querySelectorAll('[role="option"]')]);
-      if (
-        ++frames >= 2 &&
-        (!autocomplete ||
-          options.some((e) => {
-            const r = e.getBoundingClientRect();
-            return (
-              r.width &&
-              r.height &&
-              r.bottom > 0 &&
-              r.top < innerHeight &&
-              e.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
-            );
-          }))
-      )
-        finish();
-      else requestAnimationFrame(ready);
-    };
-    requestAnimationFrame(ready);
-  }))(__ACTION__);
+((action) => {
+  const page = __SNAPSHOT__;
+  if (!page) return null;
+  // Node identities are document-local: never mistake a new document's node for
+  // the opener from the previous page after navigation.
+  const field =
+    action.time_origin === page.marker[0] ? window.__jevFast?.nodes.get(action.node) : null;
+  const openingMenu =
+    action.kind === "click" &&
+    action.expanded !== "true" &&
+    field?.isConnected &&
+    !field.matches("input,textarea") &&
+    ["listbox", "menu", "tree", "grid", "dialog", "true"].includes(
+      field.getAttribute("aria-haspopup"),
+    );
+  // Some sites point aria-controls at an empty placeholder, so use the actual
+  // visible snapshot rather than assuming the popup is inside that element.
+  const menuVisible = page.actions.some((a) =>
+    ["option", "menuitem", "menuitemradio", "gridcell"].includes(a.role),
+  );
+  const dialogVisible = [...document.querySelectorAll('dialog[open],[role="dialog"]')].some((e) => {
+    const r = e.getBoundingClientRect();
+    return (
+      !e.closest('[aria-hidden="true"],[inert]') &&
+      e.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }) &&
+      r.width > 0 &&
+      r.height > 0 &&
+      r.bottom > 0 &&
+      r.right > 0 &&
+      r.top < innerHeight &&
+      r.left < innerWidth
+    );
+  });
+  const usable =
+    page.text.trim().length > 0 ||
+    page.actions.some((a) => ["click", "fill", "select"].includes(a.kind));
+  return {
+    page,
+    ready: usable && (!openingMenu || menuVisible || dialogVisible),
+    waiting_for_menu: Boolean(openingMenu && !menuVisible && !dialogVisible),
+  };
+})(__ACTION__);

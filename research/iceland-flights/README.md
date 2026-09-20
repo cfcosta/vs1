@@ -199,3 +199,46 @@ tab. Merely applying focus emulation did not restore normal frame cadence here.
 [cdp-diagnosis.json](cdp-diagnosis.json) preserves the reduced, account-free
 measurements. Raw DOM probes, frame timings, and the screenshot remain locally
 under ignored `output/chrome-cdp/iceland/`; the two diagnostic tabs were closed.
+
+## Readiness fix and follow-up run
+
+The runner now polls actual snapshots after input instead of depending on two
+animation frames and a 50 ms fallback. Polling starts after a short settle delay
+(100 ms, or 200 ms for fills), checks every 50 ms, and has a five-second readiness
+budget. Empty post-input snapshots are not sent to the model. A non-editable
+popup opener additionally requires visible options or a visible dialog; an
+aria-controls placeholder alone is insufficient. Existing opacity, aria-hidden,
+inert, and viewport checks remain in force. Old-document node IDs are not reused
+to infer popup readiness after navigation. The separate CDP transport timeout
+still applies if Chrome stops answering calls.
+
+The exact snapshot that satisfied readiness is returned to the policy. Navigation
+interruptions cause another read, not another input. Expiry is a terminal
+readiness error rather than a retryable stale-mutation error. There are no new
+screenshots, foreground-tab activations, or model calls during settling.
+
+Validation passed: browser tests in default/local builds, Clippy in both builds,
+the browser guard suite, and all five constrained hotel variants. A dedicated
+Chrome regression test delayed a menu behind opacity zero and an empty
+aria-controls placeholder; the observer waited for the visible option and the
+opener's click count stayed exactly one. Unit tests cover intervening navigation,
+read-only polling, and a terminal timeout without mutation replay.
+
+A fresh adjusted KEF/upstream run **passed the trip-type bottleneck**, selected
+One way, and reached a flight search and price graph. It did not complete the
+full cheapest-flight task: the no-progress guard stopped it after repeated graph
+scroll actions. The final view showed October 20 and a “From R$2,720” graph value,
+not a verified cheapest itinerary across the month. Do not treat this as a flight
+recommendation or a successful fare-search benchmark.
+
+The run took **29.12 seconds** of agent-loop time, with **33 actions, 48 decision
+calls**, and **341 ms median decision latency**. Independent final verification
+failed because it ended in the graph rather than matching flight options. Earlier
+failures remain recorded. [readiness-results.json](readiness-results.json)
+preserves the follow-up summary and action history.
+
+The live regression can be run against Chrome CDP on port 9222 with:
+
+```sh
+cargo test -p vs1-browser --bin vs1-browser delayed_transparent_menu -- --ignored
+```

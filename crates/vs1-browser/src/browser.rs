@@ -167,24 +167,18 @@ impl Browser {
 
     pub fn observe(&mut self) -> Result<Value> {
         if let Some(action) = self.after_input.take() {
-            let wait = include_str!("../assets/settle.js")
-                .replace("__ACTION__", &action.to_string());
-            // A settle read cannot undo an already logged execution.
-            let _ = self.evaluate(&wait);
+            // Timers continue to progress even when background rAF is throttled.
+            thread::sleep(Duration::from_millis(if action["kind"] == "fill" {
+                200
+            } else {
+                100
+            }));
+            return self.settle_after_input(&action, Duration::from_secs(5));
         }
         for attempt in 0..10 {
             match self.evaluate(SNAPSHOT) {
                 Ok(mut page) if page.is_object() => {
-                    let content = json!([
-                        page["url"],
-                        page["text"],
-                        page["actions"],
-                        page["scroll"]
-                    ]);
-                    page["fingerprint"] = json!(format!(
-                        "{:x}",
-                        Sha256::digest(content.to_string().as_bytes())
-                    ));
+                    fingerprint(&mut page);
                     return Ok(page);
                 }
                 Err(e) if e.downcast_ref::<Stale>().is_none() => return Err(e),
@@ -195,6 +189,42 @@ impl Browser {
             }
         }
         Err(Stale("page did not settle").into())
+    }
+
+    fn settle_after_input(
+        &mut self,
+        action: &Value,
+        timeout: Duration,
+    ) -> Result<Value> {
+        let script = include_str!("../assets/settle.js")
+            .replace("__SNAPSHOT__", SNAPSHOT.trim().trim_end_matches(';'))
+            .replace("__ACTION__", &action.to_string());
+        let deadline = Instant::now() + timeout;
+        loop {
+            let waiting_for_menu = match self.evaluate(&script) {
+                Ok(mut result) => {
+                    if result["ready"] == true && result["page"].is_object() {
+                        let mut page = result["page"].take();
+                        fingerprint(&mut page);
+                        return Ok(page);
+                    }
+                    result["waiting_for_menu"] == true
+                }
+                // Navigation may destroy the old context. Reobserve, never replay input.
+                Err(e) if e.downcast_ref::<Stale>().is_some() => false,
+                Err(e) => return Err(e),
+            };
+            ensure!(
+                Instant::now() < deadline,
+                "{} did not become ready after input within {} ms; action was not retried",
+                if waiting_for_menu { "menu" } else { "page" },
+                timeout.as_millis()
+            );
+            thread::sleep(
+                Duration::from_millis(50)
+                    .min(deadline.saturating_duration_since(Instant::now())),
+            );
+        }
     }
 
     pub fn fresh(
@@ -279,7 +309,9 @@ impl Browser {
             _ => bail!("unsupported action kind {kind}"),
         }
         if kind != "wait" {
-            self.after_input = Some(action.clone());
+            let mut pending = action.clone();
+            pending["time_origin"] = page["marker"][0].clone();
+            self.after_input = Some(pending);
         }
         Ok(())
     }
@@ -321,6 +353,15 @@ impl Browser {
     pub fn version(&self) -> &Value {
         &self.version["Browser"]
     }
+}
+
+fn fingerprint(page: &mut Value) {
+    let content =
+        json!([page["url"], page["text"], page["actions"], page["scroll"]]);
+    page["fingerprint"] = json!(format!(
+        "{:x}",
+        Sha256::digest(content.to_string().as_bytes())
+    ));
 }
 
 impl Drop for Browser {
@@ -387,6 +428,74 @@ mod tests {
     }
     fn page() -> Value {
         json!({"page_key":["page"],"guards":{"1":["guard"]}})
+    }
+
+    #[test]
+    fn post_input_wait_reobserves_without_replaying_mutations() {
+        let (mut browser, worker) = fake(vec![
+            json!({"result":{"value":{"ready":false,"waiting_for_menu":true,"page":{"text":"old page"}}}}),
+            json!({"exceptionDetails":{"text":"navigation destroyed context"}}),
+            json!({"result":{"value":{"ready":true,"page":{"url":"https://example.test","text":"One way","actions":[],"scroll":{}}}}}),
+        ]);
+        let page = browser
+            .settle_after_input(
+                &json!({"kind":"click"}),
+                Duration::from_secs(1),
+            )
+            .unwrap();
+        assert_eq!(page["text"], "One way");
+        assert!(page["fingerprint"].is_string());
+        assert_eq!(
+            worker.join().unwrap(),
+            ["Runtime.evaluate", "Runtime.evaluate", "Runtime.evaluate"]
+        );
+    }
+
+    #[test]
+    fn readiness_timeout_is_terminal_not_a_retryable_mutation() {
+        let (mut browser, worker) = fake(vec![
+            json!({"result":{"value":{"ready":false,"waiting_for_menu":true}}}),
+        ]);
+        let error = browser
+            .settle_after_input(&json!({"kind":"click"}), Duration::ZERO)
+            .unwrap_err();
+        assert!(error.downcast_ref::<Stale>().is_none());
+        assert!(error.to_string().contains("menu did not become ready"));
+        assert_eq!(worker.join().unwrap(), ["Runtime.evaluate"]);
+    }
+
+    #[test]
+    #[ignore = "requires Chrome CDP on port 9222"]
+    fn delayed_transparent_menu_is_waited_for_and_input_executes_once() {
+        let html = r#"<title>Delayed menu</title><style>button,[role=option]{display:block;width:200px;height:50px}</style>
+        <main id="main"><button role="combobox" aria-haspopup="listbox" aria-controls="placeholder" aria-expanded="false"
+        onclick="window.clicks=(window.clicks||0)+1;this.setAttribute('aria-expanded','true');document.querySelector('#main').setAttribute('aria-hidden','true');document.querySelector('#menu').style.display='block';setTimeout(()=>document.querySelector('#menu').style.opacity='1',600)">Trip type</button></main>
+        <span id="placeholder" role="listbox" hidden></span>
+        <div id="menu" role="listbox" style="display:none;opacity:0"><button role="option" onclick="window.selected=true">One way</button></div>"#;
+        let url = format!("data:text/html;base64,{}", STANDARD.encode(html));
+        let mut browser =
+            Browser::connect("http://127.0.0.1:9222", &url).unwrap();
+        let page = browser.observe().unwrap();
+        let action = page["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|a| a["label"] == "Trip type")
+            .unwrap()
+            .clone();
+        let started = Instant::now();
+        browser.act(&action, &page, None).unwrap();
+        let ready = browser.observe().unwrap();
+        assert!(started.elapsed() >= Duration::from_millis(500));
+        assert_eq!(browser.evaluate("window.clicks").unwrap(), 1);
+        let option = ready["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|a| a["label"] == "One way")
+            .unwrap();
+        browser.act(option, &ready, None).unwrap();
+        assert_eq!(browser.evaluate("window.selected").unwrap(), true);
     }
 
     #[test]
