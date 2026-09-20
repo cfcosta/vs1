@@ -18,21 +18,28 @@ use serde_json::{Value, json};
 
 #[derive(Args, Debug)]
 pub struct ModelArgs {
-    #[arg(long, default_value="local", value_parser=["local","typesafe"])]
+    #[arg(long, default_value = "typesafe")]
+    #[cfg_attr(feature="local", arg(value_parser=["typesafe", "local"]))]
+    #[cfg_attr(not(feature="local"), arg(value_parser=["typesafe"]))]
     backend: String,
+    #[cfg(feature = "local")]
     #[arg(long, env = "VS1_DEVICE", default_value = "cpu")]
     device: String,
+    #[cfg(feature = "local")]
     #[arg(long, default_value=vs1::DEFAULT_REPO_ID)]
     checkpoint: String,
+    #[cfg(feature = "local")]
     #[arg(long, default_value = "")]
     subfolder: String,
+    #[cfg(feature = "local")]
     #[arg(long)]
     max_len: Option<usize>,
+    #[cfg(feature = "local")]
     #[arg(long)]
     head_max_len: Option<usize>,
 }
 
-/// A browser agent: one natural-language goal, indexed actions, in-process vs1 decisions.
+/// A browser agent: one natural-language goal, indexed actions, Jev decisions.
 #[derive(Parser, Debug)]
 #[command(version, about)]
 struct Cli {
@@ -451,6 +458,52 @@ fn run_agent_page(
 #[cfg(test)]
 mod scenario_cli_tests {
     use super::*;
+    #[test]
+    fn backend_defaults_to_jev_and_local_requires_feature() {
+        let args =
+            Cli::try_parse_from(["vs1-browser", "--task", "hotel"]).unwrap();
+        assert_eq!(args.model.backend, "typesafe");
+        assert!(
+            Cli::try_parse_from([
+                "vs1-browser",
+                "--backend",
+                "typesafe",
+                "--task",
+                "hotel"
+            ])
+            .is_ok()
+        );
+        assert_eq!(
+            Cli::try_parse_from([
+                "vs1-browser",
+                "--backend",
+                "local",
+                "--task",
+                "hotel"
+            ])
+            .is_ok(),
+            cfg!(feature = "local")
+        );
+        for option in [
+            "--checkpoint",
+            "--subfolder",
+            "--device",
+            "--max-len",
+            "--head-max-len",
+        ] {
+            assert_eq!(
+                Cli::try_parse_from([
+                    "vs1-browser",
+                    "--task",
+                    "hotel",
+                    option,
+                    "123"
+                ])
+                .is_ok(),
+                cfg!(feature = "local")
+            );
+        }
+    }
     #[test]
     fn scenario_mode_is_explicit_and_preserves_normal_task_parsing() {
         assert!(

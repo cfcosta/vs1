@@ -1,17 +1,18 @@
 # Browser agent CLI
 
 A Rust implementation of Jev Ultrafast's `examples/run.py`: supply a URL and one
-natural-language goal. A resident `vs1::SystemOne` chooses an operation and an
-observed target; a text model supplies field values only for `TYPE_TEXT`.
-There is no Python runtime, binding, subprocess per decision, or decision server.
+natural-language goal. Hosted Jev chooses an operation and an observed target; a
+text model supplies field values only for `TYPE_TEXT`. The default build has no
+`vs1` or Candle dependency. Local inference is available with the `local` feature.
+There is no Python runtime or binding.
 
 From the repository root:
 
 ```sh
-cargo build --release -p vs1-browser --features cuda
+cargo build --release -p vs1-browser
+export TYPESAFE_API_KEY=... # Jev decision backend
 export TEXT_MODEL_API_KEY=... # only needed when the task requires typing
 target/release/vs1-browser \
-  --device cuda \
   --url https://en.wikipedia.org/wiki/Main_Page \
   --goal 'Find and open the Wikipedia article about Gödel’s incompleteness theorems.' \
   --output crates/vs1-browser/artifacts/wiki
@@ -19,8 +20,11 @@ target/release/vs1-browser \
 
 On NixOS, run the build through `direnv exec .` or inside `nix develop`.
 For CUDA execution, include `/run/opengl-driver/lib` in `LD_LIBRARY_PATH` if the
-driver is not otherwise discoverable. CPU builds omit `--features cuda` and use
-`--device cpu`; Metal builds use `--features metal --device metal`.
+driver is not otherwise discoverable. For local CPU inference, build with
+`--features local`, then run with `--backend local --device cpu`. CUDA builds use
+`--features cuda` and `--backend local --device cuda`; Metal uses `--features metal`
+and `--backend local --device metal`. Accelerator features enable `local` automatically.
+Even builds with local support default to hosted Jev.
 
 For the faster packed attention path, build with `--features flash-attn` instead
 of `--features cuda`; this additionally needs NVCC and Cutlass, as described in
@@ -42,10 +46,15 @@ and execution failures return a nonzero exit code.
 
 ## Models
 
-Local decisions are the default. `--checkpoint` accepts a local directory or Hub
+Hosted Jev is the default (`--backend typesafe`) and requires `TYPESAFE_API_KEY`.
+`TYPESAFE_MODEL` defaults to `jev-latest`. To use local decisions, build with
+`--features local` and select `--backend local`. Only local-enabled builds expose
+`--device`, `--checkpoint`, `--subfolder`, `--max-len`, and `--head-max-len`.
+`--checkpoint` accepts a local directory or Hub
 repository (default `convaiinnovations/laya`). `--subfolder multilingual` and
 `--subfolder typed-decisions` select other checkpoints. Load and warmup happen
-once, before browser task timing. Only `TYPE_TEXT` uses an external model:
+once, before browser task timing. With local inference, only `TYPE_TEXT` uses an
+external model. Text-helper settings for either backend:
 
 ```sh
 export TEXT_MODEL_BASE_URL=https://openrouter.ai/api/v1
@@ -64,8 +73,8 @@ budgets. Larger contexts change the inference workload and may affect quality;
 the trace records the configuration. Do not assume a wire-compatible checkpoint
 has Jev's browser skill or that a short failing run is a speedup.
 
-Each cycle submits all applicable operation/target questions in one library call.
-Only the chosen operation's target can execute. Single-candidate target questions
+Each cycle submits all applicable operation/target questions in one backend call.
+Only the chosen operation's target can execute. For local inference, single-candidate target questions
 are resolved deterministically outside the model, because `vs1` requires at least
 two options. This does not affect the operation choice.
 
@@ -97,7 +106,7 @@ cargo test -p vs1-browser
 
 # Repeat a local fixture task, with independent final filter/property checks.
 target/release/vs1-browser \
-  --device cuda --task hotel --repeat 3 --output crates/vs1-browser/artifacts/hotel
+  --backend local --device cuda --task hotel --repeat 3 --output crates/vs1-browser/artifacts/hotel
 
 # Other fixed tasks: wikipedia and flights (historical date: September 20, 2026).
 # Same Rust browser runtime, original decision provider and policy:
@@ -107,11 +116,11 @@ target/release/vs1-browser \
 
 # Exact captured decision requests, with shape-specific warmup excluded:
 target/release/vs1-browser \
-  --device cuda --replay crates/vs1/tests/fixtures/jev/call5_request.json --repeat 10 \
+  --backend local --device cuda --replay crates/vs1/tests/fixtures/jev/call5_request.json --repeat 10 \
   --output crates/vs1-browser/artifacts/replay
 ```
 
-The TypeSafe comparison backend requires `TYPESAFE_API_KEY`; local inference never
+The default TypeSafe backend requires `TYPESAFE_API_KEY`; local inference never
 uses it. `summary.json` records all runs, errors, success checks, decision and text
 latency, browser protocol counts, startup configuration, and timing boundaries.
 Task timing starts at the first prediction after the initial observation and ends

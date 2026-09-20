@@ -4,11 +4,16 @@ use std::{
 };
 
 use anyhow::{Context, Result, bail, ensure};
+#[cfg(feature = "local")]
 use candle_core::{DType, Device};
-use serde_json::{Map, Value, json};
+#[cfg(any(feature = "local", test))]
+use serde_json::Map;
+use serde_json::{Value, json};
+#[cfg(feature = "local")]
 use vs1::{SystemOne, SystemOneRequest};
 
 pub struct Backend {
+    #[cfg(feature = "local")]
     model: Option<SystemOne>,
     client: reqwest::blocking::Client,
     pub metadata: Value,
@@ -16,22 +21,40 @@ pub struct Backend {
 
 impl Backend {
     pub fn load(args: &crate::ModelArgs) -> Result<Self> {
-        let started = Instant::now();
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(25))
             .build()?;
         if args.backend == "typesafe" {
             ensure!(
                 env::var("TYPESAFE_API_KEY").is_ok(),
-                "TYPESAFE_API_KEY is required for the comparison backend"
+                "TYPESAFE_API_KEY is required for the Jev backend"
             );
             return Ok(Self {
+                #[cfg(feature = "local")]
                 model: None,
                 client,
                 metadata: json!({"backend":"typesafe","model":env::var("TYPESAFE_MODEL").unwrap_or("jev-latest".into())}),
             });
         }
+        #[cfg(feature = "local")]
+        {
+            Self::load_local(args, client)
+        }
+        #[cfg(not(feature = "local"))]
+        {
+            bail!(
+                "local models require building vs1-browser with --features local"
+            )
+        }
+    }
+
+    #[cfg(feature = "local")]
+    fn load_local(
+        args: &crate::ModelArgs,
+        client: reqwest::blocking::Client,
+    ) -> Result<Self> {
         ensure!(args.backend == "local", "backend must be local or typesafe");
+        let started = Instant::now();
         let device = match args.device.as_str() {
             "cpu" => Device::Cpu,
             #[cfg(feature = "cuda")]
@@ -70,6 +93,7 @@ impl Backend {
     }
 
     pub fn decide(&self, body: &Value) -> Result<Value> {
+        #[cfg(feature = "local")]
         if let Some(model) = &self.model {
             let (body, deterministic) = split_singletons(body)?;
             let request: SystemOneRequest = serde_json::from_value(body)?;
@@ -81,8 +105,9 @@ impl Backend {
             for (id, answer) in deterministic {
                 response["answers"][&id] = answer;
             }
-            Ok(response)
-        } else {
+            return Ok(response);
+        }
+        {
             let mut body = body.clone();
             body["model"] = self.metadata["model"].clone();
             self.post(
@@ -93,33 +118,44 @@ impl Backend {
         }
     }
 
-    pub fn inspect(&self, body: &Value) -> Result<Value> {
-        let Some(model) = &self.model else {
-            return Ok(Value::Null);
-        };
-        let (body, deterministic) = split_singletons(body)?;
-        let request: SystemOneRequest = serde_json::from_value(body)?;
-        let state = model.encode_state(&request.state)?;
-        let mut lengths = Map::new();
-        for (id, question) in &request.questions {
-            let sequence = model.build_sequence(&state, id, question)?;
-            lengths.insert(id.clone(),json!({"tokens":sequence.ids.len(),"options":sequence.markers.len(),
+    pub fn inspect(&self, _body: &Value) -> Result<Value> {
+        #[cfg(feature = "local")]
+        {
+            let body = _body;
+            let Some(model) = &self.model else {
+                return Ok(Value::Null);
+            };
+            let (body, deterministic) = split_singletons(body)?;
+            let request: SystemOneRequest = serde_json::from_value(body)?;
+            let state = model.encode_state(&request.state)?;
+            let mut lengths = Map::new();
+            for (id, question) in &request.questions {
+                let sequence = model.build_sequence(&state, id, question)?;
+                lengths.insert(id.clone(),json!({"tokens":sequence.ids.len(),"options":sequence.markers.len(),
                 "at_sequence_limit":sequence.ids.len()==model.config().max_len}));
+            }
+            Ok(
+                json!({"state_tokens":state.len(),"questions":lengths,"deterministic_targets":deterministic.keys().collect::<Vec<_>>()}),
+            )
         }
-        Ok(
-            json!({"state_tokens":state.len(),"questions":lengths,"deterministic_targets":deterministic.keys().collect::<Vec<_>>()}),
-        )
+        #[cfg(not(feature = "local"))]
+        {
+            Ok(Value::Null)
+        }
     }
 
     pub fn warmup(&mut self) -> Result<()> {
-        if self.model.is_none() {
-            return Ok(());
+        #[cfg(feature = "local")]
+        {
+            if self.model.is_none() {
+                return Ok(());
+            }
+            let request = json!({"state":"A local browser agent is ready.","questions":{"ready":{"type":"choice","instructions":"Is the agent ready?","criteria":["yes","no"]}}});
+            let started = Instant::now();
+            self.decide(&request)?;
+            self.metadata["warmup_ms"] =
+                json!(started.elapsed().as_secs_f64() * 1000.0);
         }
-        let request = json!({"state":"A local browser agent is ready.","questions":{"ready":{"type":"choice","instructions":"Is the agent ready?","criteria":["yes","no"]}}});
-        let started = Instant::now();
-        self.decide(&request)?;
-        self.metadata["warmup_ms"] =
-            json!(started.elapsed().as_secs_f64() * 1000.0);
         Ok(())
     }
 
@@ -190,6 +226,7 @@ impl Backend {
     }
 }
 
+#[cfg(any(feature = "local", test))]
 pub fn split_singletons(body: &Value) -> Result<(Value, Map<String, Value>)> {
     let mut body = body.clone();
     let mut deterministic = Map::new();

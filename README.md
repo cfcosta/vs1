@@ -168,7 +168,8 @@ VS1_BENCH=1 VS1_BENCH_SUBFOLDER=multilingual cargo bench --features cuda
 
 ```bash
 nix build            # CPU
-nix build .#vs1-browser
+nix build .#vs1-browser       # hosted Jev, no local inference dependencies
+nix build .#vs1-browser-local # optional local CPU inference
 nix run .#vs1-browser -- --help
 nix build .#vs1-cuda
 nix build .#vs1-metal
@@ -177,6 +178,8 @@ nix develop          # toolchain, formatter, cargo-deny, cargo-nextest, CUDA on 
 nix fmt
 ```
 
+The browser CLI defaults to Jev; local inference requires a build with the `local`
+Cargo feature and `--backend local`. Accelerator features imply `local`.
 Both CLIs have `-cuda`, `-flash-attn`, and `-metal` Nix package variants;
 select a backend supported by your host. The browser CLI connects to an external
 Chrome/Chromium instance through CDP; the package does not bundle a browser.

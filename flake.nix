@@ -210,6 +210,11 @@
         in
         {
           default = mkPackage { name = "vs1"; };
+          vs1-browser-local = mkPackage {
+            name = "vs1-browser-local";
+            crate = "vs1-browser";
+            buildFeatures = [ "local" ];
+          };
         }
         //
           pkgs.lib.concatMapAttrs

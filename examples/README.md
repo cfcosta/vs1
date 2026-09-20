@@ -12,8 +12,10 @@ cargo run --release -p vs1-browser -- \
 ```
 
 Chrome/Chromium must expose CDP at `http://127.0.0.1:9222` (override with `--cdp`).
-Use `--checkpoint /path/to/model` for a pinned local checkpoint. The default is the
-local Laya backend; `--backend typesafe` uses the existing hosted backend.
+The default is hosted Jev (`--backend typesafe`), requiring `TYPESAFE_API_KEY`.
+For local Laya, build with `--features local` and pass `--backend local`; use
+`--checkpoint /path/to/model` for a pinned checkpoint. The default browser build
+does not include the `vs1` library or local-model dependencies.
 `--chooser lexical` runs constrained scenarios without a model or model credentials. `--repeat 3` repeats
 every variant. Each invocation needs a fresh output directory.
 
