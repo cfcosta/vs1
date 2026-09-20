@@ -11,16 +11,27 @@ use serde_json::{Map, Value, json};
 
 use crate::{browser, model::Backend, policy};
 
+#[derive(Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum Mode {
+    #[default]
+    Constrained,
+    Agent,
+}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Plan {
+    #[serde(default)]
+    mode: Mode,
     source: Source,
     #[serde(default)]
     scripts: std::collections::BTreeMap<String, Vec<String>>,
     variants: Vec<Variant>,
     verify: Vec<String>,
     goal: String,
+    #[serde(default)]
     steps: Vec<Step>,
+    #[serde(default)]
     completion: Vec<Check>,
 }
 #[derive(Deserialize)]
@@ -70,12 +81,20 @@ struct Variant {
 fn validate(plan: &Plan) -> Result<()> {
     ensure!(
         !plan.goal.trim().is_empty()
-            && !plan.steps.is_empty()
-            && !plan.completion.is_empty()
             && !plan.verify.is_empty()
             && !plan.variants.is_empty(),
-        "scenario needs goal, steps, completion, verify, and variants"
+        "scenario needs goal, verify, and variants"
     );
+    match plan.mode {
+        Mode::Constrained => ensure!(
+            !plan.steps.is_empty() && !plan.completion.is_empty(),
+            "constrained mode needs steps and completion"
+        ),
+        Mode::Agent => ensure!(
+            plan.steps.is_empty() && plan.completion.is_empty(),
+            "agent mode uses goal and verify, not fixed steps or completion"
+        ),
+    }
     let mut names = std::collections::BTreeSet::new();
     for v in &plan.variants {
         ensure!(
@@ -216,6 +235,22 @@ fn script(browser: &mut browser::Browser, lines: &[String]) -> Result<Value> {
     }
     Ok(result["result"]["value"].clone())
 }
+pub(crate) fn verification(
+    browser: &mut browser::Browser,
+    lines: &[String],
+    page: &Value,
+) -> Value {
+    // A fresh observed snapshot is available as `page`; scripts may also inspect the DOM.
+    let expression =
+        format!("((page) => eval({}))({})", json!(lines.join("\n")), page);
+    match script(browser, &[expression]) {
+        Ok(value) if value.is_boolean() => json!({"passed":value}),
+        Ok(_) => {
+            json!({"passed":false,"error":"verify script must return a boolean"})
+        }
+        Err(e) => json!({"passed":false,"error":e.to_string()}),
+    }
+}
 fn execute(
     browser: &mut browser::Browser,
     plan: &Plan,
@@ -301,14 +336,7 @@ fn execute(
             }
         }
     }
-    let verification = script(browser, &plan.verify);
-    let independent = match verification {
-        Ok(value) if value.is_boolean() => json!({"passed":value}),
-        Ok(_) => {
-            json!({"passed":false,"error":"verify script must return a boolean"})
-        }
-        Err(e) => json!({"passed":false,"error":e.to_string()}),
-    };
+    let independent = verification(browser, &plan.verify, &page);
     Ok(
         json!({"passed":error.is_none() && satisfied(&page,&plan.completion) && independent["passed"]==true,
         "error":error,"model_calls":model_calls,"forced_singletons":forced,"independent_verification":independent,
@@ -323,6 +351,15 @@ pub fn run(args: &crate::Cli, scenario: &Path) -> Result<()> {
     let bytes = fs::read(scenario)?;
     let plan: Plan = serde_json::from_slice(&bytes)?;
     validate(&plan)?;
+    ensure!(args.max_steps > 0, "max-steps must be positive");
+    ensure!(
+        plan.mode != Mode::Agent || args.chooser == "model",
+        "agent mode requires the model chooser"
+    );
+    ensure!(
+        plan.mode == Mode::Agent || (!args.record && !args.screenshots),
+        "recording flags require agent mode"
+    );
     ensure!(
         plan.steps.len() <= args.max_steps,
         "scenario exceeds max-steps"
@@ -336,8 +373,9 @@ pub fn run(args: &crate::Cli, scenario: &Path) -> Result<()> {
     fs::create_dir_all(&args.output)?;
     fs::write(args.output.join("scenario.json"), &bytes)?;
     let mut results = vec![];
-    for variant in &plan.variants {
+    for (variant_index, variant) in plan.variants.iter().enumerate() {
         for run in 0..args.repeat {
+            let setup = Instant::now();
             let mut browser =
                 browser::Browser::connect(&args.cdp, url.as_str())?;
             let attempt = (|| -> Result<Value> {
@@ -345,7 +383,36 @@ pub fn run(args: &crate::Cli, scenario: &Path) -> Result<()> {
                     script(&mut browser, &plan.scripts[name])
                         .with_context(|| format!("setup script {name}"))?;
                 }
-                execute(&mut browser, &plan, model.as_ref(), &args.retrieval)
+                match plan.mode {
+                    Mode::Constrained => execute(
+                        &mut browser,
+                        &plan,
+                        model.as_ref(),
+                        &args.retrieval,
+                    ),
+                    Mode::Agent => {
+                        let folder = args.output.join(format!(
+                            "variant-{variant_index:02}-run-{run:02}"
+                        ));
+                        fs::create_dir(&folder)?;
+                        let mut summary = crate::run_agent_page(
+                            args,
+                            model.as_ref().context("agent needs model")?,
+                            &plan.goal,
+                            &folder,
+                            &mut browser,
+                            setup,
+                            Some(&plan.verify),
+                        )?;
+                        summary["passed"] = json!(
+                            summary["status"] == "done"
+                                && summary["error"].is_null()
+                                && summary["verification"]["passed"] == true
+                        );
+                        summary["model_calls"] = summary["decisions"].clone();
+                        Ok(summary)
+                    }
+                }
             })();
             let mut result = attempt.unwrap_or_else(
                 |e| json!({"passed":false,"error":format!("{e:#}")}),
@@ -385,22 +452,44 @@ mod tests {
     use super::*;
     #[test]
     fn scenario_files_validate_and_resolve_relative_fixtures() {
-        for name in ["hotel.json", "reading-room.json"] {
+        for name in [
+            "hotel.json",
+            "reading-room.json",
+            "hotel-agent.json",
+            "reading-room-agent.json",
+            "wikipedia.json",
+            "flights.json",
+        ] {
             let file = Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("../../examples")
                 .join(name);
             let plan: Plan =
                 serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
             validate(&plan).unwrap();
-            assert!(
-                plan.source
-                    .resolve(&file)
-                    .unwrap()
-                    .to_file_path()
-                    .unwrap()
-                    .is_file()
-            );
+            let url = plan.source.resolve(&file).unwrap();
+            match plan.source {
+                Source::File { .. } => {
+                    assert!(url.to_file_path().unwrap().is_file())
+                }
+                Source::Url { .. } => assert_eq!(url.scheme(), "https"),
+            }
         }
+    }
+    #[test]
+    fn modes_require_distinct_planning_contracts() {
+        let raw = fs::read(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../examples/hotel.json"),
+        )
+        .unwrap();
+        let mut plan: Plan = serde_json::from_slice(&raw).unwrap();
+        plan.mode = Mode::Agent;
+        assert!(validate(&plan).is_err());
+        plan.steps.clear();
+        plan.completion.clear();
+        validate(&plan).unwrap();
+        plan.mode = Mode::Constrained;
+        assert!(validate(&plan).is_err());
     }
     #[test]
     fn invalid_setup_references_and_duplicate_variants_are_rejected() {

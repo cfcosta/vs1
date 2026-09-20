@@ -1,0 +1,16 @@
+{
+  "mode": "agent",
+  "goal": "Use the destination search and filters to find Design stays in Lisbon with Free cancellation, then open Casa Flora.",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/fixture.html"
+  },
+  "verify": [
+    "location.hash === '#casa-flora' && document.body.innerText.includes('Your filters: Design · Free cancellation enabled · Destination Lisbon')"
+  ],
+  "variants": [
+    {
+      "name": "base"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "url",
+    "url": "https://en.wikipedia.org/wiki/Main_Page"
+  },
+  "goal": "Find and open the Wikipedia article about Gödel’s incompleteness theorems.",
+  "variants": [
+    {
+      "name": "base"
+    }
+  ],
+  "verify": [
+    "(() => {",
+    "  const url = new URL(page.url);",
+    "  return url.hostname === 'en.wikipedia.org' && decodeURIComponent(url.pathname) === \"/wiki/Gödel's_incompleteness_theorems\" && page.title.includes('incompleteness theorems');",
+    "})()"
+  ]
+}

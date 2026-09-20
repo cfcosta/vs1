@@ -37,7 +37,7 @@ pub struct ModelArgs {
 #[command(version, about)]
 struct Cli {
     /// Run a JSON scenario containing a plan, setup scripts, and outcome checks.
-    #[arg(long, conflicts_with_all=["url","goal","task","replay","check_browser","record","screenshots","expect_url","expect_text"])]
+    #[arg(long, conflicts_with_all=["url","goal","task","replay","check_browser","expect_url","expect_text"])]
     scenario: Option<PathBuf>,
     #[arg(long, default_value="model", value_parser=["model","lexical"], requires="scenario")]
     chooser: String,
@@ -220,7 +220,20 @@ fn run_agent(
 ) -> Result<Value> {
     let setup = Instant::now();
     let mut browser = Browser::connect(&args.cdp, url)?;
+    run_agent_page(args, backend, goal, folder, &mut browser, setup, None)
+}
+
+fn run_agent_page(
+    args: &Cli,
+    backend: &Backend,
+    goal: &str,
+    folder: &Path,
+    browser: &mut Browser,
+    setup: Instant,
+    verifier: Option<&[String]>,
+) -> Result<Value> {
     let mut page = browser.observe()?;
+    let url = page["url"].clone();
     if args.record {
         browser.start_recording(folder.join("screencast"))?;
     }
@@ -390,12 +403,15 @@ fn run_agent(
     let counts = browser.counts.clone();
     let final_page = browser.observe();
     let verification = match &final_page {
-        Ok(page) => verify::outcome(
-            page,
-            args.task.as_deref(),
-            args.expect_url.as_deref(),
-            &args.expect_text,
-        ),
+        Ok(page) => match verifier {
+            Some(lines) => scenario::verification(browser, lines, page),
+            None => verify::outcome(
+                page,
+                args.task.as_deref(),
+                args.expect_url.as_deref(),
+                &args.expect_text,
+            ),
+        },
         Err(e) => json!({"passed":false,"error":e.to_string()}),
     };
     let recording_error = browser.stop_recording().err().map(|e| e.to_string());
