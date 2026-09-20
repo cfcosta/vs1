@@ -100,6 +100,7 @@
                   ./rustfmt.toml
                   ./deny.toml
                   ./crates/vs1/Cargo.toml
+                  ./crates/vs1/build.rs
                   ./crates/vs1/src
                   ./crates/vs1/benches
                   ./crates/vs1/tests

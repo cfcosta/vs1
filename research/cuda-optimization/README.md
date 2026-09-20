@@ -1,8 +1,11 @@
 # CUDA optimization experiments, 2026-09-20
 
-None of these four prototypes met the acceptance gates. All production source
+None of these first four prototypes met the acceptance gates. Their production source
 changes were reverted. The retained Rust benchmark, comparisons, and patches
 record the experiments so that failures can be reproduced without shipping them.
+
+The [second round](round-2.md) subsequently found a measured improvement from
+fusing BF16 GELU and gate multiplication while preserving intermediate rounding.
 
 ## Method and acceptance gates
 

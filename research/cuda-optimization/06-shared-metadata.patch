@@ -1,0 +1,93 @@
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index 8d8a0f1ca4..e9180a5499 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -351,8 +351,7 @@
+         let input_ids =
+             Tensor::from_slice(&collated.input_ids, shape, &self.device)?;
+         let lens = &collated.lens;
+-        let hidden = self.encoder.forward_varlen_packed(&input_ids, lens)?;
+-        let (total, hidden_size) = hidden.dims2()?;
++        let total: usize = lens.iter().sum();
+ 
+         // One type embedding row per token, by its sequence's kind.
+         let token_kinds: Vec<u32> = collated
+@@ -362,14 +361,8 @@
+             .flat_map(|(&kind, &len)| std::iter::repeat_n(kind, len))
+             .collect();
+         let token_kinds = Tensor::from_vec(token_kinds, total, &self.device)?;
+-        let mut hidden =
+-            (hidden + self.type_emb.index_select(&token_kinds, 0)?)?;
+-
+         let (seqlens, max_seq_len) =
+             crate::modernbert::cumulative_seqlens(lens, &self.device)?;
+-        for layer in &self.head {
+-            hidden = layer.forward_packed(&hidden, &seqlens, max_seq_len)?;
+-        }
+ 
+         // Marker positions are per sequence; offset them into the
+         // packed layout. Slots past an item's option count point at
+@@ -391,14 +384,24 @@
+             collated.batch * collated.max_markers,
+             &self.device,
+         )?;
++        // Upload metadata before queuing the encoder. The encoder,
++        // decision head and CLS gather all share the sequence starts.
++        let hidden = self.encoder.forward_varlen_prepared(
++            &input_ids, lens, &seqlens, max_seq_len,
++        )?;
++        let (_, hidden_size) = hidden.dims2()?;
++        let mut hidden =
++            (hidden + self.type_emb.index_select(&token_kinds, 0)?)?;
++        for layer in &self.head {
++            hidden = layer.forward_packed(&hidden, &seqlens, max_seq_len)?;
++        }
+         let marked = hidden.index_select(&marker_index, 0)?.reshape((
+             collated.batch,
+             collated.max_markers,
+             hidden_size,
+         ))?;
+         let logits = self.scorer.forward(&marked)?.to_vec2::<f32>()?;
+-        let cls_index =
+-            Tensor::from_vec(offsets, collated.batch, &self.device)?;
++        let cls_index = seqlens.narrow(0, 0, collated.batch)?;
+         let pooled = hidden
+             .index_select(&cls_index, 0)?
+             .to_dtype(DType::F32)?
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index 2392e99d00..de70664dcd 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -1046,9 +1046,21 @@
+         xs: &Tensor,
+         valid_lens: &[usize],
+     ) -> Result<Tensor> {
++        let (seqlens, max_seq_len) =
++            cumulative_seqlens(valid_lens, xs.device())?;
++        self.forward_varlen_prepared(xs, valid_lens, &seqlens, max_seq_len)
++    }
++
++    /// Reuses sequence metadata prepared by the caller for the decision head.
++    #[cfg(feature = "flash-attn")]
++    pub(crate) fn forward_varlen_prepared(
++        &self,
++        xs: &Tensor,
++        valid_lens: &[usize],
++        seqlens: &Tensor,
++        max_seq_len: usize,
++    ) -> Result<Tensor> {
+         let xs = xs.apply(&self.word_embeddings)?;
+-        let (seqlens, max_seq_len) =
+-            cumulative_seqlens(valid_lens, xs.device())?;
+         let positions =
+             self.cached_packed_positions(valid_lens, xs.device())?;
+         let local_window = self.local_attention_size / 2;
+@@ -1072,7 +1084,7 @@
+                 &packed_xs,
+                 valid_lens,
+                 &positions,
+-                &seqlens,
++                seqlens,
+                 max_seq_len,
+                 effective_window,
+             )?;

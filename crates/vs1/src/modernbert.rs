@@ -542,6 +542,20 @@ impl ModernBertMLP {
 
 impl Module for ModernBertMLP {
     fn forward(&self, xs: &Tensor) -> Result<Tensor> {
+        #[cfg(feature = "cuda")]
+        if xs.device().is_cuda() && xs.dtype() == DType::BF16 {
+            #[cfg(test)]
+            if crate::geglu_cuda::REFERENCE_MLP
+                .load(std::sync::atomic::Ordering::Relaxed)
+            {
+                let act = xs.apply(&self.wi_act)?.gelu_erf()?;
+                let gate = xs.apply(&self.wi_gate)?;
+                return (act * gate)?.apply(&self.wo);
+            }
+            let act = xs.apply(&self.wi_act)?;
+            let gate = xs.apply(&self.wi_gate)?;
+            return crate::geglu_cuda::forward(&act, &gate)?.apply(&self.wo);
+        }
         let act = xs.apply(&self.wi_act)?.gelu_erf()?;
         let gate = xs.apply(&self.wi_gate)?;
         (act * gate)?.apply(&self.wo)

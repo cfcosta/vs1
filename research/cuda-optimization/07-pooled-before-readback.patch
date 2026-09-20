@@ -1,0 +1,36 @@
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index 8d8a0f1ca4..b8b82d62a5 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -396,14 +396,16 @@
+             collated.max_markers,
+             hidden_size,
+         ))?;
+-        let logits = self.scorer.forward(&marked)?.to_vec2::<f32>()?;
++        let logits = self.scorer.forward(&marked)?;
+         let cls_index =
+             Tensor::from_vec(offsets, collated.batch, &self.device)?;
+         let pooled = hidden
+             .index_select(&cls_index, 0)?
+             .to_dtype(DType::F32)?
+             .contiguous()?;
+-        Ok((pooled, logits))
++        // Queue the independent CLS work before the host read fences
++        // the stream; CPU confidence features still use the same logits.
++        Ok((pooled, logits.to_vec2::<f32>()?))
+     }
+ 
+     /// Runs the encoder and head; returns the F32 pooled `[CLS]`
+@@ -445,10 +447,10 @@
+         .expand((collated.batch, collated.max_markers, hidden_size))?
+         .contiguous()?;
+         let marked = hidden.gather(&marker_pos, 1)?;
+-        let logits = self.scorer.forward(&marked)?.to_vec2::<f32>()?;
++        let logits = self.scorer.forward(&marked)?;
+         let pooled =
+             hidden.i((.., 0, ..))?.to_dtype(DType::F32)?.contiguous()?;
+-        Ok((pooled, logits))
++        Ok((pooled, logits.to_vec2::<f32>()?))
+     }
+ 
+     fn answer(

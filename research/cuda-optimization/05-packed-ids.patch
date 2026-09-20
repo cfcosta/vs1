@@ -1,0 +1,67 @@
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index 8d8a0f1ca4..654d2eceac 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -347,11 +347,17 @@
+         &self,
+         collated: &Collated,
+     ) -> Result<(Tensor, Vec<Vec<f32>>)> {
+-        let shape = (collated.batch, collated.seq_len);
+-        let input_ids =
+-            Tensor::from_slice(&collated.input_ids, shape, &self.device)?;
+         let lens = &collated.lens;
+-        let hidden = self.encoder.forward_varlen_packed(&input_ids, lens)?;
++        // Pack the small integer ids on the host instead of embedding
++        // padding and copying full hidden rows on the device.
++        let ids: Vec<u32> = collated.input_ids
++            .chunks(collated.seq_len)
++            .zip(lens)
++            .flat_map(|(row, &len)| row[..len].iter().copied())
++            .collect();
++        let total = ids.len();
++        let input_ids = Tensor::from_vec(ids, total, &self.device)?;
++        let hidden = self.encoder.forward_packed_ids(&input_ids, lens)?;
+         let (total, hidden_size) = hidden.dims2()?;
+ 
+         // One type embedding row per token, by its sequence's kind.
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index 2392e99d00..21b17e4bdf 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -1047,6 +1047,26 @@
+         valid_lens: &[usize],
+     ) -> Result<Tensor> {
+         let xs = xs.apply(&self.word_embeddings)?;
++        self.forward_packed_embeddings(&pack_varlen_bsd(&xs, valid_lens)?, valid_lens)
++    }
++
++    /// Encoder input already packed into a one-dimensional token-id tensor.
++    /// Keeping padding out of the embedding lookup avoids a hidden-state copy.
++    #[cfg(feature = "flash-attn")]
++    pub(crate) fn forward_packed_ids(
++        &self,
++        ids: &Tensor,
++        valid_lens: &[usize],
++    ) -> Result<Tensor> {
++        self.forward_packed_embeddings(&ids.apply(&self.word_embeddings)?, valid_lens)
++    }
++
++    #[cfg(feature = "flash-attn")]
++    fn forward_packed_embeddings(
++        &self,
++        xs: &Tensor,
++        valid_lens: &[usize],
++    ) -> Result<Tensor> {
+         let (seqlens, max_seq_len) =
+             cumulative_seqlens(valid_lens, xs.device())?;
+         let positions =
+@@ -1058,8 +1078,7 @@
+         // the window and must be hidden, exactly as the masked path's
+         // `|i - j| > local_window` bias hides them.
+         let full_attention_threshold = local_window + 1;
+-        let mut packed_xs =
+-            pack_varlen_bsd(&xs, valid_lens)?.apply(&self.norm)?;
++        let mut packed_xs = xs.apply(&self.norm)?;
+         for layer in self.layers.iter() {
+             let effective_window = if layer.uses_local_attention
+                 && max_seq_len > full_attention_threshold

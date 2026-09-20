@@ -46,6 +46,12 @@ pub mod pyjson;
 pub mod sequence;
 pub mod types;
 
+#[cfg(feature = "cuda")]
+mod geglu_cuda;
+
+#[cfg(all(test, feature = "flash-attn"))]
+mod geglu_bench;
+
 pub use builder::{
     DEFAULT_REPO_ID,
     MULTILINGUAL_SUBFOLDER,
