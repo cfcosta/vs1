@@ -28,13 +28,34 @@ fn paired_model_latency() -> anyhow::Result<()> {
 }
 
 pub(crate) fn run_paired(reference: &'static AtomicBool) -> anyhow::Result<()> {
-    struct Reset(&'static AtomicBool);
-    impl Drop for Reset {
+    run_paired_many(&[reference])
+}
+
+#[test]
+#[ignore = "requires CUDA and checkpoint; run alone"]
+fn paired_round3_latency() -> anyhow::Result<()> {
+    run_paired_many(&[
+        &crate::geglu_cuda::REFERENCE_VECTOR,
+        &crate::rope_cuda::REFERENCE_ROPE,
+        &crate::residual_norm_cuda::REFERENCE_NORM,
+    ])
+}
+
+fn run_paired_many(references: &[&'static AtomicBool]) -> anyhow::Result<()> {
+    struct Reset<'a>(&'a [&'static AtomicBool]);
+    impl Drop for Reset<'_> {
         fn drop(&mut self) {
-            self.0.store(false, Ordering::Relaxed);
+            for reference in self.0 {
+                reference.store(false, Ordering::Relaxed);
+            }
         }
     }
-    let _reset = Reset(reference);
+    let _reset = Reset(references);
+    let select_reference = |value| {
+        for reference in references {
+            reference.store(value, Ordering::Relaxed);
+        }
+    };
     let device = Device::new_cuda(0)?;
     let model: SystemOne = SystemOne::from(crate::DEFAULT_REPO_ID)
         .with_device(device.clone())
@@ -75,10 +96,10 @@ pub(crate) fn run_paired(reference: &'static AtomicBool) -> anyhow::Result<()> {
     ];
     let mut report = vec![];
     for (name, requests) in cases {
-        reference.store(true, Ordering::Relaxed);
+        select_reference(true);
         let expected = snapshot(&model.system_one_batch(&requests)?);
         for warmup in 0..10 {
-            reference.store(warmup % 2 == 0, Ordering::Relaxed);
+            select_reference(warmup % 2 == 0);
             assert_eq!(snapshot(&model.system_one_batch(&requests)?), expected);
         }
         let (mut baseline, mut fused, mut ratios) = (vec![], vec![], vec![]);
@@ -87,7 +108,7 @@ pub(crate) fn run_paired(reference: &'static AtomicBool) -> anyhow::Result<()> {
             let mut pair = [0.0; 2];
             let order = if iteration % 2 == 0 { [0, 1] } else { [1, 0] };
             for index in order {
-                reference.store(index == 0, Ordering::Relaxed);
+                select_reference(index == 0);
                 device.synchronize()?;
                 let started = Instant::now();
                 let responses = model.system_one_batch(&requests)?;

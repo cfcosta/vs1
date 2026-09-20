@@ -50,6 +50,8 @@ pub mod types;
 mod geglu_cuda;
 
 #[cfg(feature = "flash-attn")]
+mod residual_norm_cuda;
+#[cfg(feature = "flash-attn")]
 mod rope_cuda;
 
 #[cfg(all(test, feature = "flash-attn"))]

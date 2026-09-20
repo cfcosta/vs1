@@ -6,6 +6,8 @@ record the experiments so that failures can be reproduced without shipping them.
 
 The [second round](round-2.md) subsequently found a measured improvement from
 fusing BF16 GELU and gate multiplication while preserving intermediate rounding.
+The [third round](round-3.md) measures paired BF16 arithmetic, combined Q/K
+rotary application and residual-add/normalization fusion.
 
 ## Method and acceptance gates
 

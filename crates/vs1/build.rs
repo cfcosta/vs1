@@ -3,6 +3,7 @@ use std::{env, path::PathBuf, process::Command};
 fn main() {
     println!("cargo::rerun-if-changed=src/geglu.cu");
     println!("cargo::rerun-if-changed=src/rope_pair.cu");
+    println!("cargo::rerun-if-changed=src/residual_norm.cu");
     println!("cargo::rerun-if-env-changed=CUDA_PATH");
     println!("cargo::rerun-if-env-changed=NVCC");
     if env::var_os("CARGO_FEATURE_CUDA").is_none() {
@@ -19,7 +20,7 @@ fn main() {
         PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR"));
     // Candle's BF16 CUDA kernels already require Ampere or newer.
     // Shipping PTX keeps forward compatibility and avoids runtime NVRTC.
-    for kernel in ["geglu", "rope_pair"] {
+    for kernel in ["geglu", "rope_pair", "residual_norm"] {
         let status = Command::new(&nvcc)
             .args([
                 "--ptx",

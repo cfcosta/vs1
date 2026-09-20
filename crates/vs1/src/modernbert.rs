@@ -694,6 +694,29 @@ impl ModernBertLayer {
             max_seq_len,
             local_window,
         )?;
+        let (_, hidden) = packed_xs.dims2()?;
+        let fused_norm = packed_xs.device().is_cuda()
+            && packed_xs.dtype() == DType::BF16
+            && packed_xs.is_contiguous()
+            && attn_out.is_contiguous()
+            && hidden > 0
+            && hidden <= 1024
+            && packed_xs.elem_count() > 0
+            && packed_xs.elem_count() <= u32::MAX as usize / 2;
+        #[cfg(test)]
+        let fused_norm = fused_norm
+            && !crate::residual_norm_cuda::REFERENCE_NORM
+                .load(std::sync::atomic::Ordering::Relaxed);
+        if fused_norm {
+            // mlp_norm is constructed by layer_norm_no_bias_fused with a +0 bias.
+            let (residual, normalized) = crate::residual_norm_cuda::forward(
+                &attn_out,
+                packed_xs,
+                self.mlp_norm.weight(),
+                self.mlp_norm.eps(),
+            )?;
+            return residual + normalized.apply(&self.mlp)?;
+        }
         let xs = (attn_out + packed_xs)?;
         let mlp_out = xs.apply(&self.mlp_norm)?.apply(&self.mlp)?;
         xs + mlp_out
