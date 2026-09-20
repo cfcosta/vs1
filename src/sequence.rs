@@ -235,6 +235,8 @@ pub struct Collated {
     pub marker_pos: Vec<u32>,
     /// Real option count per item.
     pub option_counts: Vec<usize>,
+    /// Real token count per item, before padding.
+    pub lens: Vec<usize>,
     /// Primitive index per item.
     pub kinds: Vec<u32>,
 }
@@ -249,6 +251,7 @@ pub fn collate(items: &[&EncodedItem], pad: u32) -> Collated {
     let mut attention_mask = vec![0u32; batch * seq_len];
     let mut marker_pos = vec![0u32; batch * max_markers];
     let mut option_counts = Vec::with_capacity(batch);
+    let mut lens = Vec::with_capacity(batch);
     let mut kinds = Vec::with_capacity(batch);
     for (row, item) in items.iter().enumerate() {
         let start = row * seq_len;
@@ -259,6 +262,7 @@ pub fn collate(items: &[&EncodedItem], pad: u32) -> Collated {
             marker_pos[mstart + j] = m as u32;
         }
         option_counts.push(item.markers.len());
+        lens.push(item.ids.len());
         kinds.push(item.kind.index() as u32);
     }
     Collated {
@@ -269,6 +273,7 @@ pub fn collate(items: &[&EncodedItem], pad: u32) -> Collated {
         attention_mask,
         marker_pos,
         option_counts,
+        lens,
         kinds,
     }
 }

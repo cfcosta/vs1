@@ -234,7 +234,7 @@ impl RotaryEmbedding {
 /// overflows: attention inputs are post-LayerNorm and its outputs are
 /// convex combinations of V rows, so values stay far from ±65504.
 #[cfg(feature = "flash-attn")]
-fn flash_compat_dtype(dtype: DType) -> DType {
+pub(crate) fn flash_compat_dtype(dtype: DType) -> DType {
     match dtype {
         DType::F16 | DType::BF16 => dtype,
         _ => DType::F16,
@@ -242,8 +242,16 @@ fn flash_compat_dtype(dtype: DType) -> DType {
 }
 
 #[derive(Clone)]
+/// Attention with the softmax scale folded into `q`.
+///
+/// The checkpoint stores one fused `Wqkv`; it is split into three
+/// projections at load time so `q`, `k`, and `v` each come out
+/// contiguous and reshape to `(.., heads, head_dim)` for free. Slicing
+/// the fused output instead costs three strided copies per layer.
 struct ModernBertAttention {
-    qkv: Linear,
+    q: Linear,
+    k: Linear,
+    v: Linear,
     proj: Linear,
     num_attention_heads: usize,
     attention_head_size: usize,
@@ -260,28 +268,16 @@ impl ModernBertAttention {
         let attention_head_size =
             config.hidden_size / config.num_attention_heads;
 
-        let qkv = {
-            let qkv = linear_no_bias(
-                config.hidden_size,
-                config.hidden_size * 3,
-                vb.pp("Wqkv"),
-            )?;
-            let q_scale = (attention_head_size as f64).powf(-0.5);
-            let q_weight =
-                (qkv.weight().narrow(0, 0, config.hidden_size)? * q_scale)?;
-            let k_weight = qkv.weight().narrow(
-                0,
-                config.hidden_size,
-                config.hidden_size,
-            )?;
-            let v_weight = qkv.weight().narrow(
-                0,
-                config.hidden_size * 2,
-                config.hidden_size,
-            )?;
-            let weight = Tensor::cat(&[&q_weight, &k_weight, &v_weight], 0)?;
-            Linear::new(weight, None)
-        };
+        let hidden = config.hidden_size;
+        let wqkv = vb.get((hidden * 3, hidden), "Wqkv.weight")?;
+        let q_scale = (attention_head_size as f64).powf(-0.5);
+        let q = Linear::new((wqkv.narrow(0, 0, hidden)? * q_scale)?, None);
+        let k =
+            Linear::new(wqkv.narrow(0, hidden, hidden)?.contiguous()?, None);
+        let v = Linear::new(
+            wqkv.narrow(0, hidden * 2, hidden)?.contiguous()?,
+            None,
+        );
         let proj = linear_no_bias(
             config.hidden_size,
             config.hidden_size,
@@ -289,7 +285,9 @@ impl ModernBertAttention {
         )?;
 
         Ok(Self {
-            qkv,
+            q,
+            k,
+            v,
             proj,
             num_attention_heads,
             attention_head_size,
@@ -302,22 +300,20 @@ impl ModernBertAttention {
         hidden_states: &Tensor,
         attention_mask: &Tensor,
     ) -> Result<Tensor> {
-        let xs = hidden_states.clone();
-        let (b, seq_len, d) = xs.dims3()?;
-        let qkv = xs
-            .apply(&self.qkv)?
-            .reshape((
+        let (b, seq_len, d) = hidden_states.dims3()?;
+        let heads = |xs: Tensor| -> Result<Tensor> {
+            xs.reshape((
                 b,
                 seq_len,
-                3,
                 self.num_attention_heads,
                 self.attention_head_size,
             ))?
-            .permute((2, 0, 3, 1, 4))?;
-
-        let q = qkv.get(0)?;
-        let k = qkv.get(1)?;
-        let v = qkv.get(2)?;
+            .transpose(1, 2)?
+            .contiguous()
+        };
+        let q = heads(hidden_states.apply(&self.q)?)?;
+        let k = heads(hidden_states.apply(&self.k)?)?;
+        let v = heads(hidden_states.apply(&self.v)?)?;
 
         let (q, k) = self.rotary_emb.apply_rotary_emb_qkv(&q, &k)?;
 
@@ -341,28 +337,16 @@ impl ModernBertAttention {
         hidden_states: &Tensor,
         local_window: Option<usize>,
     ) -> Result<Tensor> {
-        let xs = hidden_states.clone();
-        let (b, seq_len, d) = xs.dims3()?;
-        let qkv = xs.apply(&self.qkv)?;
-
-        let q = qkv.narrow(2, 0, d)?.reshape((
+        let (b, seq_len, d) = hidden_states.dims3()?;
+        let shape = (
             b,
             seq_len,
             self.num_attention_heads,
             self.attention_head_size,
-        ))?;
-        let k = qkv.narrow(2, d, d)?.reshape((
-            b,
-            seq_len,
-            self.num_attention_heads,
-            self.attention_head_size,
-        ))?;
-        let v = qkv.narrow(2, d * 2, d)?.reshape((
-            b,
-            seq_len,
-            self.num_attention_heads,
-            self.attention_head_size,
-        ))?;
+        );
+        let q = hidden_states.apply(&self.q)?.reshape(shape)?;
+        let k = hidden_states.apply(&self.k)?.reshape(shape)?;
+        let v = hidden_states.apply(&self.v)?.reshape(shape)?;
 
         let (q, k) = self.rotary_emb.apply_rotary_emb_thd(&q, &k)?;
         let orig_dtype = q.dtype();
@@ -408,23 +392,14 @@ impl ModernBertAttention {
         local_window: Option<usize>,
     ) -> Result<Tensor> {
         let (total_tokens, d) = packed_hidden_states.dims2()?;
-        let qkv = packed_hidden_states.apply(&self.qkv)?;
-
-        let q = qkv.narrow(1, 0, d)?.reshape((
+        let shape = (
             total_tokens,
             self.num_attention_heads,
             self.attention_head_size,
-        ))?;
-        let k = qkv.narrow(1, d, d)?.reshape((
-            total_tokens,
-            self.num_attention_heads,
-            self.attention_head_size,
-        ))?;
-        let v = qkv.narrow(1, d * 2, d)?.reshape((
-            total_tokens,
-            self.num_attention_heads,
-            self.attention_head_size,
-        ))?;
+        );
+        let q = packed_hidden_states.apply(&self.q)?.reshape(shape)?;
+        let k = packed_hidden_states.apply(&self.k)?.reshape(shape)?;
+        let v = packed_hidden_states.apply(&self.v)?.reshape(shape)?;
 
         let (q, k) = self
             .rotary_emb
@@ -481,26 +456,15 @@ impl ModernBertAttention {
         local_window: Option<usize>,
     ) -> Result<Tensor> {
         let (b, seq_len, d) = hidden_states.dims3()?;
-        let qkv = hidden_states.apply(&self.qkv)?;
-
-        let q = qkv.narrow(2, 0, d)?.reshape((
+        let shape = (
             b,
             seq_len,
             self.num_attention_heads,
             self.attention_head_size,
-        ))?;
-        let k = qkv.narrow(2, d, d)?.reshape((
-            b,
-            seq_len,
-            self.num_attention_heads,
-            self.attention_head_size,
-        ))?;
-        let v = qkv.narrow(2, d * 2, d)?.reshape((
-            b,
-            seq_len,
-            self.num_attention_heads,
-            self.attention_head_size,
-        ))?;
+        );
+        let q = hidden_states.apply(&self.q)?.reshape(shape)?;
+        let k = hidden_states.apply(&self.k)?.reshape(shape)?;
+        let v = hidden_states.apply(&self.v)?.reshape(shape)?;
 
         let (q, k) = self.rotary_emb.apply_rotary_emb_thd(&q, &k)?;
         let orig_dtype = q.dtype();
@@ -547,33 +511,40 @@ impl ModernBertAttention {
 }
 
 #[derive(Clone)]
+/// GeGLU feed-forward: `Wo(gelu(x Wi_act) * (x Wi_gate))`.
+///
+/// The checkpoint stores `Wi` fused as `(2 * intermediate, hidden)`.
+/// It is split into its two halves at load time so each projection
+/// comes out contiguous: a `chunk` on the fused output would hand
+/// `gelu` and the gate multiply strided views, which candle's
+/// elementwise kernels run several times slower than contiguous ones.
 pub struct ModernBertMLP {
-    wi: Linear,
+    wi_act: Linear,
+    wi_gate: Linear,
     wo: Linear,
 }
 
 impl ModernBertMLP {
     fn load(vb: VarBuilder, config: &Config) -> Result<Self> {
-        let wi = linear_no_bias(
-            config.hidden_size,
-            config.intermediate_size * 2,
-            vb.pp("Wi"),
-        )?;
-        let wo = linear_no_bias(
-            config.intermediate_size,
-            config.hidden_size,
-            vb.pp("Wo"),
-        )?;
-        Ok(Self { wi, wo })
+        let inter = config.intermediate_size;
+        let wi = vb.get((inter * 2, config.hidden_size), "Wi.weight")?;
+        let wi_act = Linear::new(wi.narrow(0, 0, inter)?.contiguous()?, None);
+        let wi_gate =
+            Linear::new(wi.narrow(0, inter, inter)?.contiguous()?, None);
+        let wo = linear_no_bias(inter, config.hidden_size, vb.pp("Wo"))?;
+        Ok(Self {
+            wi_act,
+            wi_gate,
+            wo,
+        })
     }
 }
 
 impl Module for ModernBertMLP {
     fn forward(&self, xs: &Tensor) -> Result<Tensor> {
-        let xs = xs.apply(&self.wi)?;
-        let xs = xs.chunk(2, D::Minus1)?;
-        let xs = (&xs[0].gelu_erf()? * &xs[1])?.apply(&self.wo)?; // GeGLU
-        Ok(xs)
+        let act = xs.apply(&self.wi_act)?.gelu_erf()?;
+        let gate = xs.apply(&self.wi_gate)?;
+        (act * gate)?.apply(&self.wo)
     }
 }
 
@@ -821,7 +792,7 @@ fn prepare_4d_attention_mask(
 }
 
 #[cfg(feature = "flash-attn")]
-fn cumulative_seqlens(
+pub(crate) fn cumulative_seqlens(
     valid_lens: &[usize],
     device: &Device,
 ) -> Result<(Tensor, usize)> {
@@ -1023,7 +994,12 @@ impl ModernBert {
     pub fn forward_unmasked(&self, xs: &Tensor) -> Result<Tensor> {
         let mut xs = xs.apply(&self.word_embeddings)?.apply(&self.norm)?;
         let local_window = self.local_attention_size / 2;
-        let full_attention_threshold = local_window * 2 + 1;
+        // A window of `local_window` on each side covers every pair of
+        // positions only while the sequence is at most `local_window +
+        // 1` tokens long; past that some pairs are farther apart than
+        // the window and must be hidden, exactly as the masked path's
+        // `|i - j| > local_window` bias hides them.
+        let full_attention_threshold = local_window + 1;
         for layer in self.layers.iter() {
             let effective_window = if layer.uses_local_attention
                 && xs.dim(1)? > full_attention_threshold
@@ -1055,13 +1031,33 @@ impl ModernBert {
         xs: &Tensor,
         valid_lens: &[usize],
     ) -> Result<Tensor> {
+        let packed = self.forward_varlen_packed(xs, valid_lens)?;
+        let max_seq_len = valid_lens.iter().copied().max().unwrap_or(0).max(1);
+        unpack_varlen_bsd(&packed, valid_lens, max_seq_len, xs.device())
+    }
+
+    /// Like [`Self::forward_varlen_padded`], but returns the packed
+    /// `(total_tokens, hidden)` states, sequence after sequence with
+    /// no padding, and the final norm already applied. Callers that
+    /// can index the packed layout skip the unpack copy.
+    #[cfg(feature = "flash-attn")]
+    pub fn forward_varlen_packed(
+        &self,
+        xs: &Tensor,
+        valid_lens: &[usize],
+    ) -> Result<Tensor> {
         let xs = xs.apply(&self.word_embeddings)?;
         let (seqlens, max_seq_len) =
             cumulative_seqlens(valid_lens, xs.device())?;
         let positions =
             self.cached_packed_positions(valid_lens, xs.device())?;
         let local_window = self.local_attention_size / 2;
-        let full_attention_threshold = local_window * 2 + 1;
+        // A window of `local_window` on each side covers every pair of
+        // positions only while the sequence is at most `local_window +
+        // 1` tokens long; past that some pairs are farther apart than
+        // the window and must be hidden, exactly as the masked path's
+        // `|i - j| > local_window` bias hides them.
+        let full_attention_threshold = local_window + 1;
         let mut packed_xs =
             pack_varlen_bsd(&xs, valid_lens)?.apply(&self.norm)?;
         for layer in self.layers.iter() {
@@ -1081,13 +1077,7 @@ impl ModernBert {
                 effective_window,
             )?;
         }
-        let xs = unpack_varlen_bsd(
-            &packed_xs,
-            valid_lens,
-            max_seq_len,
-            xs.device(),
-        )?;
-        xs.apply(&self.final_norm)
+        packed_xs.apply(&self.final_norm)
     }
 
     /// Forward pass for fixed-length query batches where padding rows
@@ -1103,7 +1093,12 @@ impl ModernBert {
     ) -> Result<Tensor> {
         let (batch, seq_len) = xs.dims2()?;
         let local_window = self.local_attention_size / 2;
-        let full_attention_threshold = local_window * 2 + 1;
+        // A window of `local_window` on each side covers every pair of
+        // positions only while the sequence is at most `local_window +
+        // 1` tokens long; past that some pairs are farther apart than
+        // the window and must be hidden, exactly as the masked path's
+        // `|i - j| > local_window` bias hides them.
+        let full_attention_threshold = local_window + 1;
         // Flash varlen aligns sliding windows to the bottom-right
         // diagonal when a sequence's key prefix is shorter than its
         // query rows, which diverges from ModernBERT's centered band.

@@ -41,7 +41,9 @@ fn torch_layer_norm(size: usize, vb: VarBuilder) -> Result<LayerNorm> {
 /// One `nn.TransformerEncoderLayer` in pre-norm form.
 #[derive(Debug, Clone)]
 pub struct HeadLayer {
-    in_proj: Linear,
+    q: Linear,
+    k: Linear,
+    v: Linear,
     out_proj: Linear,
     linear1: Linear,
     linear2: Linear,
@@ -57,9 +59,23 @@ impl HeadLayer {
         let num_heads = (hidden / 64).max(1);
         let head_dim = hidden / num_heads;
         let attn = vb.pp("self_attn");
-        let in_proj = Linear::new(
-            attn.get((3 * hidden, hidden), "in_proj_weight")?,
-            Some(attn.get(3 * hidden, "in_proj_bias")?),
+        // PyTorch keeps one fused `in_proj`; split it so `q`, `k`, and
+        // `v` come out contiguous, and fold the softmax scale into `q`
+        // (weight and bias) so attention runs with scale 1.
+        let weight = attn.get((3 * hidden, hidden), "in_proj_weight")?;
+        let bias = attn.get(3 * hidden, "in_proj_bias")?;
+        let scale = (head_dim as f64).powf(-0.5);
+        let q = Linear::new(
+            (weight.narrow(0, 0, hidden)? * scale)?,
+            Some((bias.narrow(0, 0, hidden)? * scale)?),
+        );
+        let k = Linear::new(
+            weight.narrow(0, hidden, hidden)?.contiguous()?,
+            Some(bias.narrow(0, hidden, hidden)?.contiguous()?),
+        );
+        let v = Linear::new(
+            weight.narrow(0, 2 * hidden, hidden)?.contiguous()?,
+            Some(bias.narrow(0, 2 * hidden, hidden)?.contiguous()?),
         );
         let out_proj = linear(hidden, hidden, attn.pp("out_proj"))?;
         let linear1 = linear(hidden, 4 * hidden, vb.pp("linear1"))?;
@@ -67,7 +83,9 @@ impl HeadLayer {
         let norm1 = torch_layer_norm(hidden, vb.pp("norm1"))?;
         let norm2 = torch_layer_norm(hidden, vb.pp("norm2"))?;
         Ok(Self {
-            in_proj,
+            q,
+            k,
+            v,
             out_proj,
             linear1,
             linear2,
@@ -87,18 +105,15 @@ impl HeadLayer {
     pub fn forward(&self, xs: &Tensor, key_bias: &Tensor) -> Result<Tensor> {
         let (b, l, d) = xs.dims3()?;
         let h = xs.apply(&self.norm1)?;
-        let qkv = h.apply(&self.in_proj)?;
-        let split = |offset: usize| -> Result<Tensor> {
-            qkv.narrow(2, offset, d)?
-                .reshape((b, l, self.num_heads, self.head_dim))?
+        let heads = |t: Tensor| -> Result<Tensor> {
+            t.reshape((b, l, self.num_heads, self.head_dim))?
                 .transpose(1, 2)?
                 .contiguous()
         };
-        let q = split(0)?;
-        let k = split(d)?;
-        let v = split(2 * d)?;
-        let scale = (self.head_dim as f64).powf(-0.5);
-        let att = (q.matmul(&k.transpose(D::Minus2, D::Minus1)?)? * scale)?;
+        let q = heads(h.apply(&self.q)?)?;
+        let k = heads(h.apply(&self.k)?)?;
+        let v = heads(h.apply(&self.v)?)?;
+        let att = q.matmul(&k.transpose(D::Minus2, D::Minus1)?)?;
         let att = softmax_last_dim(&att.broadcast_add(key_bias)?)?;
         let ctx = att
             .matmul(&v)?
@@ -106,6 +121,48 @@ impl HeadLayer {
             .reshape((b, l, d))?
             .apply(&self.out_proj)?;
         let xs = (xs + ctx)?;
+        self.ffn(&xs)
+    }
+
+    /// The same layer over packed `(total_tokens, hidden)` states,
+    /// sequence after sequence with no padding: `seqlens` holds the
+    /// cumulative sequence starts (`batch + 1` entries) and
+    /// `max_seq_len` the longest sequence. Attention is one varlen
+    /// flash kernel, so padded keys never exist and nothing is masked.
+    #[cfg(feature = "flash-attn")]
+    pub fn forward_packed(
+        &self,
+        xs: &Tensor,
+        seqlens: &Tensor,
+        max_seq_len: usize,
+    ) -> Result<Tensor> {
+        let (total, d) = xs.dims2()?;
+        let h = xs.apply(&self.norm1)?;
+        let shape = (total, self.num_heads, self.head_dim);
+        let q = h.apply(&self.q)?.reshape(shape)?;
+        let k = h.apply(&self.k)?.reshape(shape)?;
+        let v = h.apply(&self.v)?.reshape(shape)?;
+        let orig_dtype = q.dtype();
+        let flash_dtype = crate::modernbert::flash_compat_dtype(orig_dtype);
+        let ctx = candle_flash_attn::flash_attn_varlen(
+            &q.to_dtype(flash_dtype)?,
+            &k.to_dtype(flash_dtype)?,
+            &v.to_dtype(flash_dtype)?,
+            seqlens,
+            seqlens,
+            max_seq_len,
+            max_seq_len,
+            1.0,
+            false,
+        )?
+        .to_dtype(orig_dtype)?
+        .reshape((total, d))?
+        .apply(&self.out_proj)?;
+        let xs = (xs + ctx)?;
+        self.ffn(&xs)
+    }
+
+    fn ffn(&self, xs: &Tensor) -> Result<Tensor> {
         let ffn = xs
             .apply(&self.norm2)?
             .apply(&self.linear1)?

@@ -337,6 +337,75 @@ impl SystemOne {
             .collect())
     }
 
+    /// [`Self::marker_logits`] on packed tokens: the encoder, the type
+    /// embedding, the head, and the marker gather all run over
+    /// `(total_tokens, hidden)` with no padding anywhere, and each
+    /// attention is one varlen flash kernel. Used on CUDA when built
+    /// with `flash-attn`.
+    #[cfg(feature = "flash-attn")]
+    fn marker_logits_packed(
+        &self,
+        collated: &Collated,
+    ) -> Result<(Tensor, Vec<Vec<f32>>)> {
+        let shape = (collated.batch, collated.seq_len);
+        let input_ids =
+            Tensor::from_slice(&collated.input_ids, shape, &self.device)?;
+        let lens = &collated.lens;
+        let hidden = self.encoder.forward_varlen_packed(&input_ids, lens)?;
+        let (total, hidden_size) = hidden.dims2()?;
+
+        // One type embedding row per token, by its sequence's kind.
+        let token_kinds: Vec<u32> = collated
+            .kinds
+            .iter()
+            .zip(lens)
+            .flat_map(|(&kind, &len)| std::iter::repeat_n(kind, len))
+            .collect();
+        let token_kinds = Tensor::from_vec(token_kinds, total, &self.device)?;
+        let mut hidden =
+            (hidden + self.type_emb.index_select(&token_kinds, 0)?)?;
+
+        let (seqlens, max_seq_len) =
+            crate::modernbert::cumulative_seqlens(lens, &self.device)?;
+        for layer in &self.head {
+            hidden = layer.forward_packed(&hidden, &seqlens, max_seq_len)?;
+        }
+
+        // Marker positions are per sequence; offset them into the
+        // packed layout. Slots past an item's option count point at
+        // its own `[CLS]` row and are ignored downstream.
+        let mut offsets = Vec::with_capacity(lens.len());
+        let mut start = 0u32;
+        for &len in lens {
+            offsets.push(start);
+            start += len as u32;
+        }
+        let marker_index: Vec<u32> = collated
+            .marker_pos
+            .chunks(collated.max_markers.max(1))
+            .zip(&offsets)
+            .flat_map(|(row, &offset)| row.iter().map(move |&m| offset + m))
+            .collect();
+        let marker_index = Tensor::from_vec(
+            marker_index,
+            collated.batch * collated.max_markers,
+            &self.device,
+        )?;
+        let marked = hidden.index_select(&marker_index, 0)?.reshape((
+            collated.batch,
+            collated.max_markers,
+            hidden_size,
+        ))?;
+        let logits = self.scorer.forward(&marked)?.to_vec2::<f32>()?;
+        let cls_index =
+            Tensor::from_vec(offsets, collated.batch, &self.device)?;
+        let pooled = hidden
+            .index_select(&cls_index, 0)?
+            .to_dtype(DType::F32)?
+            .contiguous()?;
+        Ok((pooled, logits))
+    }
+
     /// Runs the encoder and head; returns the F32 pooled `[CLS]`
     /// state `(batch, hidden)` and the raw marker logits per item
     /// (`max_markers` wide, slots past each item's option count are
@@ -345,6 +414,10 @@ impl SystemOne {
         &self,
         collated: &Collated,
     ) -> Result<(Tensor, Vec<Vec<f32>>)> {
+        #[cfg(feature = "flash-attn")]
+        if self.device.is_cuda() {
+            return self.marker_logits_packed(collated);
+        }
         let shape = (collated.batch, collated.seq_len);
         let input_ids =
             Tensor::from_slice(&collated.input_ids, shape, &self.device)?;
