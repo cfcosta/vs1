@@ -1,0 +1,2025 @@
+{
+  "model": {
+    "source_sha256": "b5130bfb14012374ec8e00c34e2259cd1f91d7e5982ae6f4b93bd80f215b1bb9",
+    "runs": [
+      {
+        "variant": "base",
+        "run": 0,
+        "passed": false,
+        "error": "postcondition failed at step 4; no fallback or oracle correction",
+        "model_calls": 3,
+        "forced_singletons": 2,
+        "independent_verification": {
+          "passed": false,
+          "checks": {
+            "property": false,
+            "filters": false
+          }
+        },
+        "elapsed_ms": 1501.1249540000001,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "wrong_target_or_failed_effect",
+            "candidate_count": 2,
+            "selected_label": "Find stays",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "base",
+        "run": 1,
+        "passed": false,
+        "error": "postcondition failed at step 4; no fallback or oracle correction",
+        "model_calls": 3,
+        "forced_singletons": 2,
+        "independent_verification": {
+          "passed": false,
+          "checks": {
+            "property": false,
+            "filters": false
+          }
+        },
+        "elapsed_ms": 1459.928503,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "wrong_target_or_failed_effect",
+            "candidate_count": 2,
+            "selected_label": "Find stays",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "base",
+        "run": 2,
+        "passed": false,
+        "error": "postcondition failed at step 4; no fallback or oracle correction",
+        "model_calls": 3,
+        "forced_singletons": 2,
+        "independent_verification": {
+          "passed": false,
+          "checks": {
+            "property": false,
+            "filters": false
+          }
+        },
+        "elapsed_ms": 1510.753025,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "wrong_target_or_failed_effect",
+            "candidate_count": 2,
+            "selected_label": "Find stays",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "distractors",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 5,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 2293.852788,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "distractors",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 5,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 2397.477631,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "distractors",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 5,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 2336.592587,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "reordered",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 5,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 2312.036064,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "reordered",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 5,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 2399.687031,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "reordered",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 5,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 2454.670705,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "already_filtered",
+        "run": 0,
+        "passed": false,
+        "error": "postcondition failed at step 4; no fallback or oracle correction",
+        "model_calls": 1,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": false,
+          "checks": {
+            "property": false,
+            "filters": false
+          }
+        },
+        "elapsed_ms": 439.946485,
+        "steps": [
+          {
+            "step": 0,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 1,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 2,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 3,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 4,
+            "status": "wrong_target_or_failed_effect",
+            "candidate_count": 2,
+            "selected_label": "Find stays",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "already_filtered",
+        "run": 1,
+        "passed": false,
+        "error": "postcondition failed at step 4; no fallback or oracle correction",
+        "model_calls": 1,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": false,
+          "checks": {
+            "property": false,
+            "filters": false
+          }
+        },
+        "elapsed_ms": 411.411276,
+        "steps": [
+          {
+            "step": 0,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 1,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 2,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 3,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 4,
+            "status": "wrong_target_or_failed_effect",
+            "candidate_count": 2,
+            "selected_label": "Find stays",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "already_filtered",
+        "run": 2,
+        "passed": false,
+        "error": "postcondition failed at step 4; no fallback or oracle correction",
+        "model_calls": 1,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": false,
+          "checks": {
+            "property": false,
+            "filters": false
+          }
+        },
+        "elapsed_ms": 436.49291,
+        "steps": [
+          {
+            "step": 0,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 1,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 2,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 3,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 4,
+            "status": "wrong_target_or_failed_effect",
+            "candidate_count": 2,
+            "selected_label": "Find stays",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "complete",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 3.176234,
+        "steps": []
+      },
+      {
+        "variant": "complete",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 3.118184,
+        "steps": []
+      },
+      {
+        "variant": "complete",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 5.22962,
+        "steps": []
+      }
+    ]
+  },
+  "lexical": {
+    "source_sha256": "4235cadfb57ecbc1700f46b14c5b44a75de92fb89724d9b97a8c2917aa039df4",
+    "runs": [
+      {
+        "variant": "base",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 2,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 284.365349,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "base",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 2,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 242.000095,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "base",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 2,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 245.651987,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "distractors",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 252.77867500000002,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "distractors",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 224.015935,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "distractors",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 232.41707,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "reordered",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 222.03502799999998,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "reordered",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 293.493791,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "reordered",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 246.964213,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "already_filtered",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 38.598872,
+        "steps": [
+          {
+            "step": 0,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 1,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 2,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 3,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "already_filtered",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 22.123401,
+        "steps": [
+          {
+            "step": 0,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 1,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 2,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 3,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "already_filtered",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 43.856982,
+        "steps": [
+          {
+            "step": 0,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 1,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 2,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 3,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "complete",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 3.905913,
+        "steps": []
+      },
+      {
+        "variant": "complete",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 4.0660929999999995,
+        "steps": []
+      },
+      {
+        "variant": "complete",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 4.917761,
+        "steps": []
+      }
+    ]
+  },
+  "retrieval": {
+    "source_sha256": "1de6328c257c1b88b1d1f2505c0937768f9109693c544b0f568f5940b4ba9f80",
+    "runs": [
+      {
+        "variant": "base",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 1,
+        "forced_singletons": 4,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 628.7617730000001,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 1,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 4,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "before_retrieval": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 1,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "base",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 1,
+        "forced_singletons": 4,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 641.756864,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 1,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 4,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "before_retrieval": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 1,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "base",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 1,
+        "forced_singletons": 4,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 637.6598319999999,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 1,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 4,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "before_retrieval": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 1,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "distractors",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 2,
+        "forced_singletons": 3,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 1027.659233,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "before_retrieval": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "before_retrieval": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "distractors",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 2,
+        "forced_singletons": 3,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 982.145241,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "before_retrieval": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "before_retrieval": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "distractors",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 2,
+        "forced_singletons": 3,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 1049.408229,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "before_retrieval": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "before_retrieval": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "reordered",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 2,
+        "forced_singletons": 3,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 1062.2656479999998,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "before_retrieval": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "before_retrieval": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "reordered",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 2,
+        "forced_singletons": 3,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 1025.5203079999999,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "before_retrieval": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "before_retrieval": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "reordered",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 2,
+        "forced_singletons": 3,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 1029.853674,
+        "steps": [
+          {
+            "step": 0,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Destination",
+            "kind": "fill"
+          },
+          {
+            "step": 1,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 5,
+            "selected_label": "Find stays",
+            "kind": "click"
+          },
+          {
+            "step": 2,
+            "status": "verified",
+            "candidate_count": 3,
+            "before_retrieval": 3,
+            "selected_label": "Stay category \u2192 Design",
+            "kind": "select"
+          },
+          {
+            "step": 3,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "Free cancellation",
+            "kind": "click"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 2,
+            "before_retrieval": 4,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "already_filtered",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 1,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 38.033532,
+        "steps": [
+          {
+            "step": 0,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 1,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 2,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 3,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "already_filtered",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 1,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 35.815135999999995,
+        "steps": [
+          {
+            "step": 0,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 1,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 2,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 3,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "already_filtered",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 1,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 36.195436,
+        "steps": [
+          {
+            "step": 0,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 1,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 2,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 3,
+            "status": "already_satisfied"
+          },
+          {
+            "step": 4,
+            "status": "verified",
+            "candidate_count": 1,
+            "before_retrieval": 2,
+            "selected_label": "View Casa Flora",
+            "kind": "click"
+          }
+        ]
+      },
+      {
+        "variant": "complete",
+        "run": 0,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 2.9726739999999996,
+        "steps": []
+      },
+      {
+        "variant": "complete",
+        "run": 1,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 2.7771839999999997,
+        "steps": []
+      },
+      {
+        "variant": "complete",
+        "run": 2,
+        "passed": true,
+        "error": null,
+        "model_calls": 0,
+        "forced_singletons": 0,
+        "independent_verification": {
+          "passed": true,
+          "checks": {
+            "property": true,
+            "filters": true
+          }
+        },
+        "elapsed_ms": 2.654344,
+        "steps": []
+      }
+    ]
+  },
+  "provenance": {
+    "checkpoint_revision": "c5d78730f3493e4fe16d61507ef4b78eef7318cf",
+    "dtype": "F32",
+    "device": "CPU",
+    "plan_sha256": "dcd5a06b698c80ef9ed2855ca48b36979e4aacde95c258662465ed0d84caa98e",
+    "scope": "Hand-authored plan; five fixture scenarios repeated three times; not independent tasks."
+  }
+}

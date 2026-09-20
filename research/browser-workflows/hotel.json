@@ -1,0 +1,52 @@
+{
+  "goal": "Find Design stays in Lisbon with Free cancellation, then open Casa Flora.",
+  "steps": [
+    {
+      "instruction": "Choose the Destination search field to enter Lisbon.",
+      "kind": "fill",
+      "role": "searchbox",
+      "text": "Lisbon",
+      "terms": "Destination",
+      "after": [{ "check": "value", "label": "Destination", "equals": "Lisbon" }]
+    },
+    {
+      "instruction": "Choose the button to submit the destination search and find stays.",
+      "kind": "click",
+      "role": "button",
+      "terms": "Find stays",
+      "after": [{ "check": "text", "contains": "places in Lisbon" }]
+    },
+    {
+      "instruction": "Choose the Stay category option Design.",
+      "kind": "select",
+      "role": "combobox",
+      "terms": "Stay category Design",
+      "after": [{ "check": "value", "label": "Stay category", "equals": "Design" }]
+    },
+    {
+      "instruction": "Choose the Free cancellation checkbox to enable it.",
+      "kind": "click",
+      "role": "checkbox",
+      "terms": "Free cancellation",
+      "after": [{ "check": "checked", "label": "Free cancellation", "equals": true }]
+    },
+    {
+      "instruction": "Choose the button to view Casa Flora.",
+      "kind": "click",
+      "role": "button",
+      "terms": "View Casa Flora",
+      "after": [
+        { "check": "title", "equals": "Casa Flora · Forma" },
+        { "check": "url_suffix", "suffix": "#casa-flora" }
+      ]
+    }
+  ],
+  "completion": [
+    { "check": "title", "equals": "Casa Flora · Forma" },
+    { "check": "url_suffix", "suffix": "#casa-flora" },
+    {
+      "check": "text",
+      "contains": "Your filters: Design · Free cancellation enabled · Destination Lisbon"
+    }
+  ]
+}
