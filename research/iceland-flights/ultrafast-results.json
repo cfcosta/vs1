@@ -1,0 +1,239 @@
+{
+  "configuration": {
+    "date": "2026-09-20",
+    "ultrafast_revision": "b8d45982393915a52d935aec30080cd2aea8f411",
+    "source_clean": true,
+    "browser_harness": "0.1.13",
+    "policy": "unmodified upstream prompt and Agent.run(); original vs1 task used compact, adjusted vs1 task used upstream",
+    "decision_model": "jev-latest",
+    "text_model": "inception/mercury-2.5",
+    "text_endpoint": "https://openrouter.ai/api/v1",
+    "text_reasoning": "none",
+    "max_actions": 60,
+    "max_decisions": 120,
+    "screenshots": false,
+    "scenario_sha256": {
+      "scenario.json": "55e22fd454fa2ab7606336ff5d784537eeb212edd6cce3b381e80581f9b33244",
+      "keflavik.json": "b9796d09db22ab638fab83492bdf02c01c6e98142ebeba9ad5e6129a848960ab"
+    },
+    "instrumentation": "Temporary wrapper records model request/response bodies without credentials and snapshots after agent ticks. No action or policy modifications."
+  },
+  "runs": [
+    {
+      "task": "original",
+      "runtime": "ultrafast",
+      "route_results_verified": false,
+      "passed": false,
+      "status": "blocked",
+      "error": null,
+      "elapsed_ms": 4336.748007997812,
+      "native_elapsed_ms": 4336,
+      "wall_ms": 6086.498095999559,
+      "actions": 3,
+      "decisions": 7,
+      "decision_median_ms": 359,
+      "text_calls": 1,
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where to? ",
+          "text": "Iceland"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Reykjavík, Iceland",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        }
+      ],
+      "artifacts": "artifacts/iceland-flights/ultrafast/original-ultrafast",
+      "final_url": "https://www.google.com/travel/flights?tfs=CBwQARodag0IAhIJL20vMDIycGZtcgwIAxIIL20vMDZmbGcaHWoMCAMSCC9tLzA2Zmxncg0IAhIJL20vMDIycGZtQAFIAXABggELCP___________wGYAQE&tfu=KgIIAw&hl=en&curr=BRL",
+      "final_text": "",
+      "final_actions": [
+        {
+          "id": "scroll_down",
+          "kind": "scroll",
+          "label": "Scroll down",
+          "delta": 560
+        },
+        {
+          "id": "wait",
+          "kind": "wait",
+          "label": "Wait for the page to update"
+        }
+      ],
+      "cheapest_month_verified": false
+    },
+    {
+      "task": "keflavik-1",
+      "runtime": "ultrafast",
+      "route_results_verified": false,
+      "passed": false,
+      "status": "blocked",
+      "error": null,
+      "elapsed_ms": 3582.0029620008427,
+      "native_elapsed_ms": 3581,
+      "wall_ms": 4223.405207001633,
+      "actions": 3,
+      "decisions": 8,
+      "decision_median_ms": 317.5,
+      "text_calls": 1,
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where to? ",
+          "text": "Keflavík"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Keflavík International Airport (KEF)",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        }
+      ],
+      "artifacts": "artifacts/iceland-flights/ultrafast/keflavik-1-ultrafast",
+      "final_url": "https://www.google.com/travel/flights?tfs=CBwQARoYag0IAhIJL20vMDIycGZtcgcIARIDS0VGGhhqBwgBEgNLRUZyDQgCEgkvbS8wMjJwZm1AAUgBcAGCAQsI____________AZgBAQ&tfu=KgIIAw&hl=en&curr=BRL",
+      "final_text": "",
+      "final_actions": [
+        {
+          "id": "scroll_down",
+          "kind": "scroll",
+          "label": "Scroll down",
+          "delta": 560
+        },
+        {
+          "id": "wait",
+          "kind": "wait",
+          "label": "Wait for the page to update"
+        }
+      ],
+      "cheapest_month_verified": false
+    },
+    {
+      "task": "keflavik-2",
+      "runtime": "ultrafast",
+      "route_results_verified": false,
+      "passed": false,
+      "status": "blocked",
+      "error": null,
+      "elapsed_ms": 4523.836913998821,
+      "native_elapsed_ms": 4523,
+      "wall_ms": 5551.20993500168,
+      "actions": 7,
+      "decisions": 10,
+      "decision_median_ms": 310.0,
+      "text_calls": 1,
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where to? ",
+          "text": "Keflavík (KEF), Iceland"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Where to? ",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Open Where to? ",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Destination, Select multiple airports",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Done",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        }
+      ],
+      "artifacts": "artifacts/iceland-flights/ultrafast/keflavik-2-ultrafast",
+      "final_url": "https://www.google.com/travel/flights?hl=en&curr=BRL",
+      "final_text": "",
+      "final_actions": [
+        {
+          "id": "scroll_down",
+          "kind": "scroll",
+          "label": "Scroll down",
+          "delta": 560
+        },
+        {
+          "id": "wait",
+          "kind": "wait",
+          "label": "Wait for the page to update"
+        }
+      ],
+      "cheapest_month_verified": false
+    },
+    {
+      "task": "keflavik-3",
+      "runtime": "ultrafast",
+      "route_results_verified": false,
+      "passed": false,
+      "status": "blocked",
+      "error": null,
+      "elapsed_ms": 3716.6930310013413,
+      "native_elapsed_ms": 3716,
+      "wall_ms": 4838.431370997569,
+      "actions": 3,
+      "decisions": 8,
+      "decision_median_ms": 320.5,
+      "text_calls": 1,
+      "history": [
+        {
+          "operation": "TYPE_TEXT",
+          "action": "Where to? ",
+          "text": "Keflavik"
+        },
+        {
+          "operation": "CLICK",
+          "action": "Keflavík International Airport (KEF)",
+          "text": null
+        },
+        {
+          "operation": "CLICK",
+          "action": "Change ticket type. Round trip",
+          "text": null
+        }
+      ],
+      "artifacts": "artifacts/iceland-flights/ultrafast/keflavik-3-ultrafast",
+      "final_url": "https://www.google.com/travel/flights?tfs=CBwQARoYag0IAhIJL20vMDIycGZtcgcIARIDS0VGGhhqBwgBEgNLRUZyDQgCEgkvbS8wMjJwZm1AAUgBcAGCAQsI____________AZgBAQ&tfu=KgIIAw&hl=en&curr=BRL",
+      "final_text": "",
+      "final_actions": [
+        {
+          "id": "scroll_down",
+          "kind": "scroll",
+          "label": "Scroll down",
+          "delta": 560
+        },
+        {
+          "id": "wait",
+          "kind": "wait",
+          "label": "Wait for the page to update"
+        }
+      ],
+      "cheapest_month_verified": false
+    }
+  ]
+}

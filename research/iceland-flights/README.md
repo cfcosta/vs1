@@ -106,3 +106,41 @@ reliably reaching a populated results page, and verifying a comparison of priced
 options across the requested month. Neither was achieved. A useful next diagnostic
 would isolate the empty trip-type-menu observations and check text-helper field
 selection before attempting another month-wide search.
+
+## Original Ultrafast cross-check
+
+The unmodified original Ultrafast agent completed **0/1 original task and 0/3
+adjusted KEF attempts** on the same day, with the same scenario URLs/goals,
+60-action limit, Jev endpoint/model, Mercury text helper, and JSON verifiers.
+
+| Ultrafast task        | Result  | Agent loop | Actions | Decision calls |
+| --------------------- | ------- | ---------- | ------- | -------------- |
+| Original Iceland goal | BLOCKED | 4.34 s     | 3       | 7              |
+| Adjusted KEF, trial 1 | BLOCKED | 3.58 s     | 3       | 8              |
+| Adjusted KEF, trial 2 | BLOCKED | 4.52 s     | 7       | 10             |
+| Adjusted KEF, trial 3 | BLOCKED | 3.72 s     | 3       | 8              |
+
+All four final observations contained empty page text after interaction with
+“Change ticket type. Round trip.” None reached a matching results page, exposed a
+verified fare, or completed the month-wide comparison. The second KEF trial also
+struggled to confirm the destination before reaching the trip-type control.
+All text-helper responses parsed successfully in these Ultrafast attempts.
+
+This reproduces the empty-observation failure in the canonical implementation:
+it is not unique to our Rust port and does not involve local inference. It does
+not isolate whether the cause is browser rendering, the shared snapshot logic,
+interaction timing, or policy handling of a transient page state. Live browser
+state and remote model responses vary between runs. Ultrafast always used its
+original prompt; therefore only the adjusted task has the same prompt style as
+the earlier Rust runs. The original-goal Rust attempt used the compact prompt.
+
+Ultrafast checkout `b8d45982393915a52d935aec30080cd2aea8f411` remained clean.
+Only an external measurement wrapper recorded ticks and model calls, without
+changing browser actions or policy decisions. It used browser-harness 0.1.13,
+a fresh tab for every attempt, the same Chrome profile, and no screenshots.
+The dedicated measurement daemon was stopped afterward.
+
+[ultrafast-results.json](ultrafast-results.json) contains the full comparison
+summaries, final observations, scenario hashes, and executed actions. Raw state,
+model request/response bodies, and the measurement script are under
+`artifacts/iceland-flights/ultrafast/`. No credentials were recorded.
