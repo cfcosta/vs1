@@ -1,0 +1,27 @@
+[package]
+name = "vs1-browser"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+vs1 = { path = "../.." }
+candle-core = "0.11.0"
+anyhow = "1"
+base64 = "0.22"
+clap = { version = "4", features = ["derive", "env"] }
+reqwest = { version = "0.12", default-features = false, features = [
+  "blocking",
+  "json",
+  "rustls-tls",
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+tungstenite = "0.28"
+url = "2"
+
+[features]
+cuda = ["vs1/cuda", "candle-core/cuda"]
+flash-attn = ["cuda", "vs1/flash-attn"]
+metal = ["vs1/metal", "candle-core/metal"]

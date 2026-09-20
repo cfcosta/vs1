@@ -1,0 +1,2165 @@
+{
+  "date": "2026-09-19",
+  "platform": "Linux x86_64",
+  "gpu": "NVIDIA GeForce RTX 3080 Ti",
+  "device": "CUDA BF16",
+  "compiled_features": ["cuda"],
+  "binary_sha256": "6294ede452bfc4bbda03a541fefcba0398e2aef503a3118349fd4318b6b40c4d",
+  "core_source_sha256_at_build": [
+    "fc6928c0950a407e5658bf243da61bbe45cc97d54643a5bf0f1ac9447d92fe55  src/builder.rs",
+    "2851de0fdd14c3b934e842b5c92d82a9009d32e825b290fcdb32c5d0ff394d06  src/config.rs",
+    "4b885f4b1c09edc575ac1a73276a1cfd5d1ae7f29b93c6d839c37d98386b4def  src/error.rs",
+    "a580b0a813f0b505dd977fd02273d9af215fa61a40482d912e9e633a453f327a  src/head.rs",
+    "f41b8a10d2efd92e36cfe9670b2545887a8e3539c0aaf087240f8435e832d356  src/lib.rs",
+    "9941ebe2eeea02efc88e14b9adaabe4d234cbba36eb6054c86ba82c738ef3272  src/model.rs",
+    "7e8fe6fee38815df56f9ea766bea3de5777674374fa57fbebef14768fda741ef  src/modernbert.rs",
+    "609b9ec51b44009ae068526a1e94e4b5d81688a46bac6c69bdfe41ae6683eaa9  src/pyjson.rs",
+    "42a35d4d1325ae4a6189e873cdd2cfdae58f5ec96ee0fb6c204a232ab1ffcc8a  src/sequence.rs",
+    "14f8cc9fa8f6b9b52fa65bbe63f92d338884d090070c9d3b8bd926a436e54b0b  src/types.rs"
+  ],
+  "captured_request_sha256": "cb825f8580f023c4c1f3823beaca1d1aa17ca6772f27bbfdaceb5afc5e5a7cef",
+  "browser_checks": {
+    "passed": [
+      "moving target uses current geometry",
+      "context",
+      "field",
+      "checkbox",
+      "disabled",
+      "replaced",
+      "overlay rejects before input",
+      "native text replacement",
+      "native dropdown selection"
+    ],
+    "browser": "Chrome/152.0.7977.82"
+  },
+  "runs": [
+    {
+      "name": "final-jev-hotel-1",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 3428.6554929999998,
+          "setup_ms": 51.499778000000006,
+          "error": null,
+          "verification": {
+            "passed": true,
+            "checks": {
+              "property": true,
+              "filters": true
+            }
+          },
+          "actions": 5,
+          "decisions": 6,
+          "accepted_responses": 6,
+          "decision_median_ms": 314.303264,
+          "decision_total_ms": 2244.318482,
+          "text_calls": 1,
+          "text_total_ms": 920.9805789999999,
+          "cdp_calls": 39,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "8c3f4e119e73bc0d346f423ff825fc2f544f51b94d107bdf5cc4e3952e82e825"
+    },
+    {
+      "name": "final-jev-hotel-2",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 3063.9094349999996,
+          "setup_ms": 48.766515000000005,
+          "error": null,
+          "verification": {
+            "passed": true,
+            "checks": {
+              "property": true,
+              "filters": true
+            }
+          },
+          "actions": 5,
+          "decisions": 6,
+          "accepted_responses": 6,
+          "decision_median_ms": 348.334661,
+          "decision_total_ms": 2408.103528,
+          "text_calls": 1,
+          "text_total_ms": 554.540532,
+          "cdp_calls": 39,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "84f9e43342948ec352d2a1ba8f1d174ce5c98a52bb6066afdbf3d84546d9e064"
+    },
+    {
+      "name": "final-jev-hotel-3",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 3034.110212,
+          "setup_ms": 32.407396999999996,
+          "error": null,
+          "verification": {
+            "passed": true,
+            "checks": {
+              "property": true,
+              "filters": true
+            }
+          },
+          "actions": 5,
+          "decisions": 6,
+          "accepted_responses": 6,
+          "decision_median_ms": 293.93158700000004,
+          "decision_total_ms": 2214.263,
+          "text_calls": 1,
+          "text_total_ms": 556.5698580000001,
+          "cdp_calls": 39,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "0db7945db23ef2718ca3afbe1be713dfbc14b0d313a9a7452a431aef8bf0fbfa"
+    },
+    {
+      "name": "final-local-hotel-1",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 271.36278200000004,
+        "warmup_ms": 119.431483
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 76.892549,
+          "setup_ms": 54.177621,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 74.06186600000001,
+          "decision_total_ms": 74.06186600000001,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "a11299e19fa7343f7d2fe636c1b1c7640dbc0aced70695d030067f4a80e528bb"
+    },
+    {
+      "name": "final-local-hotel-2",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 279.7692,
+        "warmup_ms": 119.666562
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 80.684125,
+          "setup_ms": 51.22752,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 76.909859,
+          "decision_total_ms": 76.909859,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "3ab4a01bdfe39bf67e9856bf1bf123f972d77364c5d1d3b41c9b2698a38574a0"
+    },
+    {
+      "name": "final-local-hotel-3",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 297.75873800000005,
+        "warmup_ms": 121.873228
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 77.390956,
+          "setup_ms": 30.404139999999998,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 74.58532299999999,
+          "decision_total_ms": 74.58532299999999,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "85b1814deb6e3fa4615570cb04facdb441c9bf33f896a6676e77523662ad0310"
+    },
+    {
+      "name": "jev-custom-url-wikipedia",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "error",
+          "elapsed_ms": 2704.340923,
+          "setup_ms": 632.444751,
+          "error": "trailing characters at line 2 column 1",
+          "verification": {
+            "passed": false,
+            "checks": {
+              "expected_url": false
+            }
+          },
+          "actions": 0,
+          "decisions": 2,
+          "decision_median_ms": 624.357238,
+          "decision_total_ms": 1248.714476,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 5,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "c42fb4e0f9a134ce9c22a8c608aa6f00ddd990599f17e03c42a38742b368d5de"
+    },
+    {
+      "name": "jev-custom-url-wikipedia-retry",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 4615.344174999999,
+          "setup_ms": 665.287712,
+          "error": null,
+          "verification": {
+            "passed": true,
+            "checks": {
+              "expected_url": true
+            }
+          },
+          "actions": 2,
+          "decisions": 7,
+          "accepted_responses": 7,
+          "decision_median_ms": 368.770359,
+          "decision_total_ms": 3317.100459,
+          "text_calls": 1,
+          "text_total_ms": 580.2861350000001,
+          "cdp_calls": 32,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "a75e359b8770bacc632861de1e417f00cd451bce091ddc7df70340a7786ef40a"
+    },
+    {
+      "name": "jev-hotel-diagnostic",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 3634.5332150000004,
+          "setup_ms": 32.877264000000004,
+          "error": null,
+          "verification": {
+            "passed": true,
+            "checks": {
+              "property": true,
+              "filters": true
+            }
+          },
+          "actions": 5,
+          "decisions": 6,
+          "decision_median_ms": 300.6092415,
+          "decision_total_ms": 2309.8617670000003,
+          "text_calls": 1,
+          "text_total_ms": 1069.7729590000001,
+          "cdp_calls": 39,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "6864ce32ae686cd0e6387a064c609d4ad3677775e2411755799f605f4b981bb5"
+    },
+    {
+      "name": "local-hotel-diagnostic",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 377.11068,
+        "warmup_ms": 169.538415
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 134.401995,
+          "setup_ms": 30.26653,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "decision_median_ms": 131.466814,
+          "decision_total_ms": 131.466814,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "2e6c625e8489bab42f8577e2f0a0685e2f329f0182c7d2642af1a97026b569dc"
+    },
+    {
+      "name": "local-upstream-hotel-diagnostic",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 537.307439,
+        "warmup_ms": 154.65161899999998
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "error",
+          "elapsed_ms": 2636.626238,
+          "setup_ms": 46.852356,
+          "error": "action budget exhausted",
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 15,
+          "decisions": 16,
+          "decision_median_ms": 128.1499115,
+          "decision_total_ms": 1822.17248,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 106,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "55635fd189d653b090186a29609919483bdef08a0e27854b88d588d96baa87a7"
+    },
+    {
+      "name": "local-wikipedia-diagnostic",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 535.027383,
+        "warmup_ms": 149.27611299999998
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "blocked",
+          "elapsed_ms": 303.021149,
+          "setup_ms": 859.985263,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "article": false
+            }
+          },
+          "actions": 1,
+          "decisions": 3,
+          "decision_median_ms": 91.725084,
+          "decision_total_ms": 207.637656,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 12,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "20b9058e5d9a6d9e142081ea39e2986166cac0ff08a69a338fa60dd2ebf31b26"
+    },
+    {
+      "name": "long-context-hotel-diagnostic",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 2048,
+        "head_max_len": 512,
+        "load_ms": 530.32636,
+        "warmup_ms": 152.834041
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 141.79177,
+          "setup_ms": 34.763042,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "decision_median_ms": 139.038368,
+          "decision_total_ms": 139.038368,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "9d99ace344b5eb394ab66ceace4714cea63f65c0936c97d811a1435a7ad863c3"
+    },
+    {
+      "name": "measured-jev-flights",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "blocked",
+          "elapsed_ms": 2209.354648,
+          "setup_ms": 1062.92647,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "search_page": false,
+              "one_way": false,
+              "origin": false,
+              "destination": false,
+              "date": false,
+              "year": false,
+              "results": false
+            }
+          },
+          "actions": 2,
+          "decisions": 5,
+          "accepted_responses": 5,
+          "decision_median_ms": 321.984852,
+          "decision_total_ms": 2008.3463660000002,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 22,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "3cb29b312ce3474bf17a4adeecc4d8480842f36937f6bbc36d14e71dcf35fbc0"
+    },
+    {
+      "name": "measured-jev-hotel-1",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 3841.587161,
+          "setup_ms": 51.11251,
+          "error": null,
+          "verification": {
+            "passed": true,
+            "checks": {
+              "property": true,
+              "filters": true
+            }
+          },
+          "actions": 5,
+          "decisions": 6,
+          "accepted_responses": 6,
+          "decision_median_ms": 325.9910615,
+          "decision_total_ms": 2657.9386810000005,
+          "text_calls": 1,
+          "text_total_ms": 927.553657,
+          "cdp_calls": 39,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "470d342d7de1e2e12c2298911003d88838eca47761416ad9ad90ea4b3ba96844"
+    },
+    {
+      "name": "measured-jev-hotel-2",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 3276.1781060000003,
+          "setup_ms": 49.763208000000006,
+          "error": null,
+          "verification": {
+            "passed": true,
+            "checks": {
+              "property": true,
+              "filters": true
+            }
+          },
+          "actions": 5,
+          "decisions": 6,
+          "accepted_responses": 6,
+          "decision_median_ms": 311.20165499999996,
+          "decision_total_ms": 2183.8078649999998,
+          "text_calls": 1,
+          "text_total_ms": 799.126402,
+          "cdp_calls": 39,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "58b5059a6cd7bd08c1d10d0f2ef9852e319ba1d5fd01ef01b6f0264052b09b13"
+    },
+    {
+      "name": "measured-jev-hotel-3",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 3278.350984,
+          "setup_ms": 48.496826,
+          "error": null,
+          "verification": {
+            "passed": true,
+            "checks": {
+              "property": true,
+              "filters": true
+            }
+          },
+          "actions": 5,
+          "decisions": 6,
+          "accepted_responses": 6,
+          "decision_median_ms": 296.7432,
+          "decision_total_ms": 2206.9719290000003,
+          "text_calls": 1,
+          "text_total_ms": 802.6307499999999,
+          "cdp_calls": 39,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "41a993fda9fe47754a5051bb43e126fefd4d475187ef546bde8c93e58bdbc638"
+    },
+    {
+      "name": "measured-local-flights",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 267.383515,
+        "warmup_ms": 124.567519
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 76.073054,
+          "setup_ms": 1066.610048,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "search_page": false,
+              "one_way": false,
+              "origin": false,
+              "destination": false,
+              "date": false,
+              "year": false,
+              "results": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 68.773589,
+          "decision_total_ms": 68.773589,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "e1546232413b8d3263726543804a4ae9da8952d7261ddbc02bca3b0d4cd44e41"
+    },
+    {
+      "name": "measured-local-hotel-1",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 266.595209,
+        "warmup_ms": 123.882944
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 73.43918000000001,
+          "setup_ms": 54.28523,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 70.60999699999999,
+          "decision_total_ms": 70.60999699999999,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "ed677b4a945ee5a13b47565b679eca5e24a7b7c327a34c2ec72aeb8298d266e8"
+    },
+    {
+      "name": "measured-local-hotel-2",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 273.575105,
+        "warmup_ms": 124.234691
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 73.717908,
+          "setup_ms": 51.07139,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 69.714993,
+          "decision_total_ms": 69.714993,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "94f3478950f379f886aeba7ac1828812d442d085b2747c1fdef8e690961cb60d"
+    },
+    {
+      "name": "measured-local-hotel-3",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 271.618738,
+        "warmup_ms": 124.826087
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 72.88359299999999,
+          "setup_ms": 50.022436000000006,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 69.431445,
+          "decision_total_ms": 69.431445,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "d889468b180800216438765c5361945f938370c63faf4d93921bd89d1777fccb"
+    },
+    {
+      "name": "multilingual-hotel-diagnostic",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "multilingual",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 1024,
+        "head_max_len": 256,
+        "load_ms": 1147.292331,
+        "warmup_ms": 106.266902
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 87.21936199999999,
+          "setup_ms": 31.480872,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "decision_median_ms": 84.015643,
+          "decision_total_ms": 84.015643,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "b8573418ad9ed02286f3b5a5259e5f000895c2932b287a4ed6e2ca57c08b11aa"
+    },
+    {
+      "name": "recording-smoke",
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "prompt": "upstream",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 3535.332545,
+          "setup_ms": 108.260082,
+          "error": null,
+          "verification": {
+            "passed": true,
+            "checks": {
+              "property": true,
+              "filters": true
+            }
+          },
+          "actions": 5,
+          "decisions": 6,
+          "accepted_responses": 6,
+          "decision_median_ms": 326.2869515,
+          "decision_total_ms": 2331.307357,
+          "text_calls": 1,
+          "text_total_ms": 840.307327,
+          "cdp_calls": 50,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "cc918a4bc089ad0ac77d17038fcc06176a24f783785adf4c471fa204a0b676fd"
+    },
+    {
+      "name": "simple-local-smoke",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 273.082333,
+        "warmup_ms": 122.451375
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 11.265229999999999,
+          "setup_ms": 29.355406000000002,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "expected_text_0": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 9.804888,
+          "decision_total_ms": 9.804888,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "f51cd92e36c86ce7c53183c8cd36f5de66ee99f5fab9a81c2c8c292e23f4d555"
+    },
+    {
+      "name": "typed-hotel-ramcache",
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "typed-decisions",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 1024,
+        "head_max_len": 256,
+        "load_ms": 15545.620593000001,
+        "warmup_ms": 141.192394
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 142.927303,
+          "setup_ms": 51.0365,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "decision_median_ms": 140.360869,
+          "decision_total_ms": 140.360869,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "artifact_sha256": "4664a725ab723f763dd9f359f0f10bdf474319f69752353f19d33f11b2e555d9"
+    }
+  ],
+  "replays": [
+    {
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 4096,
+        "head_max_len": 2048,
+        "load_ms": 253.02240700000002,
+        "warmup_ms": 118.879467
+      },
+      "input": "tests/fixtures/jev/call5_request.json",
+      "runs": [
+        {
+          "request": 0,
+          "latencies_ms": [
+            617.2554190000001, 623.899797, 640.068226, 726.0803980000001, 747.3033350000001
+          ],
+          "median_ms": 640.068226,
+          "shape_warmup_ms": 587.233247,
+          "inspection": {
+            "state_tokens": 1170,
+            "questions": {
+              "operation": {
+                "tokens": 1546,
+                "options": 6,
+                "at_sequence_limit": false
+              },
+              "click_target": {
+                "tokens": 2246,
+                "options": 24,
+                "at_sequence_limit": false
+              },
+              "type_text_target": {
+                "tokens": 1637,
+                "options": 3,
+                "at_sequence_limit": false
+              }
+            },
+            "deterministic_targets": []
+          },
+          "response": {
+            "model": "rl-agent",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "DONE",
+                "probabilities": {
+                  "CLICK": 0.1871337890625,
+                  "TYPE_TEXT": 0.11710619926452637,
+                  "SCROLL_DOWN": 0.152734637260437,
+                  "WAIT": 0.18933962285518646,
+                  "DONE": 0.23380246758460999,
+                  "BLOCKED": 0.11988325417041779
+                },
+                "confidence": 0.017191171646118164
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "10",
+                "probabilities": {
+                  "1": 0.08219191431999207,
+                  "2": 6.080208692083033e-8,
+                  "3": 2.78773723039194e-6,
+                  "4": 4.966382860516205e-9,
+                  "5": 1.2966177109774435e-7,
+                  "6": 3.293092447620438e-7,
+                  "7": 1.282110133615788e-6,
+                  "8": 7.528060308459317e-8,
+                  "9": 5.526152868640111e-9,
+                  "10": 0.9131495356559753,
+                  "11": 7.4668369265396e-9,
+                  "12": 1.6004300050553866e-5,
+                  "13": 2.968663981306463e-9,
+                  "14": 1.300624163924624e-9,
+                  "15": 0.0003309866297058761,
+                  "16": 4.321832705045381e-7,
+                  "17": 3.669919479420969e-8,
+                  "18": 1.0440161531732883e-5,
+                  "19": 4.910819839665237e-8,
+                  "20": 9.610989337716092e-9,
+                  "21": 0.004295248072594404,
+                  "22": 8.045061576922308e-7,
+                  "23": 3.506817336518253e-10,
+                  "24": 1.3046428520846476e-11
+                },
+                "confidence": 0.9009523987770081
+              },
+              "type_text_target": {
+                "type": "choice",
+                "choice": "15",
+                "probabilities": {
+                  "15": 0.43225282430648804,
+                  "16": 0.30305904150009155,
+                  "17": 0.2646881341934204
+                },
+                "confidence": 0.0204240083694458
+              }
+            },
+            "usage": {
+              "input_tokens": 5429,
+              "output_tokens": 0
+            }
+          }
+        }
+      ],
+      "name": "final-replay-full",
+      "artifact_sha256": "a5aa4060a6ad1a4c3f8f514569c05d61ab0572660bee69f99ba6c2ab46e8da02"
+    },
+    {
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "input": "tests/fixtures/jev/call5_request.json",
+      "runs": [
+        {
+          "request": 0,
+          "latencies_ms": [293.734702, 302.417098, 334.558967, 334.960985, 372.26689200000004],
+          "median_ms": 334.558967,
+          "shape_warmup_ms": 758.4959249999999,
+          "inspection": null,
+          "response": {
+            "model": "jev-1.13.0",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "TYPE_TEXT",
+                "confidence": 0.94,
+                "probabilities": {
+                  "WAIT": 0.0,
+                  "BLOCKED": 0.01,
+                  "SCROLL_DOWN": 0.0,
+                  "CLICK": 0.04,
+                  "TYPE_TEXT": 0.95,
+                  "DONE": 0.0
+                }
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "16",
+                "confidence": 0.98,
+                "probabilities": {
+                  "5": 0.0,
+                  "24": 0.0,
+                  "2": 0.0,
+                  "7": 0.0,
+                  "15": 0.0,
+                  "23": 0.0,
+                  "21": 0.0,
+                  "11": 0.0,
+                  "4": 0.0,
+                  "16": 0.99,
+                  "20": 0.0,
+                  "22": 0.0,
+                  "3": 0.0,
+                  "14": 0.0,
+                  "9": 0.0,
+                  "18": 0.0,
+                  "10": 0.0,
+                  "1": 0.0,
+                  "6": 0.0,
+                  "12": 0.0,
+                  "19": 0.0,
+                  "13": 0.0,
+                  "17": 0.01,
+                  "8": 0.0
+                }
+              },
+              "type_text_target": {
+                "type": "choice",
+                "choice": "16",
+                "confidence": 1.0,
+                "probabilities": {
+                  "16": 1.0,
+                  "15": 0.0,
+                  "17": 0.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 4137,
+              "output_tokens": 305
+            }
+          }
+        }
+      ],
+      "name": "final-replay-jev",
+      "artifact_sha256": "78ac2711efe63c4e8f8df2d2154b68b239f112ecfdbf702a2b79110914636752"
+    },
+    {
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 272.778214,
+        "warmup_ms": 124.305632
+      },
+      "input": "tests/fixtures/jev/call5_request.json",
+      "runs": [
+        {
+          "request": 0,
+          "latencies_ms": [
+            59.143969999999996, 59.485558, 59.528728, 59.593506999999995, 59.639847, 59.715546,
+            59.744726, 59.752696, 59.799836, 59.852726000000004, 60.515791, 60.79123,
+            61.671814999999995, 61.887913000000005, 61.934742, 62.131931, 62.196531, 64.667945,
+            66.303825, 68.996169
+          ],
+          "median_ms": 60.1842585,
+          "shape_warmup_ms": 72.213748,
+          "inspection": {
+            "state_tokens": 1170,
+            "questions": {
+              "operation": {
+                "tokens": 512,
+                "options": 6,
+                "at_sequence_limit": true
+              },
+              "click_target": {
+                "tokens": 512,
+                "options": 24,
+                "at_sequence_limit": true
+              },
+              "type_text_target": {
+                "tokens": 512,
+                "options": 3,
+                "at_sequence_limit": true
+              }
+            },
+            "deterministic_targets": []
+          },
+          "response": {
+            "model": "rl-agent",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "CLICK",
+                "probabilities": {
+                  "CLICK": 0.5418779850006104,
+                  "TYPE_TEXT": 0.0241845790296793,
+                  "SCROLL_DOWN": 0.061998263001441956,
+                  "WAIT": 0.07806732505559921,
+                  "DONE": 0.21894165873527527,
+                  "BLOCKED": 0.07493017613887787
+                },
+                "confidence": 0.2631632089614868
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "3",
+                "probabilities": {
+                  "1": 6.965032717243247e-12,
+                  "2": 3.1576954384604505e-9,
+                  "3": 1.0,
+                  "4": 7.830825018376869e-14,
+                  "5": 3.5517494376691703e-16,
+                  "6": 8.566654059304762e-14,
+                  "7": 3.9338194160465356e-13,
+                  "8": 7.394223579780534e-13,
+                  "9": 3.741641545207397e-12,
+                  "10": 9.894413847272299e-13,
+                  "11": 4.730750838809195e-13,
+                  "12": 3.40592930649173e-14,
+                  "13": 5.162728426190422e-13,
+                  "14": 1.5615996993775805e-12,
+                  "15": 6.249863820917412e-11,
+                  "16": 8.86276322513771e-14,
+                  "17": 2.3817329808687934e-15,
+                  "18": 2.4408003829884395e-12,
+                  "19": 1.1592997747758918e-14,
+                  "20": 8.307906229285122e-13,
+                  "21": 6.11744982198948e-16,
+                  "22": 3.1870622609650283e-15,
+                  "23": 3.6325764813261156e-18,
+                  "24": 1.6334891421456273e-16
+                },
+                "confidence": 1.0
+              },
+              "type_text_target": {
+                "type": "choice",
+                "choice": "15",
+                "probabilities": {
+                  "15": 0.36841505765914917,
+                  "16": 0.3524203896522522,
+                  "17": 0.2791646122932434
+                },
+                "confidence": 0.006355345249176025
+              }
+            },
+            "usage": {
+              "input_tokens": 1536,
+              "output_tokens": 0
+            }
+          }
+        }
+      ],
+      "name": "final-replay-local",
+      "artifact_sha256": "b726e45b325e32975b5515efe9752a218abce59f7c681e5186a426a49ecef6d0"
+    },
+    {
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "input": "tests/fixtures/jev/call5_request.json",
+      "runs": [
+        {
+          "request": 0,
+          "latencies_ms": [267.800268, 287.730463, 290.890933, 305.276903, 305.57698100000005],
+          "median_ms": 290.890933,
+          "shape_warmup_ms": 731.5985350000001,
+          "inspection": null,
+          "response": {
+            "model": "jev-1.13.0",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "TYPE_TEXT",
+                "confidence": 0.96,
+                "probabilities": {
+                  "DONE": 0.0,
+                  "SCROLL_DOWN": 0.0,
+                  "BLOCKED": 0.01,
+                  "WAIT": 0.0,
+                  "TYPE_TEXT": 0.96,
+                  "CLICK": 0.03
+                }
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "16",
+                "confidence": 0.98,
+                "probabilities": {
+                  "19": 0.0,
+                  "23": 0.0,
+                  "8": 0.0,
+                  "21": 0.0,
+                  "2": 0.0,
+                  "6": 0.0,
+                  "10": 0.0,
+                  "20": 0.0,
+                  "13": 0.0,
+                  "3": 0.0,
+                  "9": 0.0,
+                  "4": 0.0,
+                  "11": 0.0,
+                  "7": 0.0,
+                  "17": 0.01,
+                  "14": 0.0,
+                  "22": 0.0,
+                  "18": 0.0,
+                  "1": 0.0,
+                  "5": 0.0,
+                  "24": 0.0,
+                  "15": 0.0,
+                  "16": 0.98,
+                  "12": 0.01
+                }
+              },
+              "type_text_target": {
+                "type": "choice",
+                "choice": "16",
+                "confidence": 1.0,
+                "probabilities": {
+                  "15": 0.0,
+                  "16": 1.0,
+                  "17": 0.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 4137,
+              "output_tokens": 305
+            }
+          }
+        }
+      ],
+      "name": "jev-replay-call5",
+      "artifact_sha256": "28479d627e5522bae3005c80f4c9bc736db0e03e8e13fbf863dcaa220e381134"
+    },
+    {
+      "configuration": {
+        "backend": "typesafe",
+        "model": "jev-latest"
+      },
+      "input": "tests/fixtures/jev/call5_request.json",
+      "runs": [
+        {
+          "request": 0,
+          "latencies_ms": [280.44361299999997, 285.400482, 310.816474, 312.739512, 318.325287],
+          "median_ms": 310.816474,
+          "shape_warmup_ms": 767.350375,
+          "inspection": null,
+          "response": {
+            "model": "jev-1.13.0",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "TYPE_TEXT",
+                "confidence": 0.96,
+                "probabilities": {
+                  "CLICK": 0.02,
+                  "BLOCKED": 0.01,
+                  "SCROLL_DOWN": 0.0,
+                  "DONE": 0.0,
+                  "WAIT": 0.0,
+                  "TYPE_TEXT": 0.97
+                }
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "16",
+                "confidence": 0.98,
+                "probabilities": {
+                  "16": 0.98,
+                  "2": 0.0,
+                  "12": 0.01,
+                  "7": 0.0,
+                  "5": 0.0,
+                  "4": 0.0,
+                  "20": 0.0,
+                  "1": 0.0,
+                  "11": 0.0,
+                  "18": 0.0,
+                  "8": 0.0,
+                  "3": 0.0,
+                  "22": 0.0,
+                  "19": 0.0,
+                  "10": 0.0,
+                  "23": 0.0,
+                  "17": 0.01,
+                  "6": 0.0,
+                  "24": 0.0,
+                  "9": 0.0,
+                  "15": 0.0,
+                  "14": 0.0,
+                  "13": 0.0,
+                  "21": 0.0
+                }
+              },
+              "type_text_target": {
+                "type": "choice",
+                "choice": "16",
+                "confidence": 1.0,
+                "probabilities": {
+                  "16": 1.0,
+                  "15": 0.0,
+                  "17": 0.0
+                }
+              }
+            },
+            "usage": {
+              "input_tokens": 4137,
+              "output_tokens": 305
+            }
+          }
+        }
+      ],
+      "name": "measured-replay-jev-call5",
+      "artifact_sha256": "b6e08843f1e14129be1a8c599b482c7eb44cc861095aae3799b8cae3e86aa1bc"
+    },
+    {
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 274.066704,
+        "warmup_ms": 124.731459
+      },
+      "input": "tests/fixtures/jev/call5_request.json",
+      "runs": [
+        {
+          "request": 0,
+          "latencies_ms": [
+            58.967391, 59.142019, 59.390477999999995, 59.543957, 59.591847, 59.592186, 59.664846,
+            59.721866, 59.733276000000004, 59.813626, 59.874625, 61.052138, 62.088412000000005,
+            62.16997, 62.184551, 62.187441, 62.31171, 64.228647, 66.026776, 66.723303
+          ],
+          "median_ms": 59.844125500000004,
+          "shape_warmup_ms": 72.30702699999999,
+          "inspection": {
+            "state_tokens": 1170,
+            "questions": {
+              "operation": {
+                "tokens": 512,
+                "options": 6,
+                "at_sequence_limit": true
+              },
+              "click_target": {
+                "tokens": 512,
+                "options": 24,
+                "at_sequence_limit": true
+              },
+              "type_text_target": {
+                "tokens": 512,
+                "options": 3,
+                "at_sequence_limit": true
+              }
+            },
+            "deterministic_targets": []
+          },
+          "response": {
+            "model": "rl-agent",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "CLICK",
+                "probabilities": {
+                  "CLICK": 0.5418779850006104,
+                  "TYPE_TEXT": 0.0241845790296793,
+                  "SCROLL_DOWN": 0.061998263001441956,
+                  "WAIT": 0.07806732505559921,
+                  "DONE": 0.21894165873527527,
+                  "BLOCKED": 0.07493017613887787
+                },
+                "confidence": 0.2631632089614868
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "3",
+                "probabilities": {
+                  "1": 6.965032717243247e-12,
+                  "2": 3.1576954384604505e-9,
+                  "3": 1.0,
+                  "4": 7.830825018376869e-14,
+                  "5": 3.5517494376691703e-16,
+                  "6": 8.566654059304762e-14,
+                  "7": 3.9338194160465356e-13,
+                  "8": 7.394223579780534e-13,
+                  "9": 3.741641545207397e-12,
+                  "10": 9.894413847272299e-13,
+                  "11": 4.730750838809195e-13,
+                  "12": 3.40592930649173e-14,
+                  "13": 5.162728426190422e-13,
+                  "14": 1.5615996993775805e-12,
+                  "15": 6.249863820917412e-11,
+                  "16": 8.86276322513771e-14,
+                  "17": 2.3817329808687934e-15,
+                  "18": 2.4408003829884395e-12,
+                  "19": 1.1592997747758918e-14,
+                  "20": 8.307906229285122e-13,
+                  "21": 6.11744982198948e-16,
+                  "22": 3.1870622609650283e-15,
+                  "23": 3.6325764813261156e-18,
+                  "24": 1.6334891421456273e-16
+                },
+                "confidence": 1.0
+              },
+              "type_text_target": {
+                "type": "choice",
+                "choice": "15",
+                "probabilities": {
+                  "15": 0.36841505765914917,
+                  "16": 0.3524203896522522,
+                  "17": 0.2791646122932434
+                },
+                "confidence": 0.006355345249176025
+              }
+            },
+            "usage": {
+              "input_tokens": 1536,
+              "output_tokens": 0
+            }
+          }
+        }
+      ],
+      "name": "measured-replay-local-call5",
+      "artifact_sha256": "878496ce8e3db392f9b8aded846a15e9a4bcc69da3fc1dc81aa5619fef2843e5"
+    },
+    {
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 4096,
+        "head_max_len": 2048,
+        "load_ms": 271.868918,
+        "warmup_ms": 124.301061
+      },
+      "input": "tests/fixtures/jev/call5_request.json",
+      "runs": [
+        {
+          "request": 0,
+          "latencies_ms": [561.526504, 561.973741, 564.7041750000001, 565.030153, 567.940425],
+          "median_ms": 564.7041750000001,
+          "shape_warmup_ms": 595.3610729999999,
+          "inspection": {
+            "state_tokens": 1170,
+            "questions": {
+              "operation": {
+                "tokens": 1546,
+                "options": 6,
+                "at_sequence_limit": false
+              },
+              "click_target": {
+                "tokens": 2246,
+                "options": 24,
+                "at_sequence_limit": false
+              },
+              "type_text_target": {
+                "tokens": 1637,
+                "options": 3,
+                "at_sequence_limit": false
+              }
+            },
+            "deterministic_targets": []
+          },
+          "response": {
+            "model": "rl-agent",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "DONE",
+                "probabilities": {
+                  "CLICK": 0.1871337890625,
+                  "TYPE_TEXT": 0.11710619926452637,
+                  "SCROLL_DOWN": 0.152734637260437,
+                  "WAIT": 0.18933962285518646,
+                  "DONE": 0.23380246758460999,
+                  "BLOCKED": 0.11988325417041779
+                },
+                "confidence": 0.017191171646118164
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "10",
+                "probabilities": {
+                  "1": 0.08219191431999207,
+                  "2": 6.080208692083033e-8,
+                  "3": 2.78773723039194e-6,
+                  "4": 4.966382860516205e-9,
+                  "5": 1.2966177109774435e-7,
+                  "6": 3.293092447620438e-7,
+                  "7": 1.282110133615788e-6,
+                  "8": 7.528060308459317e-8,
+                  "9": 5.526152868640111e-9,
+                  "10": 0.9131495356559753,
+                  "11": 7.4668369265396e-9,
+                  "12": 1.6004300050553866e-5,
+                  "13": 2.968663981306463e-9,
+                  "14": 1.300624163924624e-9,
+                  "15": 0.0003309866297058761,
+                  "16": 4.321832705045381e-7,
+                  "17": 3.669919479420969e-8,
+                  "18": 1.0440161531732883e-5,
+                  "19": 4.910819839665237e-8,
+                  "20": 9.610989337716092e-9,
+                  "21": 0.004295248072594404,
+                  "22": 8.045061576922308e-7,
+                  "23": 3.506817336518253e-10,
+                  "24": 1.3046428520846476e-11
+                },
+                "confidence": 0.9009523987770081
+              },
+              "type_text_target": {
+                "type": "choice",
+                "choice": "15",
+                "probabilities": {
+                  "15": 0.43225282430648804,
+                  "16": 0.30305904150009155,
+                  "17": 0.2646881341934204
+                },
+                "confidence": 0.0204240083694458
+              }
+            },
+            "usage": {
+              "input_tokens": 5429,
+              "output_tokens": 0
+            }
+          }
+        }
+      ],
+      "name": "measured-replay-local-full-context",
+      "artifact_sha256": "bb109617ff6aa111373a4b113b33fa699fa7bc4fec829c4a4719f0a8c20acf08"
+    },
+    {
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 525.369148,
+        "warmup_ms": 166.95928099999998
+      },
+      "input": "tests/fixtures/jev/call5_request.json",
+      "runs": [
+        {
+          "request": 0,
+          "latencies_ms": [
+            119.35429, 120.386184, 120.447443, 121.222258, 121.54920600000001, 121.876364,
+            123.158946, 123.60508300000001, 124.64844599999999, 126.415645
+          ],
+          "median_ms": 121.712785,
+          "shape_warmup_ms": 127.35022,
+          "inspection": {
+            "state_tokens": 1170,
+            "questions": {
+              "operation": {
+                "tokens": 512,
+                "options": 6,
+                "at_sequence_limit": true
+              },
+              "click_target": {
+                "tokens": 512,
+                "options": 24,
+                "at_sequence_limit": true
+              },
+              "type_text_target": {
+                "tokens": 512,
+                "options": 3,
+                "at_sequence_limit": true
+              }
+            },
+            "deterministic_targets": []
+          },
+          "response": {
+            "model": "rl-agent",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "CLICK",
+                "probabilities": {
+                  "CLICK": 0.5418779850006104,
+                  "TYPE_TEXT": 0.0241845790296793,
+                  "SCROLL_DOWN": 0.061998263001441956,
+                  "WAIT": 0.07806732505559921,
+                  "DONE": 0.21894165873527527,
+                  "BLOCKED": 0.07493017613887787
+                },
+                "confidence": 0.2631632089614868
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "3",
+                "probabilities": {
+                  "1": 6.965032717243247e-12,
+                  "2": 3.1576954384604505e-9,
+                  "3": 1.0,
+                  "4": 7.830825018376869e-14,
+                  "5": 3.5517494376691703e-16,
+                  "6": 8.566654059304762e-14,
+                  "7": 3.9338194160465356e-13,
+                  "8": 7.394223579780534e-13,
+                  "9": 3.741641545207397e-12,
+                  "10": 9.894413847272299e-13,
+                  "11": 4.730750838809195e-13,
+                  "12": 3.40592930649173e-14,
+                  "13": 5.162728426190422e-13,
+                  "14": 1.5615996993775805e-12,
+                  "15": 6.249863820917412e-11,
+                  "16": 8.86276322513771e-14,
+                  "17": 2.3817329808687934e-15,
+                  "18": 2.4408003829884395e-12,
+                  "19": 1.1592997747758918e-14,
+                  "20": 8.307906229285122e-13,
+                  "21": 6.11744982198948e-16,
+                  "22": 3.1870622609650283e-15,
+                  "23": 3.6325764813261156e-18,
+                  "24": 1.6334891421456273e-16
+                },
+                "confidence": 1.0
+              },
+              "type_text_target": {
+                "type": "choice",
+                "choice": "15",
+                "probabilities": {
+                  "15": 0.36841505765914917,
+                  "16": 0.3524203896522522,
+                  "17": 0.2791646122932434
+                },
+                "confidence": 0.006355345249176025
+              }
+            },
+            "usage": {
+              "input_tokens": 1536,
+              "output_tokens": 0
+            }
+          }
+        }
+      ],
+      "name": "replay-call5",
+      "artifact_sha256": "df63cea9804b7a278a8d89f89c686dcc3fffd078dba6eba09d1720f2a0726577"
+    }
+  ],
+  "notes": [
+    "All available task attempts are retained, including failures. final-* identifies the final plain-CUDA comparison; other entries are development diagnostics.",
+    "Raw browser traces and screenshots stay in ignored artifacts; this file contains configuration, summaries, and probability responses only.",
+    "The shared core had concurrent edits. The binary hash identifies the measured executable; the recorded core hashes were taken after its build. Later model.rs changes were behind the unused flash-attn feature.",
+    "An initial typed-decisions checkpoint download failed due to full disk before any browser task started; a subsequent load succeeded.",
+    "The first custom Wikipedia run made a text-helper request that returned invalid JSON. The old diagnostic counted only successful helper calls; its reported zero text calls is an undercount. The final CLI counts failed helper attempts too."
+  ],
+  "flash_attention": {
+    "compiled_features": ["flash-attn"],
+    "binary_sha256": "98d22a1a4b4ee972e75a305afff8f6ddb7031b8e0ff7ce04131cbb9611a6c967",
+    "core_source_sha256_at_build": [
+      "fc6928c0950a407e5658bf243da61bbe45cc97d54643a5bf0f1ac9447d92fe55  src/builder.rs",
+      "2851de0fdd14c3b934e842b5c92d82a9009d32e825b290fcdb32c5d0ff394d06  src/config.rs",
+      "4b885f4b1c09edc575ac1a73276a1cfd5d1ae7f29b93c6d839c37d98386b4def  src/error.rs",
+      "a580b0a813f0b505dd977fd02273d9af215fa61a40482d912e9e633a453f327a  src/head.rs",
+      "f41b8a10d2efd92e36cfe9670b2545887a8e3539c0aaf087240f8435e832d356  src/lib.rs",
+      "e734886872bb520ad737dec0200e05fd895018db56c5b304a08c166cf2d57bd1  src/model.rs",
+      "7e8fe6fee38815df56f9ea766bea3de5777674374fa57fbebef14768fda741ef  src/modernbert.rs",
+      "609b9ec51b44009ae068526a1e94e4b5d81688a46bac6c69bdfe41ae6683eaa9  src/pyjson.rs",
+      "42a35d4d1325ae4a6189e873cdd2cfdae58f5ec96ee0fb6c204a232ab1ffcc8a  src/sequence.rs",
+      "14f8cc9fa8f6b9b52fa65bbe63f92d338884d090070c9d3b8bd926a436e54b0b  src/types.rs"
+    ],
+    "replays": [
+      {
+        "configuration": {
+          "backend": "local",
+          "checkpoint": "convaiinnovations/laya",
+          "subfolder": "",
+          "device": "cuda",
+          "dtype": "BF16",
+          "max_len": 512,
+          "head_max_len": 192,
+          "load_ms": 268.953476,
+          "features": {
+            "cuda": true,
+            "flash_attn": true,
+            "metal": false
+          },
+          "warmup_ms": 124.161947
+        },
+        "input": "tests/fixtures/jev/call5_request.json",
+        "runs": [
+          {
+            "request": 0,
+            "latencies_ms": [
+              36.832739000000004, 36.895748, 36.904278, 36.908818000000004, 36.913348, 37.067627,
+              37.082887, 37.084477, 37.102687, 37.149367000000005, 37.160947, 37.248706,
+              37.403715999999996, 37.475514000000004, 38.115782, 40.385368, 41.481941,
+              41.539821999999994, 41.595241, 41.86388
+            ],
+            "median_ms": 37.155157,
+            "shape_warmup_ms": 43.991057,
+            "inspection": {
+              "state_tokens": 1170,
+              "questions": {
+                "operation": {
+                  "tokens": 512,
+                  "options": 6,
+                  "at_sequence_limit": true
+                },
+                "click_target": {
+                  "tokens": 512,
+                  "options": 24,
+                  "at_sequence_limit": true
+                },
+                "type_text_target": {
+                  "tokens": 512,
+                  "options": 3,
+                  "at_sequence_limit": true
+                }
+              },
+              "deterministic_targets": []
+            },
+            "response": {
+              "model": "rl-agent",
+              "answers": {
+                "operation": {
+                  "type": "choice",
+                  "choice": "CLICK",
+                  "probabilities": {
+                    "CLICK": 0.5547480583190918,
+                    "TYPE_TEXT": 0.023441357538104057,
+                    "SCROLL_DOWN": 0.06062345579266548,
+                    "WAIT": 0.07566821575164795,
+                    "DONE": 0.21387766301631927,
+                    "BLOCKED": 0.07164128124713898
+                  },
+                  "confidence": 0.2750977873802185
+                },
+                "click_target": {
+                  "type": "choice",
+                  "choice": "3",
+                  "probabilities": {
+                    "1": 2.488655982679777e-12,
+                    "2": 6.42466357891891e-10,
+                    "3": 1.0,
+                    "4": 3.681023246090119e-14,
+                    "5": 1.2939473825603705e-16,
+                    "6": 3.6631979459349207e-14,
+                    "7": 2.1132623645794824e-13,
+                    "8": 3.9338194160465356e-13,
+                    "9": 1.7208193420562012e-12,
+                    "10": 3.5011880547553e-13,
+                    "11": 2.2839445178862716e-13,
+                    "12": 1.6127182055070133e-14,
+                    "13": 2.616483147765275e-13,
+                    "14": 9.066524115676489e-13,
+                    "15": 2.4608131504733066e-11,
+                    "16": 4.872165699858731e-14,
+                    "17": 9.74914169982492e-16,
+                    "18": 9.798800226085147e-13,
+                    "19": 6.5375815519594024e-15,
+                    "20": 4.129501374097039e-13,
+                    "21": 3.286310223125558e-16,
+                    "22": 1.5841450525148708e-15,
+                    "23": 2.279390890070005e-18,
+                    "24": 8.775147513502264e-17
+                  },
+                  "confidence": 1.0
+                },
+                "type_text_target": {
+                  "type": "choice",
+                  "choice": "15",
+                  "probabilities": {
+                    "15": 0.3650919497013092,
+                    "16": 0.3507951498031616,
+                    "17": 0.28411296010017395
+                  },
+                  "confidence": 0.005228400230407715
+                }
+              },
+              "usage": {
+                "input_tokens": 1536,
+                "output_tokens": 0
+              }
+            }
+          }
+        ],
+        "name": "flash-replay-local"
+      },
+      {
+        "configuration": {
+          "backend": "local",
+          "checkpoint": "convaiinnovations/laya",
+          "subfolder": "",
+          "device": "cuda",
+          "dtype": "BF16",
+          "max_len": 4096,
+          "head_max_len": 2048,
+          "load_ms": 251.140138,
+          "features": {
+            "cuda": true,
+            "flash_attn": true,
+            "metal": false
+          },
+          "warmup_ms": 122.030239
+        },
+        "input": "tests/fixtures/jev/call5_request.json",
+        "runs": [
+          {
+            "request": 0,
+            "latencies_ms": [
+              107.318254, 107.44522300000001, 107.61335199999999, 107.687541, 107.98946, 108.546757,
+              108.77124500000001, 108.830665, 109.489681, 109.71188
+            ],
+            "median_ms": 108.2681085,
+            "shape_warmup_ms": 109.01799500000001,
+            "inspection": {
+              "state_tokens": 1170,
+              "questions": {
+                "operation": {
+                  "tokens": 1546,
+                  "options": 6,
+                  "at_sequence_limit": false
+                },
+                "click_target": {
+                  "tokens": 2246,
+                  "options": 24,
+                  "at_sequence_limit": false
+                },
+                "type_text_target": {
+                  "tokens": 1637,
+                  "options": 3,
+                  "at_sequence_limit": false
+                }
+              },
+              "deterministic_targets": []
+            },
+            "response": {
+              "model": "rl-agent",
+              "answers": {
+                "operation": {
+                  "type": "choice",
+                  "choice": "DONE",
+                  "probabilities": {
+                    "CLICK": 0.1928873360157013,
+                    "TYPE_TEXT": 0.1163095235824585,
+                    "SCROLL_DOWN": 0.15199214220046997,
+                    "WAIT": 0.193642258644104,
+                    "DONE": 0.2237527072429657,
+                    "BLOCKED": 0.12141603976488113
+                  },
+                  "confidence": 0.016088366508483887
+                },
+                "click_target": {
+                  "type": "choice",
+                  "choice": "10",
+                  "probabilities": {
+                    "1": 0.11686256527900696,
+                    "2": 4.8280199393957446e-8,
+                    "3": 2.3924103516037576e-6,
+                    "4": 3.154349892398045e-9,
+                    "5": 1.460359868588057e-7,
+                    "6": 2.614898448882741e-7,
+                    "7": 8.383874501305399e-7,
+                    "8": 6.982315170489528e-8,
+                    "9": 5.3285043044581926e-9,
+                    "10": 0.8804898262023926,
+                    "11": 6.661729834434027e-9,
+                    "12": 1.1310688023513649e-5,
+                    "13": 2.9186157934901757e-9,
+                    "14": 1.3423039346704968e-9,
+                    "15": 0.00021643619402311742,
+                    "16": 3.175311746872467e-7,
+                    "17": 3.029514772379116e-8,
+                    "18": 1.0465406376169994e-5,
+                    "19": 5.3202910521576996e-8,
+                    "20": 1.0015750895320252e-8,
+                    "21": 0.002404596656560898,
+                    "22": 5.060370540377335e-7,
+                    "23": 2.798160592121235e-10,
+                    "24": 1.6192186480523674e-11
+                  },
+                  "confidence": 0.8805614113807678
+                },
+                "type_text_target": {
+                  "type": "choice",
+                  "choice": "15",
+                  "probabilities": {
+                    "15": 0.4284144639968872,
+                    "16": 0.30036789178848267,
+                    "17": 0.2712176740169525
+                  },
+                  "confidence": 0.018477976322174072
+                }
+              },
+              "usage": {
+                "input_tokens": 5429,
+                "output_tokens": 0
+              }
+            }
+          }
+        ],
+        "name": "flash-replay-full"
+      }
+    ],
+    "task_runs": {
+      "configuration": {
+        "backend": "local",
+        "checkpoint": "convaiinnovations/laya",
+        "subfolder": "",
+        "device": "cuda",
+        "dtype": "BF16",
+        "max_len": 512,
+        "head_max_len": 192,
+        "load_ms": 262.256814,
+        "features": {
+          "cuda": true,
+          "flash_attn": true,
+          "metal": false
+        },
+        "warmup_ms": 122.157409
+      },
+      "prompt": "compact",
+      "runs": [
+        {
+          "status": "done",
+          "elapsed_ms": 44.326246,
+          "setup_ms": 35.892764,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 41.325863,
+          "decision_total_ms": 41.325863,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        },
+        {
+          "status": "done",
+          "elapsed_ms": 40.119249,
+          "setup_ms": 37.902222,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 37.228066,
+          "decision_total_ms": 37.228066,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        },
+        {
+          "status": "done",
+          "elapsed_ms": 41.914729,
+          "setup_ms": 34.539022,
+          "error": null,
+          "verification": {
+            "passed": false,
+            "checks": {
+              "property": false,
+              "filters": false
+            }
+          },
+          "actions": 0,
+          "decisions": 1,
+          "accepted_responses": 1,
+          "decision_median_ms": 38.099011000000004,
+          "decision_total_ms": 38.099011000000004,
+          "text_calls": 0,
+          "text_total_ms": -0.0,
+          "cdp_calls": 2,
+          "browser": "Chrome/152.0.7977.82",
+          "recording_error": null,
+          "screenshot_error": null
+        }
+      ],
+      "timing": "First prediction after initial observation through terminal decision or failure; excludes model load, warmup, initial navigation and independent final verification.",
+      "historical_baselines": {
+        "jev_optimized_flights_ms": 7092,
+        "jev_original_flights_ms": 9450,
+        "jev_hotel_smoke_ms": 1896,
+        "jev_wikipedia_smoke_ms": 2798
+      }
+    },
+    "build_note": "Initial build ran out of temporary disk space. The successful retry used TMPDIR=/dev/shm/vs1-browser-nvcc; no source workaround was used."
+  }
+}

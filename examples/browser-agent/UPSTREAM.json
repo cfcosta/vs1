@@ -1,0 +1,23 @@
+{
+  "source": "https://github.com/browser-use/jev-ultrafast",
+  "files": {
+    "jev_ultrafast/snapshot.js": "e50473501c8fb8e70f3b21866d987393e3f2315c639d638bd477d170e81ed78d",
+    "jev_ultrafast/demo.py": "a0cfb10909b370efb284cbbe16bdb4b7e7e06ba6385827404169027645a1d8a4",
+    "jev_ultrafast/agent.py": "aaf8b271cb0ee6643fe7beb525328ab80de8568c7ac044d02b9c6721161e7c8b",
+    "jev_ultrafast/model.py": "a85ada8458d23642c5c8a4095acf0565e6268f81dcda26f6308942b653e9c9f3",
+    "jev_ultrafast/browser.py": "ee08dafa93d731bd292aa0263a578a29c8001cf22eef3c59fe44a159649155ee",
+    "jev_ultrafast/questions.py": "66a7054b85040b949e1757311257ea0c5a843c635f9a40c99f6d15ad660fb422",
+    "jev_ultrafast/__init__.py": "60f025b8d24465e2c0f7a3547d43b8020fd8843de7b6cb3f892ef63f5548cf63",
+    "jev_ultrafast/static/index.html": "a03afe6f51df1c844225f976488dd4b5ae6c9985d1f4f8aa26392013cb3b6cf6",
+    "jev_ultrafast/static/app.js": "711e1cb2df44fff17e79bc9344d3e2aab1111107c6d169ec06b6a0d416fac9fb",
+    "jev_ultrafast/static/style.css": "cde13f05006719cf01d881a54ccedd6c25326122badaee0c68f78656a36f9e8d",
+    "jev_ultrafast/static/fixture.html": "e48e7d7b6225b215060692e0a28c3d0b59e465e4b94c1bc510d5f37ff0b8bfbe"
+  },
+  "adaptation": "Rust CLI adaptation of examples/run.py and the browser, policy, and execution loop. Only JavaScript DOM assets and the HTML fixture are retained as executable upstream source; no Python runtime or integration.",
+  "retained_assets": {
+    "assets/snapshot.js": "jev_ultrafast/snapshot.js",
+    "assets/fixture.html": "jev_ultrafast/static/fixture.html",
+    "assets/target.js": "jev_ultrafast/browser.py (target resolution)",
+    "assets/settle.js": "jev_ultrafast/browser.py (post-input observation wait)"
+  }
+}

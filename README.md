@@ -128,6 +128,13 @@ without it.
 
 ## Command line
 
+For a browser-agent CLI like Jev Ultrafast's `examples/run.py`, see
+[`examples/browser-agent`](examples/browser-agent/README.md). It accepts a URL
+and a natural-language goal, calls this library directly from Rust, and executes
+only observed browser actions through Chrome DevTools Protocol. It includes
+independent outcome checks and a local-versus-Jev performance report; wire-format
+compatibility does not imply equivalent browser-task accuracy.
+
 ```bash
 cargo run --release -- request.json
 cargo run --release --features cuda -- --device cuda --dtype bf16 request.json
