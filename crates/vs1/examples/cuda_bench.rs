@@ -70,7 +70,7 @@ fn main() -> Result<()> {
     let call5 = serde_json::from_str(include_str!(
         "../tests/fixtures/jev/call5_request.json"
     ))?;
-    let cases = vec![
+    let mut cases = vec![
         ("one", vec![candidate(0, 5)]),
         ("five", vec![triage]),
         ("thirty", (0..30).map(|i| candidate(i, 5)).collect()),
@@ -83,6 +83,23 @@ fn main() -> Result<()> {
         ("browser_call3", vec![call3]),
         ("browser_call5", vec![call5]),
     ];
+    if std::env::var_os("VS1_BENCH_LARGE").is_some() {
+        for (name, n) in [("eight", 8), ("32", 32), ("64", 64), ("128", 128)] {
+            cases.push((name, (0..n).map(|i| candidate(i, 5)).collect()));
+        }
+        cases.push((
+            "mixed128",
+            (0..128)
+                .map(|i| candidate(i, [1, 3, 9, 20][i % 4]))
+                .collect(),
+        ));
+        let mut shared = SystemOneRequest::new(paragraph.repeat(5));
+        for i in 0..128 {
+            shared = shared.question(format!("q{i}"), Question::noul(
+                format!("Question {i}: Does this explain how changed files are selected?")));
+        }
+        cases.push(("shared128", vec![shared]));
+    }
     let mut results = vec![];
     for (name, requests) in &cases {
         let questions: usize = requests.iter().map(|r| r.questions.len()).sum();

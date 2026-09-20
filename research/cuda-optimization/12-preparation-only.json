@@ -1,0 +1,56 @@
+[
+  {
+    "name": "1",
+    "serial_p50_ms": 0.0867695,
+    "parallel_p50_ms": 0.0869495,
+    "paired_change_percent": 0.294907305715153
+  },
+  {
+    "name": "8",
+    "serial_p50_ms": 0.7360599999999999,
+    "parallel_p50_ms": 0.293308,
+    "paired_change_percent": -64.35131624511654
+  },
+  {
+    "name": "32",
+    "serial_p50_ms": 2.9572060000000002,
+    "parallel_p50_ms": 0.9369935,
+    "paired_change_percent": -68.62841157404333
+  },
+  {
+    "name": "64",
+    "serial_p50_ms": 5.784082,
+    "parallel_p50_ms": 1.6639089999999999,
+    "paired_change_percent": -71.46914620132121
+  },
+  {
+    "name": "128",
+    "serial_p50_ms": 11.014243,
+    "parallel_p50_ms": 3.1267690000000004,
+    "paired_change_percent": -71.77420584730862
+  },
+  {
+    "name": "mixed128",
+    "serial_p50_ms": 16.246929,
+    "parallel_p50_ms": 4.417746,
+    "paired_change_percent": -72.82293932340069
+  },
+  {
+    "name": "shared128",
+    "serial_p50_ms": 3.423923,
+    "parallel_p50_ms": 1.051373,
+    "paired_change_percent": -69.67449186093623
+  },
+  {
+    "name": "browser_call3",
+    "serial_p50_ms": 0.6977260000000001,
+    "parallel_p50_ms": 0.491767,
+    "paired_change_percent": -29.93340860362873
+  },
+  {
+    "name": "browser_call5",
+    "serial_p50_ms": 2.0039569999999998,
+    "parallel_p50_ms": 1.53586,
+    "paired_change_percent": -26.108089450541815
+  }
+]

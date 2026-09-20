@@ -16,6 +16,7 @@ hf-hub = { version = "0.5.0", default-features = false, features = [
   "rustls-tls",
 ] }
 indexmap = { version = "2", features = ["serde"] }
+rayon = "1"
 serde = { version = "1", features = ["derive"] }
 # `preserve_order` keeps JSON objects in written order. The model reads
 # a state as text and truncates it on the right, so key order is part

@@ -1,0 +1,407 @@
+[
+  {
+    "name": "1",
+    "stages": {
+      "action_head_upload": {
+        "host_ms": 0.0369938,
+        "cuda_stream_ms": 0.03420160003006458
+      },
+      "actions_readback": {
+        "host_ms": 0.10324940000000002,
+        "cuda_stream_ms": 0.007814399991184473
+      },
+      "collate_cpu": {
+        "host_ms": 0.00028000000000000003,
+        "cuda_stream_ms": 0
+      },
+      "confidence_cpu": {
+        "host_ms": 0.0003890000000000001,
+        "cuda_stream_ms": 0
+      },
+      "decision_head": {
+        "host_ms": 0.23227760000000003,
+        "cuda_stream_ms": 0.7012351989746094
+      },
+      "encoder": {
+        "host_ms": 1.7129726,
+        "cuda_stream_ms": 7.596748876571655
+      },
+      "input_upload": {
+        "host_ms": 0.004293,
+        "cuda_stream_ms": 0.0580383992753923
+      },
+      "logits_readback": {
+        "host_ms": 6.4220904,
+        "cuda_stream_ms": 0.022412800043821336
+      },
+      "pooled_gather": {
+        "host_ms": 0.0150426,
+        "cuda_stream_ms": 0.1110047984868288
+      },
+      "prepare_cpu": {
+        "host_ms": 0.13151509999999997,
+        "cuda_stream_ms": 0
+      }
+    }
+  },
+  {
+    "name": "8",
+    "stages": {
+      "action_head_upload": {
+        "host_ms": 0.0573136,
+        "cuda_stream_ms": 0.04648960009217262
+      },
+      "actions_readback": {
+        "host_ms": 0.129708,
+        "cuda_stream_ms": 0.009830399928614498
+      },
+      "collate_cpu": {
+        "host_ms": 0.000835,
+        "cuda_stream_ms": 0
+      },
+      "confidence_cpu": {
+        "host_ms": 0.001111,
+        "cuda_stream_ms": 0
+      },
+      "decision_head": {
+        "host_ms": 0.22285329999999998,
+        "cuda_stream_ms": 2.0691968202590942
+      },
+      "encoder": {
+        "host_ms": 1.550076,
+        "cuda_stream_ms": 24.6765567779541
+      },
+      "input_upload": {
+        "host_ms": 0.0057558999999999996,
+        "cuda_stream_ms": 0.06354239801876246
+      },
+      "logits_readback": {
+        "host_ms": 25.047483300000003,
+        "cuda_stream_ms": 0.024915199726819992
+      },
+      "pooled_gather": {
+        "host_ms": 0.025207800000000002,
+        "cuda_stream_ms": 0.15825600121170283
+      },
+      "prepare_cpu": {
+        "host_ms": 0.8549932,
+        "cuda_stream_ms": 0
+      }
+    }
+  },
+  {
+    "name": "32",
+    "stages": {
+      "action_head_upload": {
+        "host_ms": 0.09019060000000001,
+        "cuda_stream_ms": 0.06385919898748398
+      },
+      "actions_readback": {
+        "host_ms": 0.1540149,
+        "cuda_stream_ms": 0.010310399997979402
+      },
+      "collate_cpu": {
+        "host_ms": 0.0025700000000000002,
+        "cuda_stream_ms": 0
+      },
+      "confidence_cpu": {
+        "host_ms": 0.002983,
+        "cuda_stream_ms": 0
+      },
+      "decision_head": {
+        "host_ms": 0.3198508,
+        "cuda_stream_ms": 7.5832319259643555
+      },
+      "encoder": {
+        "host_ms": 1.8866345,
+        "cuda_stream_ms": 82.09725494384766
+      },
+      "input_upload": {
+        "host_ms": 0.007799900000000001,
+        "cuda_stream_ms": 0.10917760031297803
+      },
+      "logits_readback": {
+        "host_ms": 87.60263979999999,
+        "cuda_stream_ms": 0.03856320064514875
+      },
+      "pooled_gather": {
+        "host_ms": 0.050451499999999996,
+        "cuda_stream_ms": 0.22418239675462245
+      },
+      "prepare_cpu": {
+        "host_ms": 3.2130859000000003,
+        "cuda_stream_ms": 0
+      }
+    }
+  },
+  {
+    "name": "64",
+    "stages": {
+      "action_head_upload": {
+        "host_ms": 0.1787639,
+        "cuda_stream_ms": 0.19207039810717105
+      },
+      "actions_readback": {
+        "host_ms": 0.31547580000000003,
+        "cuda_stream_ms": 0.02127040009945631
+      },
+      "collate_cpu": {
+        "host_ms": 0.011322899999999999,
+        "cuda_stream_ms": 0
+      },
+      "confidence_cpu": {
+        "host_ms": 0.006402,
+        "cuda_stream_ms": 0
+      },
+      "decision_head": {
+        "host_ms": 0.5769733,
+        "cuda_stream_ms": 15.221760082244874
+      },
+      "encoder": {
+        "host_ms": 3.6729625999999995,
+        "cuda_stream_ms": 162.4124412536621
+      },
+      "input_upload": {
+        "host_ms": 0.012678899999999998,
+        "cuda_stream_ms": 0.16637439969927073
+      },
+      "logits_readback": {
+        "host_ms": 173.58878810000002,
+        "cuda_stream_ms": 0.0725663999095559
+      },
+      "pooled_gather": {
+        "host_ms": 0.09617039999999999,
+        "cuda_stream_ms": 0.3856192007660866
+      },
+      "prepare_cpu": {
+        "host_ms": 6.101998699999999,
+        "cuda_stream_ms": 0
+      }
+    }
+  },
+  {
+    "name": "128",
+    "stages": {
+      "action_head_upload": {
+        "host_ms": 0.34222259999999993,
+        "cuda_stream_ms": 0.2532255992293358
+      },
+      "actions_readback": {
+        "host_ms": 0.5706314,
+        "cuda_stream_ms": 0.04359039990231395
+      },
+      "collate_cpu": {
+        "host_ms": 0.031681799999999996,
+        "cuda_stream_ms": 0
+      },
+      "confidence_cpu": {
+        "host_ms": 0.013164899999999998,
+        "cuda_stream_ms": 0
+      },
+      "decision_head": {
+        "host_ms": 1.0555979,
+        "cuda_stream_ms": 30.192127895355224
+      },
+      "encoder": {
+        "host_ms": 6.8987533999999995,
+        "cuda_stream_ms": 326.7175437927246
+      },
+      "input_upload": {
+        "host_ms": 0.0221999,
+        "cuda_stream_ms": 0.4147999994456768
+      },
+      "logits_readback": {
+        "host_ms": 349.4471283,
+        "cuda_stream_ms": 0.1418175997212529
+      },
+      "pooled_gather": {
+        "host_ms": 0.1763282,
+        "cuda_stream_ms": 0.8091520043089986
+      },
+      "prepare_cpu": {
+        "host_ms": 11.7219205,
+        "cuda_stream_ms": 0
+      }
+    }
+  },
+  {
+    "name": "mixed128",
+    "stages": {
+      "action_head_upload": {
+        "host_ms": 0.3293701,
+        "cuda_stream_ms": 0.23625279776751995
+      },
+      "actions_readback": {
+        "host_ms": 0.7496881000000001,
+        "cuda_stream_ms": 0.043670400092378256
+      },
+      "collate_cpu": {
+        "host_ms": 0.0320368,
+        "cuda_stream_ms": 0
+      },
+      "confidence_cpu": {
+        "host_ms": 0.012228800000000001,
+        "cuda_stream_ms": 0
+      },
+      "decision_head": {
+        "host_ms": 1.0715853000000002,
+        "cuda_stream_ms": 43.35144970417023
+      },
+      "encoder": {
+        "host_ms": 7.348120999999999,
+        "cuda_stream_ms": 433.2142612457275
+      },
+      "input_upload": {
+        "host_ms": 0.0285728,
+        "cuda_stream_ms": 0.45257600508630275
+      },
+      "logits_readback": {
+        "host_ms": 468.6694275,
+        "cuda_stream_ms": 0.1395903993397951
+      },
+      "pooled_gather": {
+        "host_ms": 0.16175699999999998,
+        "cuda_stream_ms": 0.9743423941545188
+      },
+      "prepare_cpu": {
+        "host_ms": 16.4215314,
+        "cuda_stream_ms": 0
+      }
+    }
+  },
+  {
+    "name": "shared128",
+    "stages": {
+      "action_head_upload": {
+        "host_ms": 0.2937541000000001,
+        "cuda_stream_ms": 0.34930559657514093
+      },
+      "actions_readback": {
+        "host_ms": 0.41044629999999993,
+        "cuda_stream_ms": 0.04143360024318099
+      },
+      "collate_cpu": {
+        "host_ms": 0.031281699999999996,
+        "cuda_stream_ms": 0
+      },
+      "confidence_cpu": {
+        "host_ms": 0.011429900000000003,
+        "cuda_stream_ms": 0
+      },
+      "decision_head": {
+        "host_ms": 1.0354083,
+        "cuda_stream_ms": 31.647948694229125
+      },
+      "encoder": {
+        "host_ms": 6.692478200000001,
+        "cuda_stream_ms": 330.43456039428713
+      },
+      "input_upload": {
+        "host_ms": 0.0186887,
+        "cuda_stream_ms": 0.24032960082404314
+      },
+      "logits_readback": {
+        "host_ms": 354.6603485,
+        "cuda_stream_ms": 0.11565439943224191
+      },
+      "pooled_gather": {
+        "host_ms": 0.12794319999999998,
+        "cuda_stream_ms": 0.45140479132533073
+      },
+      "prepare_cpu": {
+        "host_ms": 3.6733146999999997,
+        "cuda_stream_ms": 0
+      }
+    }
+  },
+  {
+    "name": "browser_call3",
+    "stages": {
+      "action_head_upload": {
+        "host_ms": 0.0564859,
+        "cuda_stream_ms": 0.04299519956111908
+      },
+      "actions_readback": {
+        "host_ms": 0.26383819999999997,
+        "cuda_stream_ms": 0.007904000021517277
+      },
+      "collate_cpu": {
+        "host_ms": 0.0008879999999999999,
+        "cuda_stream_ms": 0
+      },
+      "confidence_cpu": {
+        "host_ms": 0.0020190000000000004,
+        "cuda_stream_ms": 0
+      },
+      "decision_head": {
+        "host_ms": 0.2426535,
+        "cuda_stream_ms": 1.9848191738128662
+      },
+      "encoder": {
+        "host_ms": 1.6245042,
+        "cuda_stream_ms": 18.763161659240723
+      },
+      "input_upload": {
+        "host_ms": 0.0070589999999999984,
+        "cuda_stream_ms": 0.05806719860993326
+      },
+      "logits_readback": {
+        "host_ms": 18.9434605,
+        "cuda_stream_ms": 0.020054399594664575
+      },
+      "pooled_gather": {
+        "host_ms": 0.019561,
+        "cuda_stream_ms": 0.2877216015942395
+      },
+      "prepare_cpu": {
+        "host_ms": 0.9859233,
+        "cuda_stream_ms": 0
+      }
+    }
+  },
+  {
+    "name": "browser_call5",
+    "stages": {
+      "action_head_upload": {
+        "host_ms": 0.0689995,
+        "cuda_stream_ms": 0.04444160014390945
+      },
+      "actions_readback": {
+        "host_ms": 0.2941121,
+        "cuda_stream_ms": 0.011123199947178364
+      },
+      "collate_cpu": {
+        "host_ms": 0.0013729999999999999,
+        "cuda_stream_ms": 0
+      },
+      "confidence_cpu": {
+        "host_ms": 0.004118999999999999,
+        "cuda_stream_ms": 0
+      },
+      "decision_head": {
+        "host_ms": 0.2381724,
+        "cuda_stream_ms": 3.2490496158599855
+      },
+      "encoder": {
+        "host_ms": 1.6266643000000003,
+        "cuda_stream_ms": 34.82460174560547
+      },
+      "input_upload": {
+        "host_ms": 0.0103048,
+        "cuda_stream_ms": 0.06514560021460056
+      },
+      "logits_readback": {
+        "host_ms": 36.2796931,
+        "cuda_stream_ms": 0.02598079964518547
+      },
+      "pooled_gather": {
+        "host_ms": 0.0342228,
+        "cuda_stream_ms": 0.3443776023574173
+      },
+      "prepare_cpu": {
+        "host_ms": 2.4505988000000003,
+        "cuda_stream_ms": 0
+      }
+    }
+  }
+]

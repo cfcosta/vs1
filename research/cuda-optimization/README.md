@@ -8,6 +8,8 @@ The [second round](round-2.md) subsequently found a measured improvement from
 fusing BF16 GELU and gate multiplication while preserving intermediate rounding.
 The [third round](round-3.md) measures paired BF16 arithmetic, combined Q/K
 rotary application and residual-add/normalization fusion.
+The [fourth round](round-4.md) profiles CPU/GPU stages and tests question
+preparation and scheduling across multiple batches.
 
 ## Method and acceptance gates
 

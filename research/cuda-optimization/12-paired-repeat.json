@@ -1,0 +1,83 @@
+[
+  {
+    "name": "1",
+    "baseline_p50_ms": 7.116798,
+    "candidate_p50_ms": 7.115779,
+    "paired_change_percent": 0.4414826251421644,
+    "faster_pairs": 17,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "8",
+    "baseline_p50_ms": 25.416248500000002,
+    "candidate_p50_ms": 24.906187000000003,
+    "paired_change_percent": -1.9813722833520675,
+    "faster_pairs": 33,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "32",
+    "baseline_p50_ms": 86.13199599999999,
+    "candidate_p50_ms": 83.6715815,
+    "paired_change_percent": -2.5255099356583877,
+    "faster_pairs": 34,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "64",
+    "baseline_p50_ms": 161.864895,
+    "candidate_p50_ms": 158.2821285,
+    "paired_change_percent": -2.317764606060446,
+    "faster_pairs": 35,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "128",
+    "baseline_p50_ms": 321.89074300000004,
+    "candidate_p50_ms": 315.5777495,
+    "paired_change_percent": -1.9714388771895908,
+    "faster_pairs": 33,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "mixed128",
+    "baseline_p50_ms": 450.236551,
+    "candidate_p50_ms": 439.9921365,
+    "paired_change_percent": -2.3494729847349793,
+    "faster_pairs": 34,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "shared128",
+    "baseline_p50_ms": 317.1064025,
+    "candidate_p50_ms": 315.451229,
+    "paired_change_percent": -0.4428564391413925,
+    "faster_pairs": 32,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "browser_call3",
+    "baseline_p50_ms": 19.529837,
+    "candidate_p50_ms": 19.437778,
+    "paired_change_percent": -0.44788174840735273,
+    "faster_pairs": 26,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "browser_call5",
+    "baseline_p50_ms": 36.101944,
+    "candidate_p50_ms": 35.536398000000005,
+    "paired_change_percent": -1.6456752900577132,
+    "faster_pairs": 39,
+    "pairs": 40,
+    "outputs_exact": true
+  }
+]

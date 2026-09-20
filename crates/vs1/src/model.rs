@@ -6,6 +6,7 @@ use std::path::Path;
 use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::VarBuilder;
 use indexmap::IndexMap;
+use rayon::prelude::*;
 use tokenizers::Tokenizer;
 
 use crate::{
@@ -48,6 +49,14 @@ pub const DEFAULT_ACCELERATED_BATCH_SIZE: usize = 32;
 
 /// Default items per forward pass on the CPU.
 pub const DEFAULT_CPU_BATCH_SIZE: usize = 8;
+
+#[cfg(test)]
+static REFERENCE_PREP: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+// Bound CPU preparation independently of the application's Rayon pool.
+static PREP_POOL: std::sync::OnceLock<Option<rayon::ThreadPool>> =
+    std::sync::OnceLock::new();
 
 /// The files a checkpoint consists of, already read from disk.
 #[derive(Debug)]
@@ -263,18 +272,7 @@ impl SystemOne {
         &self,
         requests: &[SystemOneRequest],
     ) -> Result<Vec<SystemOneResponse>> {
-        // (request index, question id, encoded sequence)
-        let mut items: Vec<(usize, &str, EncodedItem)> = Vec::new();
-        for (r, request) in requests.iter().enumerate() {
-            let state = self.encode_state(&request.state)?;
-            for (id, question) in &request.questions {
-                items.push((
-                    r,
-                    id.as_str(),
-                    self.build_sequence(&state, id, question)?,
-                ));
-            }
-        }
+        let items = self.prepare_items(requests)?;
 
         let mut order: Vec<usize> = (0..items.len()).collect();
         order.sort_by_key(|&i| std::cmp::Reverse(items[i].2.ids.len()));
@@ -306,6 +304,81 @@ impl SystemOne {
             response.answers.insert(id.to_string(), answer);
         }
         Ok(responses)
+    }
+
+    fn prepare_items<'a>(
+        &self,
+        requests: &'a [SystemOneRequest],
+    ) -> Result<Vec<(usize, &'a str, EncodedItem)>> {
+        #[cfg(test)]
+        if REFERENCE_PREP.load(std::sync::atomic::Ordering::Relaxed) {
+            return self.prepare_items_serial(requests);
+        }
+        let questions: usize = requests.iter().map(|r| r.questions.len()).sum();
+        if !self.device.is_cuda() || questions < 2 {
+            return self.prepare_items_serial(requests);
+        }
+        let Some(pool) = PREP_POOL.get_or_init(|| {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(
+                    std::thread::available_parallelism()
+                        .map_or(1, |n| n.get())
+                        .min(4),
+                )
+                .thread_name(|i| format!("vs1-prepare-{i}"))
+                .build()
+                .ok()
+        }) else {
+            return self.prepare_items_serial(requests);
+        };
+        let prepared: Vec<Result<Vec<_>>> = pool.install(|| {
+            requests
+                .par_iter()
+                .enumerate()
+                .map(|(r, request)| {
+                    let state = self.encode_state(&request.state)?;
+                    let questions: Vec<_> = request.questions.iter().collect();
+                    // Collect results in input order before propagating failures, so
+                    // multiple invalid questions return the same first error as before.
+                    let results: Vec<Result<_>> = questions
+                        .into_par_iter()
+                        .map(|(id, question)| {
+                            Ok((
+                                r,
+                                id.as_str(),
+                                self.build_sequence(&state, id, question)?,
+                            ))
+                        })
+                        .collect();
+                    results.into_iter().collect()
+                })
+                .collect()
+        });
+        let mut items = Vec::with_capacity(questions);
+        for request in prepared {
+            items.extend(request?);
+        }
+        Ok(items)
+    }
+
+    fn prepare_items_serial<'a>(
+        &self,
+        requests: &'a [SystemOneRequest],
+    ) -> Result<Vec<(usize, &'a str, EncodedItem)>> {
+        // (request index, question id, encoded sequence)
+        let mut items: Vec<(usize, &str, EncodedItem)> = Vec::new();
+        for (r, request) in requests.iter().enumerate() {
+            let state = self.encode_state(&request.state)?;
+            for (id, question) in &request.questions {
+                items.push((
+                    r,
+                    id.as_str(),
+                    self.build_sequence(&state, id, question)?,
+                ));
+            }
+        }
+
+        Ok(items)
     }
 
     fn forward_batch(&self, items: &[&EncodedItem]) -> Result<Vec<ItemOutput>> {
@@ -569,3 +642,7 @@ mod tests {
         assert_eq!(values[2], f32::MIN);
     }
 }
+
+#[cfg(all(test, feature = "flash-attn"))]
+#[path = "batch_bench.rs"]
+mod batch_bench;
