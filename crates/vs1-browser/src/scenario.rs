@@ -1,44 +1,106 @@
-//! Experimental declarative workflow: observed postconditions, finite target choices.
-#[allow(dead_code)]
-#[path = "../src/browser.rs"]
-mod browser;
-#[allow(dead_code)]
-#[path = "../src/policy.rs"]
-mod policy;
-#[allow(dead_code)]
-#[path = "../src/verify.rs"]
-mod verify;
-use std::{fs, path::PathBuf, time::Instant};
+//! JSON-defined browser scenarios with inline setup and verification scripts.
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::Instant,
+};
 
 use anyhow::{Context, Result, ensure};
-use clap::Parser;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
-use vs1::{SystemOne, SystemOneRequest};
 
-#[derive(Parser)]
-struct Args {
-    #[arg(long)]
-    plan: PathBuf,
-    #[arg(long)]
-    output: PathBuf,
-    #[arg(long)]
-    checkpoint: String,
-    #[arg(long, default_value="model", value_parser=["model","lexical"])]
-    chooser: String,
-    #[arg(long, default_value="none", value_parser=["none","overlap"])]
-    retrieval: String,
-    #[arg(long, default_value = "http://127.0.0.1:9222")]
-    cdp: String,
-    #[arg(long, default_value_t = 3)]
-    repeat: usize,
-}
+use crate::{browser, model::Backend, policy};
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Plan {
+    source: Source,
+    #[serde(default)]
+    scripts: std::collections::BTreeMap<String, Vec<String>>,
+    variants: Vec<Variant>,
+    verify: Vec<String>,
     goal: String,
     steps: Vec<Step>,
     completion: Vec<Check>,
+}
+#[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum Source {
+    File {
+        path: PathBuf,
+        #[serde(default)]
+        query: Option<String>,
+    },
+    Url {
+        url: String,
+    },
+}
+impl Source {
+    fn resolve(&self, scenario: &Path) -> Result<url::Url> {
+        match self {
+            Self::File { path, query } => {
+                let path = scenario
+                    .parent()
+                    .unwrap_or(Path::new("."))
+                    .join(path)
+                    .canonicalize()?;
+                let mut url = url::Url::from_file_path(path)
+                    .map_err(|_| anyhow::anyhow!("invalid fixture path"))?;
+                url.set_query(query.as_deref());
+                Ok(url)
+            }
+            Self::Url { url } => {
+                let url = url::Url::parse(url)?;
+                ensure!(
+                    matches!(url.scheme(), "http" | "https"),
+                    "source URL must be HTTP(S)"
+                );
+                Ok(url)
+            }
+        }
+    }
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Variant {
+    name: String,
+    #[serde(default)]
+    setup: Vec<String>,
+}
+fn validate(plan: &Plan) -> Result<()> {
+    ensure!(
+        !plan.goal.trim().is_empty()
+            && !plan.steps.is_empty()
+            && !plan.completion.is_empty()
+            && !plan.verify.is_empty()
+            && !plan.variants.is_empty(),
+        "scenario needs goal, steps, completion, verify, and variants"
+    );
+    let mut names = std::collections::BTreeSet::new();
+    for v in &plan.variants {
+        ensure!(
+            !v.name.is_empty() && names.insert(&v.name),
+            "duplicate or empty variant name"
+        );
+        for script in &v.setup {
+            ensure!(
+                plan.scripts.get(script).is_some_and(|s| !s.is_empty()),
+                "unknown or empty setup script {script}"
+            );
+        }
+    }
+    for s in &plan.steps {
+        ensure!(
+            !s.after.is_empty()
+                && matches!(s.kind.as_str(), "fill" | "select" | "click"),
+            "invalid step"
+        );
+        ensure!(
+            s.kind != "fill" || s.text.is_some(),
+            "fill requires explicit value"
+        );
+    }
+    Ok(())
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -141,10 +203,23 @@ fn lexical(step: &Step, candidates: &[Value]) -> usize {
         .map(|(i, _)| i)
         .unwrap_or(0)
 }
+fn script(browser: &mut browser::Browser, lines: &[String]) -> Result<Value> {
+    let result=browser.call("Runtime.evaluate",json!({"expression":lines.join("\n"),"returnByValue":true,"awaitPromise":true}))?;
+    if let Some(details) = result.get("exceptionDetails") {
+        anyhow::bail!(
+            "scenario script failed: {}",
+            details["exception"]["description"]
+                .as_str()
+                .or_else(|| details["text"].as_str())
+                .unwrap_or("JavaScript exception")
+        );
+    }
+    Ok(result["result"]["value"].clone())
+}
 fn execute(
     browser: &mut browser::Browser,
     plan: &Plan,
-    model: Option<&SystemOne>,
+    model: Option<&Backend>,
     retrieval: &str,
 ) -> Result<Value> {
     let started = Instant::now();
@@ -194,10 +269,7 @@ fn execute(
                     0
                 } else if let Some(model) = model {
                     model_calls += 1;
-                    let parsed: SystemOneRequest =
-                        serde_json::from_value(request.clone())?;
-                    response =
-                        serde_json::to_value(model.system_one(&parsed)?)?;
+                    response = model.decide(&request)?;
                     let id = policy::validate_choice(
                         &response["answers"]["target"],
                         &criteria,
@@ -229,100 +301,121 @@ fn execute(
             }
         }
     }
-    let independent = verify::outcome(&page, Some("hotel"), None, &[]);
+    let verification = script(browser, &plan.verify);
+    let independent = match verification {
+        Ok(value) if value.is_boolean() => json!({"passed":value}),
+        Ok(_) => {
+            json!({"passed":false,"error":"verify script must return a boolean"})
+        }
+        Err(e) => json!({"passed":false,"error":e.to_string()}),
+    };
     Ok(
         json!({"passed":error.is_none() && satisfied(&page,&plan.completion) && independent["passed"]==true,
         "error":error,"model_calls":model_calls,"forced_singletons":forced,"independent_verification":independent,
         "elapsed_ms":started.elapsed().as_secs_f64()*1000.0,"trace":trace}),
     )
 }
-fn main() -> Result<()> {
-    let args = Args::parse();
+pub fn run(args: &crate::Cli, scenario: &Path) -> Result<()> {
     ensure!(
         args.repeat > 0 && !args.output.exists(),
         "positive repeat and fresh output required"
     );
-    let plan: Plan = serde_json::from_slice(&fs::read(&args.plan)?)?;
+    let bytes = fs::read(scenario)?;
+    let plan: Plan = serde_json::from_slice(&bytes)?;
+    validate(&plan)?;
     ensure!(
-        !plan.steps.is_empty() && !plan.completion.is_empty(),
-        "empty plan"
+        plan.steps.len() <= args.max_steps,
+        "scenario exceeds max-steps"
     );
-    for s in &plan.steps {
-        ensure!(
-            !s.after.is_empty()
-                && matches!(s.kind.as_str(), "fill" | "select" | "click"),
-            "invalid step"
-        );
-        ensure!(
-            s.kind != "fill" || s.text.is_some(),
-            "fill requires explicit value"
-        );
-    }
-    fs::create_dir_all(&args.output)?;
-    fs::write(
-        args.output.join("fixture.html"),
-        include_str!("../assets/fixture.html"),
-    )?;
-    let url = url::Url::from_file_path(
-        args.output.join("fixture.html").canonicalize()?,
-    )
-    .unwrap();
-    let model: Option<SystemOne> = if args.chooser == "model" {
-        Some(SystemOne::from(&args.checkpoint).try_into()?)
+    let url = plan.source.resolve(scenario)?;
+    let model = if args.chooser == "model" {
+        Some(Backend::load(&args.model)?)
     } else {
         None
     };
+    fs::create_dir_all(&args.output)?;
+    fs::write(args.output.join("scenario.json"), &bytes)?;
     let mut results = vec![];
-    for variant in [
-        "base",
-        "distractors",
-        "reordered",
-        "already_filtered",
-        "complete",
-    ] {
+    for variant in &plan.variants {
         for run in 0..args.repeat {
             let mut browser =
                 browser::Browser::connect(&args.cdp, url.as_str())?;
-            if matches!(variant, "distractors" | "reordered") {
-                browser.evaluate("places.push({name:'Casa Azul',city:'Lisbon',category:'Design',free:true,price:110,description:'Another design stay'});travel();document.querySelector('#search').insertAdjacentHTML('afterbegin',`<input type='search' aria-label='Guest name'><button type='button'>Subscribe</button>`);document.querySelector('.filters').insertAdjacentHTML('afterbegin',`<label><input type='checkbox'>Breakfast</label>`)")?;
-            }
-            if variant == "reordered" {
-                browser.evaluate("for(const parent of [document.querySelector('#search'),document.querySelector('.filters'),document.querySelector('#results')]) { for(const child of [...parent.children].reverse()) parent.append(child); }")?;
-            }
-            if variant == "already_filtered" {
-                browser.evaluate("query='Lisbon';searched=true;category='Design';free=true;travel();")?;
-            }
-            if variant == "complete" {
-                browser.evaluate("query='Lisbon';searched=true;category='Design';free=true;detail(places[0]);")?;
-            }
-            let result =
-                execute(&mut browser, &plan, model.as_ref(), &args.retrieval)?;
-            browser.call(
-                "Target.closeTarget",
-                json!({"targetId":browser.target}),
-            )?;
-            eprintln!(
-                "{variant} {run}: passed={} calls={} error={}",
-                result["passed"], result["model_calls"], result["error"]
+            let attempt = (|| -> Result<Value> {
+                for name in &variant.setup {
+                    script(&mut browser, &plan.scripts[name])
+                        .with_context(|| format!("setup script {name}"))?;
+                }
+                execute(&mut browser, &plan, model.as_ref(), &args.retrieval)
+            })();
+            let mut result = attempt.unwrap_or_else(
+                |e| json!({"passed":false,"error":format!("{e:#}")}),
             );
-            results.push(json!({"variant":variant,"run":run,"result":result}));
+            if let Err(e) = browser
+                .call("Target.closeTarget", json!({"targetId":browser.target}))
+            {
+                result["passed"] = json!(false);
+                result["cleanup_error"] = json!(e.to_string());
+            }
+            eprintln!(
+                "{} {run}: passed={} calls={} error={}",
+                variant.name,
+                result["passed"],
+                result["model_calls"],
+                result["error"]
+            );
+            results.push(
+                json!({"variant":variant.name,"run":run,"result":result}),
+            );
             fs::write(
                 args.output.join("results.json"),
                 serde_json::to_vec_pretty(
-                    &json!({"chooser":args.chooser,"retrieval":args.retrieval,"checkpoint":args.checkpoint,"plan":args.plan,"runs":results}),
+                    &json!({"chooser":args.chooser,"retrieval":args.retrieval,"configuration":model.as_ref().map(|m|&m.metadata),"scenario":scenario,"source_url":url.as_str(),"runs":results}),
                 )?,
             )?;
         }
     }
     ensure!(
         results.iter().all(|r| r["result"]["passed"] == true),
-        "one or more workflow runs failed independent verification; see results.json"
+        "one or more scenario runs failed independent verification; see results.json"
     );
     Ok(())
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn scenario_files_validate_and_resolve_relative_fixtures() {
+        for name in ["hotel.json", "reading-room.json"] {
+            let file = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../examples")
+                .join(name);
+            let plan: Plan =
+                serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
+            validate(&plan).unwrap();
+            assert!(
+                plan.source
+                    .resolve(&file)
+                    .unwrap()
+                    .to_file_path()
+                    .unwrap()
+                    .is_file()
+            );
+        }
+    }
+    #[test]
+    fn invalid_setup_references_and_duplicate_variants_are_rejected() {
+        let raw = fs::read(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../examples/hotel.json"),
+        )
+        .unwrap();
+        let mut plan: Plan = serde_json::from_slice(&raw).unwrap();
+        plan.variants[0].setup.push("missing".into());
+        assert!(validate(&plan).is_err());
+        plan.variants[0].setup.clear();
+        plan.variants[1].name = plan.variants[0].name.clone();
+        assert!(validate(&plan).is_err());
+    }
     #[test]
     fn retrieval_keeps_multiple_plausible_targets() {
         assert!(overlaps("View Casa Flora", "View Casa Flora"));

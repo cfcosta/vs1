@@ -150,3 +150,17 @@ nix build .#vs1-browser-cuda
 
 `vs1-browser-flash-attn` and `vs1-browser-metal` are also available for compatible
 hosts. Connect Chrome/Chromium separately as described above; it is not bundled.
+
+## JSON scenarios
+
+Goals, constrained plans, variant setup scripts, and independent verification can
+live in a JSON file:
+
+```sh
+cargo run --release -p vs1-browser -- \
+  --scenario examples/hotel.json --chooser lexical --output artifacts/hotel-json
+```
+
+See [the examples](../../examples/README.md) for hotel and reading-room scenarios
+and the format. Omit `--chooser lexical` to use the model backend. These scenarios
+use explicit plans; they do not replace the free-form `--url`/`--goal` mode.

@@ -47,8 +47,8 @@ same new plan and executor.
 
 ## What is reusable
 
-The Rust [example](../../crates/vs1-browser/examples/constrained_workflow.rs) consumes
-[hotel.json](hotel.json), whose steps define:
+The shared Rust [runner](../../crates/vs1-browser/src/scenario.rs) consumes
+[hotel.json](../../examples/hotel.json), whose steps define:
 
 - An instruction and permitted action kind/role.
 - An explicit value for filling a field, when applicable.
@@ -63,8 +63,8 @@ claim DONE: completion is code-verified. Unknown candidates and invalid probabil
 distributions are rejected. A failed effect stops the run without guessing a
 correction. No general-purpose recovery or dynamic replanning is implemented.
 
-The sample harness intentionally uses the owned hotel fixture and its existing
-independent verifier. Fixture setup adds unrelated search/button/checkbox controls
+The hotel JSON scenario uses the owned fixture and a DOM/URL verification script
+equivalent to the original independent verifier. Fixture setup adds unrelated search/button/checkbox controls
 and Casa Azul; it does not pick model answers. Reordering affects initial DOM
 controls; the fixture may redraw result cards in its normal order after search.
 
@@ -87,18 +87,18 @@ is therefore essential to detect a later loss of the requested outcome.
 Start Chrome/Chromium with CDP on port 9222. From the repository root:
 
 ```sh
-cargo run --release -p vs1-browser --example constrained_workflow -- \
-  --plan research/browser-workflows/hotel.json \
+cargo run --release -p vs1-browser -- \
+  --scenario examples/hotel.json \
   --checkpoint "$CHECKPOINT" \
   --retrieval overlap \
   --output artifacts/constrained-hotel-new
 ```
 
 `CHECKPOINT` is the local pinned snapshot directory above. On NixOS, prefix Cargo
-commands with `direnv exec .`. Omit `--retrieval overlap` for the role/kind-only arm;
-use `--chooser lexical` for the no-model baseline. Default repeat count is three.
+commands with `direnv exec .`. Use `--retrieval none` for the role/kind-only arm;
+use `--chooser lexical` for the no-model baseline. Use `--repeat 3` to match these historical runs.
 Each invocation requires a fresh output directory. Results are saved even on
-failure; the command exits nonzero if any scenario fails independent verification. The example creates and closes
+failure; the command exits nonzero if any scenario fails independent verification. The runner creates and closes
 its own browser tabs. It does not book anything, call a remote model, or alter the
 cached checkpoint.
 
@@ -106,3 +106,8 @@ Checks: Rust example tests cover absent observations, checkbox `value="on"` vers
 actual checked state, and retrieval retaining multiple plausible candidates. The
 live runs additionally exercise input, submit, select, checkbox, property opening,
 postcondition failure, and skipping already-completed work.
+
+The results above predate the JSON-scenario migration. Their recorded plan hash
+refers to the original plan in commit `0d6f8c572a2d`; the current JSON additionally
+contains source, variants, setup scripts, and verification. See the
+[scenario format](../../examples/README.md) for adding other tasks.

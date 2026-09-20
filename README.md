@@ -153,6 +153,9 @@ above; the output is one response or an array of them, exactly as
 TypeSafe would return. `--dump-ids` wraps each response with the token
 sequence built for each question.
 
+JSON scenario files with setup scripts and outcome checks are in
+[`examples/`](examples/README.md); run them with `vs1-browser --scenario`.
+
 ## Benchmarks
 
 ```bash

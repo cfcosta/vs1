@@ -1,0 +1,55 @@
+{
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/fixture.html",
+    "query": "scenario=research"
+  },
+  "goal": "Open the article about using finite choices to control browser agents.",
+  "steps": [
+    {
+      "instruction": "Choose the article about using finite choices to control browser agents.",
+      "kind": "click",
+      "role": "link",
+      "terms": "browser choice",
+      "after": [
+        {
+          "check": "title",
+          "equals": "A browser is a choice, not a conversation · Forma"
+        }
+      ]
+    }
+  ],
+  "completion": [
+    {
+      "check": "title",
+      "equals": "A browser is a choice, not a conversation · Forma"
+    },
+    {
+      "check": "text",
+      "contains": "Enumerate the actions that are actually available."
+    }
+  ],
+  "scripts": {
+    "reorder": [
+      "const list=document.querySelector('.articles');",
+      "for (const child of [...list.children].reverse()) list.append(child);"
+    ],
+    "complete": ["article('choices'); location.hash='choices';"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "reordered",
+      "setup": ["reorder"]
+    },
+    {
+      "name": "complete",
+      "setup": ["complete"]
+    }
+  ],
+  "verify": [
+    "document.title === 'A browser is a choice, not a conversation · Forma' && document.querySelector('.article-content h1')?.textContent === 'A browser is a choice, not a conversation'"
+  ]
+}

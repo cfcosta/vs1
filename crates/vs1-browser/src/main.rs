@@ -1,6 +1,7 @@
 mod browser;
 mod model;
 mod policy;
+mod scenario;
 mod verify;
 
 use std::{
@@ -35,6 +36,13 @@ pub struct ModelArgs {
 #[derive(Parser, Debug)]
 #[command(version, about)]
 struct Cli {
+    /// Run a JSON scenario containing a plan, setup scripts, and outcome checks.
+    #[arg(long, conflicts_with_all=["url","goal","task","replay","check_browser","record","screenshots","expect_url","expect_text"])]
+    scenario: Option<PathBuf>,
+    #[arg(long, default_value="model", value_parser=["model","lexical"], requires="scenario")]
+    chooser: String,
+    #[arg(long, default_value="overlap", value_parser=["none","overlap"], requires="scenario")]
+    retrieval: String,
     /// Starting page. Chrome must expose a debugging endpoint.
     #[arg(long)]
     url: Option<String>,
@@ -84,6 +92,9 @@ fn main() -> Result<()> {
         args.repeat > 0 && args.max_steps > 0,
         "repeat and max-steps must be positive"
     );
+    if let Some(path) = &args.scenario {
+        return scenario::run(&args, path);
+    }
     if args.check_browser {
         return verify::check_browser(&args.cdp);
     }
@@ -415,4 +426,39 @@ fn run_agent(
         serde_json::to_vec_pretty(&trace)?,
     )?;
     Ok(summary)
+}
+
+#[cfg(test)]
+mod scenario_cli_tests {
+    use super::*;
+    #[test]
+    fn scenario_mode_is_explicit_and_preserves_normal_task_parsing() {
+        assert!(
+            Cli::try_parse_from(["vs1-browser", "--task", "hotel"]).is_ok()
+        );
+        assert!(
+            Cli::try_parse_from([
+                "vs1-browser",
+                "--scenario",
+                "examples/hotel.json",
+                "--chooser",
+                "lexical"
+            ])
+            .is_ok()
+        );
+        assert!(
+            Cli::try_parse_from(["vs1-browser", "--chooser", "lexical"])
+                .is_err()
+        );
+        assert!(
+            Cli::try_parse_from([
+                "vs1-browser",
+                "--scenario",
+                "x",
+                "--task",
+                "hotel"
+            ])
+            .is_err()
+        );
+    }
 }
