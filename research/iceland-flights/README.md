@@ -144,3 +144,58 @@ The dedicated measurement daemon was stopped afterward.
 summaries, final observations, scenario hashes, and executed actions. Raw state,
 model request/response bodies, and the measurement script are under
 `artifacts/iceland-flights/ultrafast/`. No credentials were recorded.
+
+## Chrome-CDP diagnosis: background animation throttling
+
+Direct Chrome-CDP inspection reproduced the empty snapshot **without any model
+calls**. The page's trip-type menu is functional; the failure is a timing problem
+between background rendering and the agents' observation/termination behavior.
+No runtime or policy code was changed during this diagnostic.
+
+Using the same 1120×780 viewport, background-tab creation, focus emulation, and
+mousePressed/mouseReleased sequence as the agents:
+
+| Time after first post-click probe | Background snapshot                     | One-way option's menu opacity |
+| --------------------------------- | --------------------------------------- | ----------------------------- |
+| 0 ms                              | Main page still exposed                 | 0                             |
+| 53 ms                             | Main page still exposed                 | 0                             |
+| 256 ms                            | Main page still exposed                 | 0                             |
+| 1,258 ms                          | Empty text; only scroll/wait actions    | 0                             |
+| 4,262 ms                          | Round trip, One way, Multi-city exposed | 1                             |
+
+The One way DOM node existed with nonzero viewport geometry during the empty
+phase. It had no aria-hidden or inert ancestor, but its menu ancestor's computed
+opacity was zero. The snapshot correctly excluded that still-invisible option.
+In the foreground comparison, all three options appeared by the 52 ms sample.
+A screenshot and the accessibility tree independently showed the working menu.
+These are sampled observation times, not exact transition timestamps.
+
+Four requestAnimationFrame callbacks measured intervals of approximately
+**1,017 ms in the background** versus **16.7 ms in the foreground**, despite
+`document.visibilityState === "visible"` and `document.hasFocus() === true`
+under focus emulation. Bringing the exact same background tab to the foreground
+changed its intervals to **24.3, 16.7, and 16.7 ms**. This activation control
+supports background frame throttling as the mechanism in this environment.
+
+After waiting for the menu to become visible, a normal CDP click successfully
+selected One way in the background tab. No hidden element was force-clicked,
+no field value was injected, and no model was involved.
+
+Both implementations create background tabs and use a **50 ms** settle timeout
+for ordinary clicks (200 ms for autocomplete fills). That is much shorter than
+this background menu transition. The agent can receive an old or empty snapshot,
+click the opener again, or decide BLOCKED while the menu is still animating.
+Our `observe()` retries missing/error snapshots, but accepts a valid snapshot
+with empty text and no page controls, so its existing retries do not cover this
+case. This explains the reproduced failure mode; it does not prove that every
+historical failure or the month-wide planning loop had the same cause.
+
+The next fix should bound a wait for usable post-click observations/menu readiness
+before asking the model for another action or accepting BLOCKED. It should not
+weaken visibility checks to expose transparent controls or replay mutations.
+Foreground execution is another rendering option, but changes the user's active
+tab. Merely applying focus emulation did not restore normal frame cadence here.
+
+[cdp-diagnosis.json](cdp-diagnosis.json) preserves the reduced, account-free
+measurements. Raw DOM probes, frame timings, and the screenshot remain locally
+under ignored `output/chrome-cdp/iceland/`; the two diagnostic tabs were closed.

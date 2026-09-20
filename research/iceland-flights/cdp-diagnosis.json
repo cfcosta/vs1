@@ -1,0 +1,129 @@
+{
+  "background": {
+    "samples": [
+      {
+        "ms_after_first_probe": 0.0,
+        "visible_text_length": 396,
+        "clickable_trip_options": [],
+        "one_way_visible": false,
+        "one_way_aria_hidden": false,
+        "menu_ancestor_opacity": "0",
+        "document_visibility": "visible",
+        "document_has_focus": true
+      },
+      {
+        "ms_after_first_probe": 53.3,
+        "visible_text_length": 396,
+        "clickable_trip_options": [],
+        "one_way_visible": false,
+        "one_way_aria_hidden": false,
+        "menu_ancestor_opacity": "0",
+        "document_visibility": "visible",
+        "document_has_focus": true
+      },
+      {
+        "ms_after_first_probe": 256.5,
+        "visible_text_length": 396,
+        "clickable_trip_options": [],
+        "one_way_visible": false,
+        "one_way_aria_hidden": false,
+        "menu_ancestor_opacity": "0",
+        "document_visibility": "visible",
+        "document_has_focus": true
+      },
+      {
+        "ms_after_first_probe": 1258.4,
+        "visible_text_length": 0,
+        "clickable_trip_options": [],
+        "one_way_visible": false,
+        "one_way_aria_hidden": false,
+        "menu_ancestor_opacity": "0",
+        "document_visibility": "visible",
+        "document_has_focus": true
+      },
+      {
+        "ms_after_first_probe": 4261.8,
+        "visible_text_length": 29,
+        "clickable_trip_options": ["Round trip", "One way", "Multi-city"],
+        "one_way_visible": true,
+        "one_way_aria_hidden": false,
+        "menu_ancestor_opacity": "1",
+        "document_visibility": "visible",
+        "document_has_focus": true
+      }
+    ],
+    "raf_intervals_ms": [1016.56, 1016.7, 1016.6]
+  },
+  "foreground": {
+    "samples": [
+      {
+        "ms_after_first_probe": 0.0,
+        "visible_text_length": 176,
+        "clickable_trip_options": ["Round trip", "One way", "Multi-city"],
+        "one_way_visible": true,
+        "one_way_aria_hidden": false,
+        "menu_ancestor_opacity": "1",
+        "document_visibility": "visible",
+        "document_has_focus": true
+      },
+      {
+        "ms_after_first_probe": 51.8,
+        "visible_text_length": 29,
+        "clickable_trip_options": ["Round trip", "One way", "Multi-city"],
+        "one_way_visible": true,
+        "one_way_aria_hidden": false,
+        "menu_ancestor_opacity": "1",
+        "document_visibility": "visible",
+        "document_has_focus": true
+      },
+      {
+        "ms_after_first_probe": 253.5,
+        "visible_text_length": 29,
+        "clickable_trip_options": ["Round trip", "One way", "Multi-city"],
+        "one_way_visible": true,
+        "one_way_aria_hidden": false,
+        "menu_ancestor_opacity": "1",
+        "document_visibility": "visible",
+        "document_has_focus": true
+      },
+      {
+        "ms_after_first_probe": 1255.2,
+        "visible_text_length": 29,
+        "clickable_trip_options": ["Round trip", "One way", "Multi-city"],
+        "one_way_visible": true,
+        "one_way_aria_hidden": false,
+        "menu_ancestor_opacity": "1",
+        "document_visibility": "visible",
+        "document_has_focus": true
+      },
+      {
+        "ms_after_first_probe": 4257.0,
+        "visible_text_length": 29,
+        "clickable_trip_options": ["Round trip", "One way", "Multi-city"],
+        "one_way_visible": true,
+        "one_way_aria_hidden": false,
+        "menu_ancestor_opacity": "1",
+        "document_visibility": "visible",
+        "document_has_focus": true
+      }
+    ],
+    "raf_intervals_ms": [16.7, 16.6, 16.7]
+  },
+  "same_background_tab_after_activation": {
+    "raf_intervals_ms": [24.3, 16.7, 16.7]
+  },
+  "after_wait_and_click": {
+    "trip": ["One way", "Economy", "One way"],
+    "url": "https://www.google.com/travel/flights?tfs=CBwQARoPag0IAhIJL20vMDIycGZtQAFIAXABggELCP___________wGYAQI&tfu=KgIIAw&hl=en&curr=BRL"
+  },
+  "configuration": {
+    "date": "2026-09-20",
+    "viewport": [1120, 780],
+    "focus_emulation": true,
+    "background_created": true,
+    "input": "CDP mousePressed followed by mouseReleased at freshly measured element center",
+    "runtime_changed": false,
+    "model_calls": 0,
+    "notes": "First probe follows CDP click and command overhead, not the exact input timestamp. Foreground and background probes used different Flights landing URLs; the activation frame-rate control used the exact same background tab."
+  }
+}
