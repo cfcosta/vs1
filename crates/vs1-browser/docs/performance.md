@@ -13,7 +13,7 @@ ignored `../artifacts/` directory. The final plain-CUDA comparison uses the
 
 ## Decision latency on the same captured request
 
-Input: the repository's `tests/fixtures/jev/call5_request.json`, containing a real
+Input: the repository's `crates/vs1/tests/fixtures/jev/call5_request.json`, containing a real
 Google Flights observation and operation/click/text target questions. The request
 is identical across these replay calls. Local inference uses an RTX 3080 Ti,
 CUDA BF16, and the root Laya checkpoint. Jev is the live `jev-1.13.0` service.

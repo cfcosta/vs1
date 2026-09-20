@@ -99,19 +99,24 @@
                   ./rust-toolchain.toml
                   ./rustfmt.toml
                   ./deny.toml
-                  ./src
-                  ./benches
-                  ./tests
+                  ./crates/vs1/Cargo.toml
+                  ./crates/vs1/src
+                  ./crates/vs1/benches
+                  ./crates/vs1/tests
+                  ./crates/vs1-browser/Cargo.toml
+                  ./crates/vs1-browser/src
+                  ./crates/vs1-browser/assets
                 ];
               };
 
-              # Builds the `vs1` binary (and library) as a Nix package.
+              # Builds one workspace CLI as a Nix package.
               # Pass `name` plus `buildFeatures` / `buildInputs` /
               # `extraEnv` / `extraPreBuild` to opt into `cuda` /
               # `flash-attn` / `metal`.
               mkPackage =
                 {
                   name,
+                  crate ? "vs1",
                   buildFeatures ? [ ],
                   buildInputs ? [ ],
                   nativeBuildInputs ? [ ],
@@ -120,7 +125,16 @@
                 }:
                 rustPlatform.buildRustPackage (
                   {
-                    inherit name buildFeatures buildInputs;
+                    inherit name buildInputs;
+                    buildFeatures = map (feature: "${crate}/${feature}") buildFeatures;
+                    cargoBuildFlags = [
+                      "-p"
+                      crate
+                    ];
+                    cargoTestFlags = [
+                      "-p"
+                      crate
+                    ];
                     # `remove-references-to` strips the rust toolchain
                     # path that rustc bakes into binary debug info via
                     # `rust-src`; without it the runtime closure drags
@@ -130,7 +144,7 @@
                     doCheck = false;
                     cargoLock.lockFile = ./Cargo.lock;
                     RUSTFLAGS = "-C target-cpu=native";
-                    meta.mainProgram = "vs1";
+                    meta.mainProgram = crate;
                     preBuild = extraPreBuild;
                     postInstall = ''
                       for bin in "$out"/bin/*; do
@@ -196,31 +210,41 @@
         in
         {
           default = mkPackage { name = "vs1"; };
-
-          vs1 = mkPackage { name = "vs1"; };
-
-          vs1-cuda = mkPackage {
-            name = "vs1-cuda";
-            buildFeatures = [ "cuda" ];
-            nativeBuildInputs = cudaNativeBuildInputs;
-            buildInputs = cudaBuildInputs;
-            extraEnv = cudaEnv;
-          };
-
-          vs1-flash-attn = mkPackage {
-            name = "vs1-flash-attn";
-            buildFeatures = [ "flash-attn" ];
-            nativeBuildInputs = cudaNativeBuildInputs ++ [ pkgs.git ];
-            buildInputs = cudaBuildInputs;
-            extraEnv = cudaforgeEnv;
-            extraPreBuild = cudaforgePreBuild;
-          };
-
-          vs1-metal = mkPackage {
-            name = "vs1-metal";
-            buildFeatures = [ "metal" ];
-          };
         }
+        //
+          pkgs.lib.concatMapAttrs
+            (crate: _: {
+              ${crate} = mkPackage {
+                name = crate;
+                inherit crate;
+              };
+              "${crate}-cuda" = mkPackage {
+                name = "${crate}-cuda";
+                inherit crate;
+                buildFeatures = [ "cuda" ];
+                nativeBuildInputs = cudaNativeBuildInputs;
+                buildInputs = cudaBuildInputs;
+                extraEnv = cudaEnv;
+              };
+              "${crate}-flash-attn" = mkPackage {
+                name = "${crate}-flash-attn";
+                inherit crate;
+                buildFeatures = [ "flash-attn" ];
+                nativeBuildInputs = cudaNativeBuildInputs ++ [ pkgs.git ];
+                buildInputs = cudaBuildInputs;
+                extraEnv = cudaforgeEnv;
+                extraPreBuild = cudaforgePreBuild;
+              };
+              "${crate}-metal" = mkPackage {
+                name = "${crate}-metal";
+                inherit crate;
+                buildFeatures = [ "metal" ];
+              };
+            })
+            {
+              vs1 = null;
+              vs1-browser = null;
+            }
       );
 
       formatter = forEachSupportedSystem ({ formatter, ... }: formatter);

@@ -14,6 +14,14 @@ reinforcement learning against strictly proper scoring rules.
 The request and response follow the TypeSafe `systemone` shape that
 laya is API-compatible with.
 
+## Workspace
+
+- `crates/vs1`: decision-model library and `vs1` CLI (the default Cargo package).
+- `crates/vs1-browser`: browser automation CLI, depending directly on `vs1`.
+
+Run `cargo test --workspace` and `cargo clippy --workspace --all-targets` to
+check both crates. Both use the root `Cargo.lock` and `target/` directory.
+
 ## Primitives
 
 | Question | Asks                        | Answer                                                            |
@@ -129,7 +137,7 @@ without it.
 ## Command line
 
 For a browser-agent CLI like Jev Ultrafast's `examples/run.py`, see
-[`examples/browser-agent`](examples/browser-agent/README.md). It accepts a URL
+[`crates/vs1-browser`](crates/vs1-browser/README.md). It accepts a URL
 and a natural-language goal, calls this library directly from Rust, and executes
 only observed browser actions through Chrome DevTools Protocol. It includes
 independent outcome checks and a local-versus-Jev performance report; wire-format
@@ -157,8 +165,15 @@ VS1_BENCH=1 VS1_BENCH_SUBFOLDER=multilingual cargo bench --features cuda
 
 ```bash
 nix build            # CPU
+nix build .#vs1-browser
+nix run .#vs1-browser -- --help
 nix build .#vs1-cuda
 nix build .#vs1-metal
+nix build .#vs1-browser-cuda
 nix develop          # toolchain, formatter, cargo-deny, cargo-nextest, CUDA on Linux
 nix fmt
 ```
+
+Both CLIs have `-cuda`, `-flash-attn`, and `-metal` Nix package variants;
+select a backend supported by your host. The browser CLI connects to an external
+Chrome/Chromium instance through CDP; the package does not bundle a browser.

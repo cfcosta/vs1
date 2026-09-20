@@ -1,48 +1,7 @@
-[package]
-name = "vs1"
-version = "0.1.0"
-edition = "2024"
-license = "MIT OR Apache-2.0"
-description = "System One decision models (laya) on candle: typed choice, score, and noul questions over a state, with a jev-shaped request and response"
-repository = "https://github.com/cfcosta/vs1"
+[workspace]
+members = ["crates/vs1", "crates/vs1-browser"]
+default-members = ["crates/vs1"]
+resolver = "3"
 
-[dependencies]
-anyhow = "1"
-candle-core = "0.11.0"
-candle-flash-attn = { version = "0.11.0", optional = true }
-candle-nn = "0.11.0"
-hf-hub = { version = "0.5.0", default-features = false, features = [
-  "ureq",
-  "rustls-tls",
-] }
-indexmap = { version = "2", features = ["serde"] }
-serde = { version = "1", features = ["derive"] }
-# `preserve_order` keeps JSON objects in written order. The model reads
-# a state as text and truncates it on the right, so key order is part
-# of the input; laya's Python has it for free from dict semantics.
-serde_json = { version = "1", features = ["preserve_order"] }
-thiserror = "2"
-tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
-
-[features]
-default = []
-cuda = ["candle-core/cuda", "candle-nn/cuda"]
-# Packed and windowed flash-attention kernels for the encoder. Needs
-# nvcc and NVIDIA's cutlass at build time; the plain `cuda` feature is
-# enough for the masked path the decision head uses.
-flash-attn = ["cuda", "dep:candle-flash-attn"]
-metal = ["candle-core/metal", "candle-nn/metal"]
-mkl = ["candle-core/mkl", "candle-nn/mkl"]
-accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
-
-[dev-dependencies]
-criterion = { version = "0.8", features = ["html_reports"] }
-hegeltest = "0.28"
-
-[[bin]]
-name = "vs1"
-path = "src/bin/vs1.rs"
-
-[[bench]]
-name = "decide"
-harness = false
+[workspace.dependencies]
+vs1 = { path = "crates/vs1", version = "0.1.0" }

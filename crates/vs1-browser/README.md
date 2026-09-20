@@ -8,13 +8,13 @@ There is no Python runtime, binding, subprocess per decision, or decision server
 From the repository root:
 
 ```sh
-cargo build --release --manifest-path examples/browser-agent/Cargo.toml --features cuda
+cargo build --release -p vs1-browser --features cuda
 export TEXT_MODEL_API_KEY=... # only needed when the task requires typing
-examples/browser-agent/target/release/vs1-browser \
+target/release/vs1-browser \
   --device cuda \
   --url https://en.wikipedia.org/wiki/Main_Page \
   --goal 'Find and open the Wikipedia article about Gödel’s incompleteness theorems.' \
-  --output examples/browser-agent/artifacts/wiki
+  --output crates/vs1-browser/artifacts/wiki
 ```
 
 On NixOS, run the build through `direnv exec .` or inside `nix develop`.
@@ -83,31 +83,31 @@ and their original epoch timestamps in `screencast/frames.json`, plus an initial
 screenshot. CDP events are drained during browser calls; inference can reduce
 capture cadence. These artifacts retain real timing rather than inventing frames.
 Raw traces, screenshots, and field values can contain private page content; the
-example's `artifacts/` directory is ignored. Choose a fresh `--output` each time.
+crate's `artifacts/` directory is ignored. Choose a fresh `--output` each time.
 
 ## Verification and comparison
 
 ```sh
 # No model or paid API: exercise actual browser guards, typing, and selects.
-examples/browser-agent/target/release/vs1-browser --check-browser
+target/release/vs1-browser --check-browser
 
 # Offline policy and verification tests.
-cargo test --manifest-path examples/browser-agent/Cargo.toml
+cargo test -p vs1-browser
 
 # Repeat a local fixture task, with independent final filter/property checks.
-examples/browser-agent/target/release/vs1-browser \
-  --device cuda --task hotel --repeat 3 --output examples/browser-agent/artifacts/hotel
+target/release/vs1-browser \
+  --device cuda --task hotel --repeat 3 --output crates/vs1-browser/artifacts/hotel
 
 # Other fixed tasks: wikipedia and flights (historical date: September 20, 2026).
 # Same Rust browser runtime, original decision provider and policy:
-examples/browser-agent/target/release/vs1-browser \
+target/release/vs1-browser \
   --backend typesafe --prompt upstream --task hotel --repeat 3 \
-  --output examples/browser-agent/artifacts/jev-hotel
+  --output crates/vs1-browser/artifacts/jev-hotel
 
 # Exact captured decision requests, with shape-specific warmup excluded:
-examples/browser-agent/target/release/vs1-browser \
-  --device cuda --replay tests/fixtures/jev/call5_request.json --repeat 10 \
-  --output examples/browser-agent/artifacts/replay
+target/release/vs1-browser \
+  --device cuda --replay crates/vs1/tests/fixtures/jev/call5_request.json --repeat 10 \
+  --output crates/vs1-browser/artifacts/replay
 ```
 
 The TypeSafe comparison backend requires `TYPESAFE_API_KEY`; local inference never
@@ -137,3 +137,16 @@ Like the source MVP, the reader supports common HTML/ARIA controls. It does not
 traverse frames or shadow roots, handle uploads or popup tabs, scroll nested
 containers, or implement arbitrary keyboard widgets. `SELECT` uses observed native
 dropdown options. The code never books a flight as part of the supplied benchmark.
+
+## Nix packages
+
+From the repository root:
+
+```sh
+nix build .#vs1-browser
+nix run .#vs1-browser -- --help
+nix build .#vs1-browser-cuda
+```
+
+`vs1-browser-flash-attn` and `vs1-browser-metal` are also available for compatible
+hosts. Connect Chrome/Chromium separately as described above; it is not bundled.

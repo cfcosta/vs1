@@ -2,10 +2,12 @@
 name = "vs1-browser"
 version = "0.1.0"
 edition = "2024"
-publish = false
+license = "MIT OR Apache-2.0"
+description = "Browser automation CLI using local vs1 decision models or hosted Jev"
+repository = "https://github.com/cfcosta/vs1"
 
 [dependencies]
-vs1 = { path = "../.." }
+vs1.workspace = true
 candle-core = "0.11.0"
 anyhow = "1"
 base64 = "0.22"
