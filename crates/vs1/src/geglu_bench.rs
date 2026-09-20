@@ -1,6 +1,9 @@
 //! Opt-in paired model benchmark; run alone with --test-threads=1.
 //! cargo test --release -p vs1 --features flash-attn paired_model_latency -- --ignored --nocapture --test-threads=1
-use std::{sync::atomic::Ordering, time::Instant};
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Instant,
+};
 
 use candle_core::{DType, Device};
 use serde_json::{Value, json};
@@ -21,13 +24,17 @@ fn median(values: &mut [f64]) -> f64 {
 #[test]
 #[ignore = "requires CUDA, the Laya checkpoint, and exclusive benchmark execution"]
 fn paired_model_latency() -> anyhow::Result<()> {
-    struct Reset;
+    run_paired(&REFERENCE_MLP)
+}
+
+pub(crate) fn run_paired(reference: &'static AtomicBool) -> anyhow::Result<()> {
+    struct Reset(&'static AtomicBool);
     impl Drop for Reset {
         fn drop(&mut self) {
-            REFERENCE_MLP.store(false, Ordering::Relaxed);
+            self.0.store(false, Ordering::Relaxed);
         }
     }
-    let _reset = Reset;
+    let _reset = Reset(reference);
     let device = Device::new_cuda(0)?;
     let model: SystemOne = SystemOne::from(crate::DEFAULT_REPO_ID)
         .with_device(device.clone())
@@ -68,10 +75,10 @@ fn paired_model_latency() -> anyhow::Result<()> {
     ];
     let mut report = vec![];
     for (name, requests) in cases {
-        REFERENCE_MLP.store(true, Ordering::Relaxed);
+        reference.store(true, Ordering::Relaxed);
         let expected = snapshot(&model.system_one_batch(&requests)?);
         for warmup in 0..10 {
-            REFERENCE_MLP.store(warmup % 2 == 0, Ordering::Relaxed);
+            reference.store(warmup % 2 == 0, Ordering::Relaxed);
             assert_eq!(snapshot(&model.system_one_batch(&requests)?), expected);
         }
         let (mut baseline, mut fused, mut ratios) = (vec![], vec![], vec![]);
@@ -80,7 +87,7 @@ fn paired_model_latency() -> anyhow::Result<()> {
             let mut pair = [0.0; 2];
             let order = if iteration % 2 == 0 { [0, 1] } else { [1, 0] };
             for index in order {
-                REFERENCE_MLP.store(index == 0, Ordering::Relaxed);
+                reference.store(index == 0, Ordering::Relaxed);
                 device.synchronize()?;
                 let started = Instant::now();
                 let responses = model.system_one_batch(&requests)?;

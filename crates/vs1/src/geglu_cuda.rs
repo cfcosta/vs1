@@ -23,6 +23,10 @@ struct GeGlu;
 pub(crate) static REFERENCE_MLP: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
+#[cfg(test)]
+pub(crate) static REFERENCE_VECTOR: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
 impl CustomOp2 for GeGlu {
     fn name(&self) -> &'static str {
         "vs1_geglu_bf16"
@@ -60,8 +64,17 @@ impl CustomOp2 for GeGlu {
         }
         let ptx = include_str!(concat!(env!("OUT_DIR"), "/geglu.ptx"));
         let dev = activation.device();
-        let func =
-            dev.get_or_load_custom_func("geglu_bf16", "vs1_geglu", ptx)?;
+        let paired = al.start_offset().is_multiple_of(2)
+            && gl.start_offset().is_multiple_of(2);
+        #[cfg(test)]
+        let paired = paired
+            && !REFERENCE_VECTOR.load(std::sync::atomic::Ordering::Relaxed);
+        let name = if paired {
+            "geglu_bf16_pair"
+        } else {
+            "geglu_bf16"
+        };
+        let func = dev.get_or_load_custom_func(name, "vs1_geglu", ptx)?;
         let count = al.shape().elem_count();
         let count_u32 = u32::try_from(count)
             .map_err(|e| candle_core::Error::Msg(e.to_string()))?;
@@ -72,7 +85,16 @@ impl CustomOp2 for GeGlu {
         let mut launch = func.builder();
         launch.arg(&a).arg(&g).arg(&mut output).arg(&count_u32);
         // SAFETY: matching contiguous BF16 buffers have exactly count elements.
-        unsafe { launch.launch(LaunchConfig::for_num_elems(count_u32)) }.w()?;
+        let config = if paired {
+            LaunchConfig {
+                grid_dim: (count_u32.div_ceil(2).div_ceil(256), 1, 1),
+                block_dim: (256, 1, 1),
+                shared_mem_bytes: 0,
+            }
+        } else {
+            LaunchConfig::for_num_elems(count_u32)
+        };
+        unsafe { launch.launch(config) }.w()?;
         Ok((
             CudaStorage {
                 slice: CudaStorageSlice::BF16(output),
@@ -164,6 +186,8 @@ mod tests {
         let a = activation.narrow(0, 16123, 257)?.reshape((1, 257))?;
         let g = activation.narrow(0, 17017, 257)?.reshape((1, 257))?;
         assert_exact(&a, &g)?;
+        let even = activation.narrow(0, 16124, 257)?;
+        assert_exact(&even, &even)?;
         let strided =
             activation.narrow(0, 15401, 1024)?.reshape((32, 32))?.t()?;
         assert_exact(&strided, &strided)?;
@@ -188,5 +212,12 @@ mod tests {
             assert_exact(&a, &g)?;
         }
         Ok(())
+    }
+
+    #[cfg(feature = "flash-attn")]
+    #[test]
+    #[ignore = "requires CUDA and the Laya checkpoint; run alone"]
+    fn paired_vector_latency() -> anyhow::Result<()> {
+        crate::geglu_bench::run_paired(&REFERENCE_VECTOR)
     }
 }
