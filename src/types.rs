@@ -82,6 +82,17 @@ pub enum Description {
 }
 
 impl Description {
+    /// Laya's `_to_internal` uses default JSON ASCII escaping for
+    /// structured instructions, unlike state and criterion rendering.
+    pub fn render_instructions(&self) -> String {
+        match self {
+            Description::Json(value) if !value.is_string() => {
+                pyjson::dumps_ascii(value)
+            }
+            _ => self.render(),
+        }
+    }
+
     /// Text form of the description.
     pub fn render(&self) -> String {
         match self {
@@ -628,6 +639,23 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(q.instructions().render(), r#"{"ask": "is it?", "n": 2}"#);
+    }
+
+    #[test]
+    fn only_structured_instructions_escape_unicode_like_laya() {
+        let value = json!({"São": "東京 😀\u{7f}", "literal": "\\u00e3"});
+        let description = Description::Json(value.clone());
+        assert_eq!(
+            description.render_instructions(),
+            r#"{"S\u00e3o": "\u6771\u4eac \ud83d\ude00\u007f", "literal": "\\u00e3"}"#
+        );
+        assert_eq!(description.render(), State::from(value).render());
+        assert!(description.render().contains("東京 😀"));
+        assert_eq!(Description::from("São 😀").render_instructions(), "São 😀");
+        assert_eq!(
+            Description::Json(json!("São")).render_instructions(),
+            "São"
+        );
     }
 
     #[test]

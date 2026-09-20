@@ -154,7 +154,8 @@ pub fn build_sequence(
         });
     }
 
-    let instructions = special.scrub(&question.instructions().render());
+    let instructions =
+        special.scrub(&question.instructions().render_instructions());
     let mut head_ids = encode_plain(
         tokenizer,
         &format!("{} question: {instructions}", kind.as_str()),

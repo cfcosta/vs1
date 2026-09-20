@@ -25,6 +25,21 @@ pub fn dumps(value: &Value) -> String {
     out
 }
 
+/// CPython's default `ensure_ascii=True`, used for structured instructions.
+pub fn dumps_ascii(value: &Value) -> String {
+    let mut out = String::new();
+    for c in dumps(value).chars() {
+        if c >= '\u{7f}' {
+            for unit in c.encode_utf16(&mut [0; 2]) {
+                let _ = write!(out, "\\u{unit:04x}");
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 fn write_value(out: &mut String, value: &Value) {
     match value {
         Value::Null => out.push_str("null"),
