@@ -415,10 +415,14 @@ fn run_agent_page(
         Err(e) => json!({"passed":false,"error":e.to_string()}),
     };
     let recording_error = browser.stop_recording().err().map(|e| e.to_string());
-    let screenshot_error = browser
-        .screenshot(&folder.join("final.jpg"))
-        .err()
-        .map(|e| e.to_string());
+    let screenshot_error = if args.screenshots || args.record {
+        browser
+            .screenshot(&folder.join("final.jpg"))
+            .err()
+            .map(|e| e.to_string())
+    } else {
+        None
+    };
     let mut latencies: Vec<f64> = model_attempts
         .iter()
         .filter_map(|d| d["latency_ms"].as_f64())

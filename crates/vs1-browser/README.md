@@ -71,7 +71,8 @@ two options. This does not affect the operation choice.
 
 ## Traces and recording
 
-Every run writes `run-NN/trace.json`, a final screenshot, and an append-only
+A final screenshot is saved only with `--screenshots` or `--record`.
+Every run writes `run-NN/trace.json` and an append-only
 `events.jsonl`. Successful execution is flushed before observing its result;
 uncertain mutations stop, while pre-input stale rejections can reobserve.
 Text generation is cached across stale retries only if the entire helper context
