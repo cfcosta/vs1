@@ -12,7 +12,8 @@ Three exact-body duplicates were excluded from the initially labeled 48
 validation entries before comparing any experiment there. These selected
 clear-case subsets do not estimate whole-mailbox accuracy.
 
-Each variant runs twice after model warmup. Timings exclude model loading.
+Unless a section records an incomplete run, each variant runs twice after model
+warmup. Timings exclude model loading.
 Only improvements on both labeled subsets qualify for adoption; changes that
 fail the development comparison are reverted without tuning on validation.
 Raw private messages and diagnostics stay outside the repository.
@@ -409,3 +410,59 @@ under `~/.local/state/vs1-email/next-four-20260921/`. Laya checkpoint revision:
 `e8f8c211226b894fcb81acc59f3b34ba3efd5f42`; Qwen revision:
 `1cfa9a7208912126459214e8b04321603b3df60c`. Private messages and labels are not
 committed. Concurrent model-compression work is untouched.
+
+## 11. Questions-only rules and whole-email evidence: rejected
+
+Tested the existing typed-decisions checkpoint with 53 binary questions,
+3–4 per category, and no `what`, `not_for`, examples or exclusion vetoes.
+For each distinct question, take its strongest yes-support across all email
+chunks. Rank categories by either their strongest question or the mean of their
+two strongest distinct questions. Shortlist five categories, restore config
+order, then make one final choice per email using questions, uncalibrated
+supports and source excerpts. Choice options contain bare category names.
+Subject, sender and date remain separate; recipients are omitted.
+
+The fixed 100-message development sample produces 144 chunks. This asks
+7,732 questions per variant, versus 720 for the current classifier. Both initial
+passes reproduced the baseline at 36/61 labeled messages, averaging 9.62 seconds.
+
+| Evidence format / pooling              | Correct / 61 | Fixed / regressed versus baseline | Classification time |
+| -------------------------------------- | -----------: | --------------------------------: | ------------------: |
+| Current classifier                     |           36 |                                 — |          9.62s mean |
+| Initial verbose / strongest question   |           25 |                            3 / 14 |         87.79s mean |
+| Initial verbose / strongest two        |           23 |                            3 / 16 |         87.87s mean |
+| Corrected compact / strongest question |           28 |                            5 / 13 |     86.10s composed |
+| Corrected compact / strongest two      |   Incomplete |                                 — |        Not reported |
+
+Both initial variants repeated their predictions exactly. However, their
+160/80/0-character excerpt fallback removed all excerpts from 3/100
+strongest-question requests and 97/100 strongest-two requests. Those results
+therefore do not adequately test the intended source-grounded final pass.
+
+After inspecting that issue, compacted evidence to positional arrays, removed
+the redundant category support field, and required nonempty excerpts whenever
+the source chunk has text. The corrected budget fallback is 160/80/40
+characters. Replayed the saved binary answers to isolate final evidence
+formatting: strongest-question completed all 100 messages, using 160 characters
+in 91 requests and 80 in nine. It still lost eight correct classifications
+against baseline. Its 86.10 seconds combines the original probe time with newly
+measured preparation and final inference; it is not a fresh end-to-end timing.
+
+The corrected strongest-two request exceeded the exact encoder budget at
+message index 24 even with 40-character excerpts. The replay stopped there,
+before a second corrected pass. No accuracy claim is made for that incomplete
+variant. Initial shortlists already excluded the expected category on 13/61
+labeled emails for strongest-question and 10/61 for strongest-two; a final
+choice cannot recover an eliminated category. Directly choosing the highest
+pooled support, inspected only as a diagnostic, scored 27/61 and 28/61.
+
+Four tests cover questions-only schema rejection, distinct-question pooling
+across chunks, invalid inputs/stable ties, and compact evidence alignment.
+They failed before implementation and passed afterward; release Clippy passed.
+No validation-set run followed the development regression. This rejects these
+specific question wording, pooling and final-evidence configurations, not every
+possible questions-only design.
+
+Removed the prototype and kept the active config and classifier unchanged.
+Private protocols, amendments, source, tests, raw answers, requests and timing
+records are archived under `~/.local/state/vs1-email/question-only-20260921/`.
