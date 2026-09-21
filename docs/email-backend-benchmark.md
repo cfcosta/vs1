@@ -4,7 +4,83 @@ This is a comparison of mailbox pipelines on the same 200 emails, not an
 identical-prompt or identical-kernel model microbenchmark. No messages were
 moved and no production classification settings were changed.
 
-## Results
+## Correction: the original OpenJev input was a poor fit
+
+The original **12.8% OpenJev score is a long-label baseline, not a useful
+verdict on the model**. The benchmark's category definitions and exclusions
+exhausted its normal 512-token window, and the benchmark expanded the window
+to 1,024 instead of adapting the candidate descriptions. The
+[upstream inference notes](https://github.com/Heman10x-NGU/Verdict-open-jev#what-changed-in-the-inference-engine)
+specifically discuss shorter contexts and report training on very short
+states. That limitation should have been investigated before the first
+comparison was presented.
+
+The follow-up kept the same checkpoint, emails, frozen labels, category IDs,
+body cleanup and character-weighted aggregation. It replaced the verbose
+candidate text with short positive descriptions, for example `receipts` →
+`a purchase receipt or order confirmation`. This is a **benchmark-specific
+description override**: it does not preserve every exclusion or owner
+constraint, and it does not edit `email.toml` or production classification.
+Owner-dependent categories were already excluded from the labeled score.
+
+| OpenJev input                           | Precision |  Correct / 156 | Abstained / 200 | Chunks / logical calls | Batches |   Call wall |       Total |
+| --------------------------------------- | --------- | -------------: | --------------: | ---------------------: | ------: | ----------: | ----------: |
+| Original definitions, JSON, 1,024       | F32       |     20 (12.8%) |             133 |                    520 |     130 |     21.258s |     25.906s |
+| Compact descriptions, JSON, 1,024       | F32       |     70 (44.9%) |              62 |                    335 |      84 |     13.537s |     15.965s |
+| Compact descriptions, JSON, 1,024       | BF16      |     71 (45.5%) |              61 |                    335 |      21 |      1.651s |      4.137s |
+| **Compact descriptions, JSON, 512**     | **F32**   | **68 (43.6%)** |          **51** |                **782** | **196** | **12.106s** | **15.866s** |
+| **Compact descriptions, JSON, 512**     | **BF16**  | **67 (42.9%)** |          **53** |                **782** |  **49** |  **2.491s** |  **6.284s** |
+| Compact descriptions, plain fields, 512 | BF16      |     72 (46.2%) |              28 |                    738 |      47 |      2.366s |      5.926s |
+
+The same-precision, same-budget F32 comparison improves from 20 to 70 correct.
+Thus the strongest measured issue is candidate formulation, not a faulty
+forward pass or BF16. Reducing the budget from 1,024 to 512 did **not** improve
+this sample after shortening the descriptions. The tests do not isolate
+shorter wording, removed exclusions, changed label positions and the resulting
+chunk boundaries from one another.
+
+The first 50 sampled emails (44 labeled) were used to select a configuration.
+Compact JSON at both budgets scored 21/44; the 512-token configuration was
+selected before inspecting the remaining 150 emails because it stays within
+the upstream default budget. It then scored **46/112** on those remaining
+labeled emails, versus **14/112** for the original setup. F32 subsequently
+scored 68/156 overall. This is exploratory confirmation on an already known
+corpus, not a new independent test set.
+
+The plain-field variant scored 20/44 on development and was not selected,
+despite its higher whole-corpus result. First-chunk-only classification was
+also inspected as a diagnostic: it scored 66/156 with compact JSON/512 and
+78/156 with plain fields/512. It is not retained as a policy because it drops
+later evidence. No labels were changed and no extra hosted Jev calls were
+made during the audit.
+
+### Independent numerical check
+
+Actual email inputs were checked against GLiClass 0.1.20 and PyTorch
+2.10.0+cu128, using the pinned tokenizer, checkpoint and calibration. Token IDs
+matched exactly; inference used CUDA F32 with TF32 disabled.
+
+- Original F32: 16/16 chunk decisions matched; maximum probability error
+  **0.000000671**.
+- Compact/512 F32: 16/16 chunk decisions matched; maximum probability error
+  **0.000000760**.
+- Compact/512 Rust BF16 versus Python F32: 15/16 decisions matched; maximum
+  probability error **0.00693**. Reduced precision can flip close decisions;
+  it does not explain the original collapse.
+
+These are 16 chunks per configuration, not a parity test of every email.
+Prompt structure was also checked against the upstream
+[formatting contract](https://github.com/Heman10x-NGU/Verdict-open-jev/blob/main/core/formatting.py).
+Captured prompts, token IDs, native predictions and the offline Python oracle
+are preserved with the private audit artifacts.
+
+The benchmark now defaults OpenJev to `compact512`. Explicit modes
+`original`, `compact1024` and `plain512` retain reproducibility of the audit.
+Laya and Jev keep their existing default benchmark paths. OpenJev remains
+below Laya's 87/156 and hosted Jev's 142/156 on this reference set, but the
+earlier 20/156 substantially understated its performance with suitable inputs.
+
+## Original results (superseded OpenJev setup)
 
 Final runs after stopping the unrelated CUDA compilation:
 
@@ -31,7 +107,7 @@ Initial timings overlapped a CUDA compilation and OpenJev batches stopped
 at email boundaries, so those timings are not used above. The final harness
 batches OpenJev chunks across emails. Labels and rules stayed unchanged.
 
-The current OpenJev configuration is **not an accuracy improvement**. Its
+The original OpenJev configuration was **not an accuracy improvement**. Its
 faster BF16 path makes inference inexpensive, but most mail is rejected as
 insufficient evidence. Discarding abstention and forcing the highest-scoring
 substantive category is only a diagnostic, not a deployed policy. These
@@ -81,7 +157,7 @@ Frozen label SHA-256:
 - **Hosted Jev:** `jev-1.13.0`, full cleaned email, one 17-choice question,
   16 concurrent HTTP requests. Existing caller-side probability normalization
   and argmax; raw provider decisions remain in private results.
-- **OpenJev:** `heman10x/rlcd-modernbert-151m`, checkpoint revision
+- **Original OpenJev setup:** `heman10x/rlcd-modernbert-151m`, checkpoint revision
   `8af2496eb63c7fa66d7d234e1f62629380030eb4`. Same complete category descriptions
   and email state, one native 17-choice question plus abstention per chunk.
   The full empty-body request exhausts the default 512-token context, so
@@ -130,6 +206,7 @@ nix develop -c cargo build --release -p vs1-email \
   --features cuda,flash-attn --example backend_benchmark
 
 # Repeat for laya, jev, openjev and openjev-bf16; choose a fresh run name.
+# OpenJev now defaults to compact512; append "original" for the old setup.
 LD_LIBRARY_PATH=/run/opengl-driver/lib RAYON_NUM_THREADS=4 \
   target/release/examples/backend_benchmark \
   ~/.local/state/vs1-email/three-backends-200-20260921 laya laya-repeat
