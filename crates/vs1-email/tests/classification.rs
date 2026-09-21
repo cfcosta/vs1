@@ -51,10 +51,18 @@ fn request_preserves_context_and_all_criteria_in_order() {
     assert_eq!(state["email"]["body"], "Balance: 10");
     let question = &request.questions["category"];
     let options = question.render_options();
-    assert!(options[0].starts_with("capture:"));
-    assert!(options[0].contains("Single purchase"));
-    assert!(options[0].contains("Extrato"));
-    assert!(options[1].starts_with("other:"));
+    assert_eq!(options, ["capture", "other"]);
+    assert_eq!(state["criteria"]["capture"]["not_for"], "Single purchase");
+    assert_eq!(state["criteria"]["capture"]["examples"], json!(["Extrato"]));
+    assert_eq!(
+        state
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        ["criteria", "owner", "email"]
+    );
 }
 
 #[test]
