@@ -240,11 +240,10 @@ training-data evidence to frame questions and interpret errors. Do not assume
 that a generative prompting technique, extra questions, confidence threshold,
 or changed pooling rule will transfer to this model without measurement.
 
-An outstanding diagnostic is direct replay of frozen dataset cases through our
-runtime against the supplied soft targets, reporting per-workflow and
-per-question behavior. Training-case replay would be a compatibility diagnostic,
-not a generalization benchmark. None of the email accuracy results establishes
-how well this Rust runtime matches the released model on its fine-tuning task.
+Native customer-service category replay is now complete (results below). Replay
+of the other workflows and question types remains outstanding. Training-case
+replay is a compatibility diagnostic, not a generalization benchmark; direct
+numerical comparison with the upstream model remains a separate check.
 
 Other untested questions include how much failure comes from absent evidence,
 question semantics, elimination or chunk aggregation. They should be separated
@@ -258,3 +257,41 @@ changed only the instruction to `What is this email primarily about?`. With
 identical chunks and criteria it fell from 87/156 to 78/156, reproduced exactly
 on a second run (three fixes, twelve regressions), and was reverted. Matching
 the training question's surface style alone did not help this email tournament.
+
+## Native categorization replay and email failure stages
+
+The unchanged customer-service category question was replayed on all 300 native
+training cases and the separate 100-case test split at the same pinned dataset
+revision. Only state and the category question reached the model; gold, factors,
+other questions and label agreement were excluded. The test Parquet SHA-256 was
+verified against the pinned dataset tree. CUDA BF16, FlashAttention, batch 16,
+four Rayon threads; every state fit without truncation.
+
+| Split | Teacher argmax agreement | Mean total variation from soft gold | Soft Brier (sum over classes) |
+| ----- | -----------------------: | ----------------------------------: | ----------------------------: |
+| Train |            294/300 (98%) |                              0.2017 |                        0.0571 |
+| Test  |             94/100 (94%) |                              0.2290 |                        0.0805 |
+
+The 400 requests used 25 batch calls and 2.563 seconds of inference wall time.
+This is strong native-task agreement, not email generalization or upstream
+numerical parity. Test means the dataset's designated split; we have not audited
+all data used in the released checkpoint. Soft distributions differ meaningfully
+even when the top category agrees. No weights were changed.
+
+Separately, traced the frozen email baseline's 69 errors among 156 reviewed labels:
+42 lost the reference category in every chunk's preliminary round; 20 had it
+survive in at least one chunk but never win a chunk; seven had a correct chunk
+prediction but lost after pooling. The other 87 emails were correct. These
+mutually exclusive buckets describe observed stages, not root causes or gains
+an oracle-free fix could necessarily recover. Across all 273 labeled chunks,
+67 eliminated the reference category, 41 lost in the final round and 165 won.
+
+These results prioritize candidate selection over pooling. They do not show
+that all 42 elimination failures were caused by the tournament: a model lacking
+semantic evidence can fail there too. Missing owner context and attachment
+content were not scored individually by this structural audit.
+
+The TDD-tested replay executable is `crates/vs1/examples/native_category_replay.rs`;
+it reads JSONL dataset rows and writes predictions separately from references.
+Run with release features `cuda,flash-attn`; arguments are input JSONL and a new
+output JSON path. Aggregate measurements: [laya-native-diagnostics.json](laya-native-diagnostics.json).

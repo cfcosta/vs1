@@ -1,0 +1,68 @@
+{
+  "dataset_revision": "ea9306458d6e9563628369a3d1e72e362fb381d2",
+  "test_parquet_sha256": "b4e6e23b3c2add197dda74008f2ce42ff996511ff1bf9c93e8b0e6d84ac9c275",
+  "native": {
+    "train": {
+      "cases": 300,
+      "correct": 294,
+      "accuracy": 0.98,
+      "mean_total_variation": 0.20170449073069355,
+      "soft_brier": 0.057127555134123494,
+      "soft_cross_entropy": 0.570387062204836,
+      "mean_top_probability": 0.6815930674473445,
+      "confusion": {
+        "account -> account": 75,
+        "delivery -> delivery": 60,
+        "refund -> refund": 27,
+        "technical -> technical": 66,
+        "billing -> billing": 66,
+        "account -> technical": 1,
+        "account -> billing": 1,
+        "technical -> delivery": 1,
+        "billing -> account": 2,
+        "technical -> billing": 1
+      }
+    },
+    "test": {
+      "cases": 100,
+      "correct": 94,
+      "accuracy": 0.94,
+      "mean_total_variation": 0.22904892178978564,
+      "soft_brier": 0.08050512501206265,
+      "soft_cross_entropy": 0.6198511622436444,
+      "mean_top_probability": 0.6730117636919022,
+      "confusion": {
+        "delivery -> delivery": 20,
+        "billing -> billing": 36,
+        "technical -> technical": 19,
+        "refund -> refund": 4,
+        "account -> account": 15,
+        "billing -> technical": 1,
+        "account -> billing": 2,
+        "billing -> account": 1,
+        "technical -> account": 1,
+        "account -> technical": 1
+      }
+    }
+  },
+  "timing": {
+    "calls": 400,
+    "batch_calls": 25,
+    "call_seconds": 2.5633991900000006,
+    "total_seconds": 2.966477313,
+    "model": "laya-typed-decisions"
+  },
+  "email_failure_stages": {
+    "emails": {
+      "eliminated_in_every_chunk": 42,
+      "correct": 87,
+      "final_loss_no_correct_chunk": 20,
+      "pooling_despite_correct_chunk": 7
+    },
+    "chunks": {
+      "eliminated": 67,
+      "correct": 165,
+      "final_loss": 41
+    }
+  }
+}
