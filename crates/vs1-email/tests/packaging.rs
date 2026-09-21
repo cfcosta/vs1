@@ -71,3 +71,23 @@ fn supplied_example_has_all_categories_and_owner_references() {
         assert!(config.owner().get(key).is_some());
     }
 }
+
+#[test]
+fn normal_packages_include_both_runtime_backends() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    for name in ["vs1", "vs1-email"] {
+        let manifest: toml::Value = toml::from_str(
+            &fs::read_to_string(root.join(format!("crates/{name}/Cargo.toml")))
+                .unwrap(),
+        )
+        .unwrap();
+        assert!(
+            manifest["features"]["default"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v.as_str() == Some("jev")),
+            "{name} must support runtime selection in a normal build"
+        );
+    }
+}

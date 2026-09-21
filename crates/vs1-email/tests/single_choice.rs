@@ -2,7 +2,9 @@ use serde_json::json;
 use vs1_email::{Config, Email, Mailbox, dry_run_single_choice_with_progress};
 #[test]
 fn whole_email_uses_one_question_and_preserves_progress_and_rounded_evidence() {
-    let config = Config::parse(include_str!("../../../email.toml")).unwrap();
+    let config =
+        Config::parse(include_str!("../../../examples/email-rules.toml"))
+            .unwrap();
     let email = Email {
         path: "/mail/new/one".into(),
         message_id: "one".into(),

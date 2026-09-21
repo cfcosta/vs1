@@ -226,11 +226,6 @@
                 name = crate;
                 inherit crate;
               };
-              "${crate}-jev" = mkPackage {
-                name = "${crate}-jev";
-                inherit crate;
-                buildFeatures = [ "jev" ];
-              };
               "${crate}-cuda" = mkPackage {
                 name = "${crate}-cuda";
                 inherit crate;

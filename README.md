@@ -2,7 +2,8 @@
 
 Runs [laya](https://github.com/NandhaKishorM/laya) System One decision
 models on [candle](https://github.com/huggingface/candle), as a Rust
-library and a small `vs1` command.
+library and a small `vs1` command. The same build also supports hosted
+Jev through the typed request/response interface.
 
 A System One model answers typed questions about a piece of _state_ in
 a single, non-autoregressive forward pass. Nothing is generated: every
@@ -18,9 +19,65 @@ laya is API-compatible with.
 
 - `crates/vs1`: decision-model library and `vs1` CLI (the default Cargo package).
 - `crates/vs1-browser`: browser automation CLI, depending directly on `vs1`.
+- `crates/vs1-email`: local Maildir classification, with caller-selected inference.
 
 Run `cargo test --workspace` and `cargo clippy --workspace --all-targets` to
-check both crates. Both use the root `Cargo.lock` and `target/` directory.
+check the workspace. All crates use the root `Cargo.lock` and `target/` directory.
+
+## Caller-selected backend
+
+`SystemOne` remains the local laya API. `JevClient` is included in normal builds; `DecisionModel` wraps either backend and exposes
+`system_one` and `system_one_batch`. Backend and model selection are explicit:
+there is no automatic cloud fallback, environment-based library selection or
+checkpoint download when constructing a Jev client.
+
+```rust
+use vs1::{DecisionModel, JevClient, Question, SystemOneRequest};
+
+let model: DecisionModel = JevClient::new(
+    std::env::var("TYPESAFE_API_KEY")?,
+    "jev-1.13.0",
+)?.with_concurrency(16)?.into();
+// Local alternative: let model: DecisionModel = local_system_one.into();
+let request = SystemOneRequest::new("Please refund the duplicate charge.")
+    .question("refund", Question::noul("Is a refund requested?"));
+let response = model.system_one(&request)?;
+if let DecisionModel::Jev(client) = &model {
+    println!("{}", serde_json::to_string(&client.stats())?);
+}
+```
+
+The client-selected hosted model overrides the optional request `model` field;
+the response reports the actual provider model. The library does not read
+credentials from the environment: that is the caller's choice, as above.
+Jev responses retain provider probabilities and choices without normalization;
+`Answer::action()` is a laya-only signal and is absent for hosted responses.
+
+A Jev batch is bounded concurrent HTTP requests, not a provider batch endpoint.
+Outputs retain input order. `JevClient::stats()` counts logical `calls`, HTTP
+`attempts` (including failures), `retries`, parsed `successes`, and `questions`.
+Token usage remains on each response. The client retries HTTP 429/503/529 up to
+three total attempts, respects numeric Retry-After seconds up to 60, and otherwise
+uses short backoff. It does not retry authentication, connection or decoding
+errors. Requests time out after 30 seconds; redirects are disabled. A batch
+error can occur after other requests in that batch succeeded; counters include
+the work already attempted. Error strings omit credentials and provider bodies.
+
+```bash
+# TYPESAFE_API_KEY must already be set in your environment.
+cargo run --release -p vs1 -- \
+  --backend jev --model jev-1.13.0 --batch-size 16 request.json
+nix run .#vs1 -- --backend jev --model jev-1.13.0 request.json
+```
+
+The core and email CLIs default to `--backend laya`; the browser keeps its hosted
+default. All accept caller-selected model IDs. The CLIs print hosted call
+counters on stderr; stdout remains the typed response/report. Jev's context and
+option limits are enforced by the provider, not laya's tokenizer. No local
+weights or GPU are required for hosted inference, though the core crate still
+includes its CPU laya dependencies. The normal Nix packages (`vs1`, `vs1-email`, `vs1-browser`) include both
+backends. No extra package or feature flag is needed to select Jev at runtime.
+Acceleration features still control support for local GPU devices.
 
 ## Primitives
 
@@ -168,7 +225,7 @@ VS1_BENCH=1 VS1_BENCH_SUBFOLDER=multilingual cargo bench --features cuda
 
 ```bash
 nix build            # CPU
-nix build .#vs1-browser       # hosted Jev, no local inference dependencies
+nix build .#vs1-browser       # hosted Jev, no checkpoint loading
 nix build .#vs1-browser-local # optional local CPU inference
 nix run .#vs1-browser -- --help
 nix build .#vs1-cuda

@@ -3,7 +3,7 @@ name = "vs1"
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
-description = "System One decision models (laya) on candle: typed choice, score, and noul questions over a state, with a jev-shaped request and response"
+description = "Local laya and hosted Jev decision models with typed choice, score, and noul questions"
 repository = "https://github.com/cfcosta/vs1"
 
 [dependencies]
@@ -32,7 +32,7 @@ reqwest = { version = "0.12", optional = true, default-features = false, feature
 ] }
 
 [features]
-default = []
+default = ["jev"]
 jev = ["dep:reqwest"]
 cuda = ["candle-core/cuda", "candle-nn/cuda"]
 # Packed and windowed flash-attention kernels for the encoder. Needs

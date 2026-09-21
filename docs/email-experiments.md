@@ -623,3 +623,39 @@ Private source patch, protocol amendment, provider documentation snapshots,
 complete input/output records, request/status logs and analyses are at
 `~/.local/state/vs1-email/jev-context-20260921/`. `verification.json` records
 full-body checks; `whole-analysis.json` records corrected scores and counts.
+
+## 14. Shared Jev backend integration smoke check
+
+Jev is now an explicit backend in `vs1` through `JevClient` and `DecisionModel`.
+The core/email CLIs select it with `--backend jev --model jev-1.13.0`; the browser
+uses the same client and retains its existing hosted default. The email path
+uses the whole-message single-choice design from section 13. Local defaults,
+weights and tournament behavior are unchanged. See the
+[backend API](../README.md#caller-selected-backend) and
+[email CLI](../crates/vs1-email/README.md).
+
+The production email CLI completed the development Maildir's 100 messages in
+3.6 seconds, with 100 chunks, 100 questions, 100 logical calls, 100 HTTP attempts,
+zero retries and zero processing failures. The generic CLI exercised Choice,
+Score and Noul in a single call. Browser replay exercised the shared client in
+two calls, including its recorded warmup. All returned `jev-1.13.0`.
+
+The earlier private evaluation files were no longer present when this run was
+checked, so no new accuracy score was calculated against the frozen labels.
+This verifies integration and call accounting, not a fresh accuracy improvement.
+The new live outputs and logs are under
+`~/.local/state/vs1-email/jev-integration-20260921/`.
+
+Validation included 124 passing workspace tests/doctests with two browser CDP
+checks ignored, the email suite without the hosted feature, Clippy, a combined
+`jev,cuda,flash-attn` release build check, and a successful hosted-enabled Nix
+package build. Nix packaging retains its existing `doCheck = false`; tests were
+run separately through Cargo. No mailbox files were changed by the classifier.
+
+The initial separate hosted Nix variants were subsequently removed: normal
+`vs1` and `vs1-email` builds enable Jev support by default. Backend/model choice
+is runtime configuration; users do not need another package or a feature flag.
+
+The normal default-feature workspace suite and Clippy passed after that change;
+the regular `vs1-email` Nix package built successfully. A live generic CLI call
+without `--features` returned all three question types in one HTTP attempt.

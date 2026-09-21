@@ -1,6 +1,7 @@
 # vs1-email
 
-Categorize a local Maildir mailbox with local laya inference through `vs1`.
+Categorize a local Maildir mailbox through `vs1`, with caller-selected local
+laya (the default) or hosted Jev inference.
 Only `--dry-run` is implemented. Running without it returns an error before
 reading files, the mailbox, or model weights.
 
@@ -16,12 +17,45 @@ cargo run -p vs1-email -- --config email.toml --dry-run --mailbox ~/Mail/account
 nix run .#vs1-email -- --config email.toml --dry-run --mailbox ~/Mail/account
 ```
 
+Select hosted inference at runtime in the normal build:
+
+```bash
+# TYPESAFE_API_KEY must already be set; sampled email content is sent to TypeSafe.
+cargo run --release -p vs1-email -- \
+  --backend jev --model jev-1.13.0 --dry-run --config email.toml \
+  --mailbox ~/Mail/account --limit 100
+# Equivalent packaged command:
+nix run .#vs1-email -- --backend jev --model jev-1.13.0 \
+  --dry-run --config email.toml --mailbox ~/Mail/account --limit 100
+```
+
+Jev uses one whole cleaned email and one Choice containing all categories per
+request (at most 255 categories). It preserves the same subject, sender, date,
+owner context and recipient exclusion. Bodies are neither split nor truncated;
+provider context-limit errors abort inference. No checkpoint is loaded.
+`--model` defaults to `jev-latest` in this mode. Local-only device, dtype,
+subfolder and token-budget options are rejected. `--batch-size` controls hosted
+concurrency, defaulting to 16.
+
+The email policy selects probability argmax and normalizes provider rounding
+only when the probability sum is within 0.025 of one. Invalid distributions
+remain errors. Original answers are retained in each chunk's `decisions.provider`;
+`decisions.evaluated` records the normalized decision. This adaptation belongs
+to the email classifier; `vs1::JevClient` returns unmodified provider answers.
+
+Stderr includes a JSON `Jev calls:` summary with logical calls, actual HTTP
+attempts, retries, successes and questions, even when an inference request fails.
+For 100 successfully parsed emails, a successful no-retry Jev run makes 100 calls
+and asks 100 questions. Empty mailboxes need no API key. Both backends preserve
+dry-run-only behavior and support `--progress-jsonl`.
+
 `--mailbox` selects a local Maildir or an OfflineIMAP/mbsync sync root.
 All descendant Maildir folders are discovered recursively, including nested
 folders and hidden Maildir++ folders such as `.Sent`. If the root is itself
 a Maildir, its messages are included too. Each Maildir must contain `cur/`,
 `new/`, and `tmp/`. Incomplete Maildirs and roots with no Maildirs are errors.
-No mail server, credentials, or IMAP connection is needed.
+No mail server credentials or IMAP connection are needed to read the mailbox.
+Hosted Jev inference separately requires a TypeSafe API key.
 This version reads Maildir, not mbox files.
 
 Dry-run reads regular message files in `cur/` and `new/`, skipping `tmp/`,
@@ -49,11 +83,11 @@ Stdout is one JSON report with `dry_run`, the absolute selected root path in
 `mailbox`, `failures`, and `classifications`. Each classification includes its per-chunk evidence and absolute
 source `path`, Message-ID, subject, category, confidence, per-category
 probabilities, model name, and token usage. Folder discovery and inference failures abort the run; per-message read,
-MIME and chunk-preparation failures are included in the report. Inference runs locally; the first model load may
+MIME and chunk-preparation failures are included in the report. With the default laya backend, inference runs locally; the first model load may
 download weights from Hugging Face. Use `--model /path/to/checkpoint` for
 local model assets. Empty mailboxes skip model loading.
 
-The model defaults to `convaiinnovations/laya`. Use `--model` for a local
+For `--backend laya`, the model defaults to `convaiinnovations/laya`. Use `--model` for a local
 checkpoint directory or another Hugging Face checkpoint, `--subfolder
 multilingual` or `--subfolder typed-decisions` for alternate checkpoints, and `--device cpu|cuda|metal` with
 optional `--dtype f32|bf16|f16` and `--batch-size`. `--batch-size` defaults to 16 and controls how many messages are submitted
@@ -61,7 +95,7 @@ together to the model. Each chunk may require multiple tournament rounds. The mo
 packs their sequences into batched forward passes. Reduce it if GPU memory
 is insufficient. The final partial batch is included and results retain file order.
 
-Emails are split into nonoverlapping UTF-8 body chunks, preferring whitespace
+For laya, emails are split into nonoverlapping UTF-8 body chunks, preferring whitespace
 boundaries. Every chunk repeats the subject, sender, date and owner context. Recipient
 lists are excluded from model input. The actual
 model tokenizer checks the complete request against the checkpoint budget, so
@@ -98,7 +132,7 @@ is summed across chunks. Disagreement between chunks is retained for inspection.
 Chunking ensures coverage; it does not establish classification accuracy. Review
 results on representative, labeled messages before trusting folder assignments.
 
-Cargo forwards the same acceleration features as `vs1`: `cuda`, `flash-attn`,
+Cargo forwards `jev` and the same acceleration features as `vs1`: `cuda`, `flash-attn`,
 `metal`, `mkl`, and `accelerate`. CPU works without features. The flake exposes
 `vs1-email`, `vs1-email-cuda`, `vs1-email-flash-attn`, and `vs1-email-metal`,
 following the existing package conventions and platform requirements.

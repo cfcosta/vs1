@@ -47,7 +47,11 @@ and execution failures return a nonzero exit code.
 ## Models
 
 Hosted Jev is the default (`--backend typesafe`) and requires `TYPESAFE_API_KEY`.
-`TYPESAFE_MODEL` defaults to `jev-latest`. To use local decisions, build with
+`--model` selects the hosted model ID; it defaults to `TYPESAFE_MODEL` when set,
+otherwise `jev-latest`. `--backend jev` aliases `typesafe`, and `--backend laya`
+aliases `local` in local-enabled builds. Hosted decisions use `vs1::JevClient`;
+the CLI prints its actual HTTP call/retry counters on stderr when the backend
+is dropped. Requests and provider answers use the same typed API as local laya. To use local decisions, build with
 `--features local` and select `--backend local`. Only local-enabled builds expose
 `--device`, `--checkpoint`, `--subfolder`, `--max-len`, and `--head-max-len`.
 `--checkpoint` accepts a local directory or Hub

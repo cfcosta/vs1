@@ -3,7 +3,7 @@ name = "vs1-email"
 version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
-description = "Mailbox categorization using local laya decision models"
+description = "Mailbox categorization using caller-selected laya or Jev decision models"
 repository = "https://github.com/cfcosta/vs1"
 
 [dependencies]
@@ -20,7 +20,7 @@ html2text = { version = "0.17", default-features = false }
 clap = { version = "4", features = ["derive"] }
 
 [features]
-default = []
+default = ["jev"]
 jev = ["vs1/jev"]
 cuda = ["vs1/cuda", "candle-core/cuda"]
 flash-attn = ["cuda", "vs1/flash-attn"]

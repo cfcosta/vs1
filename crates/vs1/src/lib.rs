@@ -1,4 +1,4 @@
-//! vs1: System One decision models on candle.
+//! vs1: local laya and caller-selected hosted Jev decision models.
 //!
 //! This crate runs [laya](https://github.com/NandhaKishorM/laya)
 //! checkpoints: a ModernBERT encoder with a small decision head that
@@ -29,6 +29,10 @@
 //! let response = model.system_one(&request).unwrap();
 //! println!("{}", serde_json::to_string_pretty(&response).unwrap());
 //! ```
+//!
+//! Normal builds include `JevClient` (the default `jev` feature).
+//! [`DecisionModel`] wraps either backend with the same typed methods;
+//! selection and credentials belong to the caller.
 //!
 //! The crate started life inside docbert as a retrieval reranker:
 //! fetch more chunks than asked for, ask the model whether each one
