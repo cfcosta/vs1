@@ -57,6 +57,9 @@ mod rope_cuda;
 #[cfg(all(test, feature = "flash-attn"))]
 mod geglu_bench;
 
+#[cfg(feature = "flash-attn")]
+mod gemm_cuda;
+
 pub use builder::{
     DEFAULT_REPO_ID,
     MULTILINGUAL_SUBFOLDER,

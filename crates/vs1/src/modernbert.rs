@@ -28,6 +28,28 @@ use candle_nn::{
 };
 use serde::Deserialize;
 
+// Test-only cuBLASLt experiment; ordinary builds use the original Linear.
+fn encoder_linear(xs: &Tensor, linear: &Linear) -> Result<Tensor> {
+    #[cfg(all(test, feature = "flash-attn"))]
+    if let Some(output) = crate::gemm_cuda::bench::linear(xs, linear) {
+        return output;
+    }
+    xs.apply(linear)
+}
+
+#[cfg(feature = "flash-attn")]
+fn packed_linear(
+    xs: &Tensor,
+    linear: &Linear,
+    retile: &crate::gemm_cuda::Retile,
+) -> Result<Tensor> {
+    #[cfg(test)]
+    if let Some(output) = crate::gemm_cuda::bench::linear(xs, linear) {
+        return output;
+    }
+    retile.linear(xs, linear)
+}
+
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Config {
     pub vocab_size: usize,
@@ -396,6 +418,7 @@ impl ModernBertAttention {
     /// inside the flash kernel. Nothing is unpacked or repacked per
     /// layer.
     #[cfg(feature = "flash-attn")]
+    #[allow(clippy::too_many_arguments)]
     fn forward_varlen_fully_packed(
         &self,
         packed_hidden_states: &Tensor,
@@ -404,6 +427,7 @@ impl ModernBertAttention {
         seqlens: &Tensor,
         max_seq_len: usize,
         local_window: Option<usize>,
+        retile: &crate::gemm_cuda::Retile,
     ) -> Result<Tensor> {
         let (total_tokens, d) = packed_hidden_states.dims2()?;
         let shape = (
@@ -411,9 +435,12 @@ impl ModernBertAttention {
             self.num_attention_heads,
             self.attention_head_size,
         );
-        let q = packed_hidden_states.apply(&self.q)?.reshape(shape)?;
-        let k = packed_hidden_states.apply(&self.k)?.reshape(shape)?;
-        let v = packed_hidden_states.apply(&self.v)?.reshape(shape)?;
+        let q = packed_linear(packed_hidden_states, &self.q, retile)?
+            .reshape(shape)?;
+        let k = packed_linear(packed_hidden_states, &self.k, retile)?
+            .reshape(shape)?;
+        let v = packed_linear(packed_hidden_states, &self.v, retile)?
+            .reshape(shape)?;
 
         let (q, k) = self
             .rotary_emb
@@ -451,7 +478,7 @@ impl ModernBertAttention {
         let xs = xs.to_dtype(orig_dtype)?;
 
         let xs = xs.reshape((total_tokens, d))?;
-        xs.apply(&self.proj)
+        packed_linear(&xs, &self.proj, retile)
     }
 
     /// Flash attention for fixed-length query batches: every padded
@@ -554,8 +581,12 @@ impl ModernBertMLP {
     }
 }
 
-impl Module for ModernBertMLP {
-    fn forward(&self, xs: &Tensor) -> Result<Tensor> {
+impl ModernBertMLP {
+    fn forward_with_output(
+        &self,
+        xs: &Tensor,
+        output: impl FnOnce(&Tensor, &Linear) -> Result<Tensor>,
+    ) -> Result<Tensor> {
         #[cfg(feature = "cuda")]
         if xs.device().is_cuda() && xs.dtype() == DType::BF16 {
             #[cfg(test)]
@@ -564,15 +595,21 @@ impl Module for ModernBertMLP {
             {
                 let act = xs.apply(&self.wi_act)?.gelu_erf()?;
                 let gate = xs.apply(&self.wi_gate)?;
-                return (act * gate)?.apply(&self.wo);
+                return output(&(act * gate)?, &self.wo);
             }
-            let act = xs.apply(&self.wi_act)?;
-            let gate = xs.apply(&self.wi_gate)?;
-            return crate::geglu_cuda::forward(&act, &gate)?.apply(&self.wo);
+            let act = encoder_linear(xs, &self.wi_act)?;
+            let gate = encoder_linear(xs, &self.wi_gate)?;
+            return output(&crate::geglu_cuda::forward(&act, &gate)?, &self.wo);
         }
         let act = xs.apply(&self.wi_act)?.gelu_erf()?;
         let gate = xs.apply(&self.wi_gate)?;
-        (act * gate)?.apply(&self.wo)
+        output(&(act * gate)?, &self.wo)
+    }
+}
+
+impl Module for ModernBertMLP {
+    fn forward(&self, xs: &Tensor) -> Result<Tensor> {
+        self.forward_with_output(xs, encoder_linear)
     }
 }
 
@@ -681,6 +718,7 @@ impl ModernBertLayer {
         seqlens: &Tensor,
         max_seq_len: usize,
         local_window: Option<usize>,
+        retile: &crate::gemm_cuda::Retile,
     ) -> Result<Tensor> {
         let mut xs = packed_xs.clone();
         if let Some(norm) = &self.attn_norm {
@@ -693,6 +731,7 @@ impl ModernBertLayer {
             seqlens,
             max_seq_len,
             local_window,
+            retile,
         )?;
         let (_, hidden) = packed_xs.dims2()?;
         let fused_norm = packed_xs.device().is_cuda()
@@ -715,10 +754,17 @@ impl ModernBertLayer {
                 self.mlp_norm.weight(),
                 self.mlp_norm.eps(),
             )?;
-            return residual + normalized.apply(&self.mlp)?;
+            return residual
+                + self.mlp.forward_with_output(&normalized, |xs, w| {
+                    packed_linear(xs, w, retile)
+                })?;
         }
         let xs = (attn_out + packed_xs)?;
-        let mlp_out = xs.apply(&self.mlp_norm)?.apply(&self.mlp)?;
+        let mlp_out = self
+            .mlp
+            .forward_with_output(&xs.apply(&self.mlp_norm)?, |xs, w| {
+                packed_linear(xs, w, retile)
+            })?;
         xs + mlp_out
     }
 
@@ -951,6 +997,8 @@ pub struct ModernBert {
     local_attention_masks: Arc<LastUsedCache<usize, Tensor>>,
     #[cfg(feature = "flash-attn")]
     varlen_positions: Arc<LastUsedCache<Vec<usize>, Tensor>>,
+    #[cfg(feature = "flash-attn")]
+    retile: Arc<crate::gemm_cuda::Retile>,
 }
 
 impl ModernBert {
@@ -1009,6 +1057,8 @@ impl ModernBert {
             local_attention_masks: Arc::new(LastUsedCache::new()),
             #[cfg(feature = "flash-attn")]
             varlen_positions: Arc::new(LastUsedCache::new()),
+            #[cfg(feature = "flash-attn")]
+            retile: Arc::new(crate::gemm_cuda::Retile::default()),
         })
     }
 
@@ -1126,6 +1176,7 @@ impl ModernBert {
                 &seqlens,
                 max_seq_len,
                 effective_window,
+                &self.retile,
             )?;
         }
         packed_xs.apply(&self.final_norm)

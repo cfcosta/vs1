@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 
 use super::*;
 
-pub(super) fn cases() -> Vec<(String, Vec<SystemOneRequest>)> {
+pub(crate) fn cases() -> Vec<(String, Vec<SystemOneRequest>)> {
     let paragraph = "The indexing pipeline compares content hashes and updates changed documents. Unchanged files are skipped. ";
     let candidate = |i, repeats| {
         SystemOneRequest::new(format!(
@@ -224,6 +224,13 @@ fn median(values: &mut [f64]) -> f64 {
 fn run_paired(
     reference: &'static std::sync::atomic::AtomicBool,
 ) -> anyhow::Result<()> {
+    run_paired_cases(reference, cases())
+}
+
+pub(crate) fn run_paired_cases(
+    reference: &'static std::sync::atomic::AtomicBool,
+    cases: Vec<(String, Vec<SystemOneRequest>)>,
+) -> anyhow::Result<()> {
     use std::sync::atomic::Ordering;
     struct Reset(&'static std::sync::atomic::AtomicBool);
     impl Drop for Reset {
@@ -234,7 +241,7 @@ fn run_paired(
     let _reset = Reset(reference);
     let model = model()?;
     let mut report = vec![];
-    for (name, requests) in cases() {
+    for (name, requests) in cases {
         reference.store(true, Ordering::Relaxed);
         let expected = snapshot(&model.system_one_batch(&requests)?);
         for warmup in 0..6 {
@@ -271,6 +278,9 @@ fn run_paired(
         report.push(row);
     }
     eprintln!("PAIRED_REPORT={}", serde_json::to_string(&report)?);
+    if let Some(path) = std::env::var_os("VS1_PAIRED_REPORT") {
+        std::fs::write(path, serde_json::to_vec_pretty(&report)?)?;
+    }
     Ok(())
 }
 

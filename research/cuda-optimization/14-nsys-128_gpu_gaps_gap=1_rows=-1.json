@@ -1,0 +1,74 @@
+[
+  {
+    "Row#": 1,
+    "Duration (ns)": 3841567,
+    "Start (ns)": 1466610048,
+    "PID": 1427427,
+    "Device ID": 0,
+    "Context ID": 1
+  },
+  {
+    "Row#": 2,
+    "Duration (ns)": 3524060,
+    "Start (ns)": 733620238,
+    "PID": 1427427,
+    "Device ID": 0,
+    "Context ID": 1
+  },
+  {
+    "Row#": 3,
+    "Duration (ns)": 3519644,
+    "Start (ns)": 2928294485,
+    "PID": 1427427,
+    "Device ID": 0,
+    "Context ID": 1
+  },
+  {
+    "Row#": 4,
+    "Duration (ns)": 3388763,
+    "Start (ns)": 3295296659,
+    "PID": 1427427,
+    "Device ID": 0,
+    "Context ID": 1
+  },
+  {
+    "Row#": 5,
+    "Duration (ns)": 3345338,
+    "Start (ns)": 2561532281,
+    "PID": 1427427,
+    "Device ID": 0,
+    "Context ID": 1
+  },
+  {
+    "Row#": 6,
+    "Duration (ns)": 3341499,
+    "Start (ns)": 1830093121,
+    "PID": 1427427,
+    "Device ID": 0,
+    "Context ID": 1
+  },
+  {
+    "Row#": 7,
+    "Duration (ns)": 3309562,
+    "Start (ns)": 1099419842,
+    "PID": 1427427,
+    "Device ID": 0,
+    "Context ID": 1
+  },
+  {
+    "Row#": 8,
+    "Duration (ns)": 3271131,
+    "Start (ns)": 372886691,
+    "PID": 1427427,
+    "Device ID": 0,
+    "Context ID": 1
+  },
+  {
+    "Row#": 9,
+    "Duration (ns)": 3236985,
+    "Start (ns)": 2199445186,
+    "PID": 1427427,
+    "Device ID": 0,
+    "Context ID": 1
+  }
+]

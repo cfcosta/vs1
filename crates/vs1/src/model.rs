@@ -645,4 +645,4 @@ mod tests {
 
 #[cfg(all(test, feature = "flash-attn"))]
 #[path = "batch_bench.rs"]
-mod batch_bench;
+pub(crate) mod batch_bench;
