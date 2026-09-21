@@ -540,3 +540,86 @@ reports, frozen input hashes and analysis live under
 record aborted compatibility attempts; `normalized-runs/` contains the four
 complete measured passes. No validation-set evaluation or hosted integration
 was undertaken.
+
+## 13. Jev with whole emails and one category choice
+
+[TypeSafe's model documentation](https://docs.typesafe.ai/models) specifies
+64k tokens per request and 32k for state plus the longest question. Its
+[Choice documentation](https://docs.typesafe.ai/primitives/choice) supports up
+to 255 options. Thus the laya-sized chunks and five-option groups are not
+required for Jev. The provider also warns that irrelevant context can reduce
+accuracy; this is a measured comparison, not an assumption that longer is better.
+
+Kept the same 100 development messages, 61 frozen labels, cleaning, category
+rules, separate subject/from/date and owner context. Pinned `jev-1.13.0` and
+used at most 16 concurrent HTTP requests. Tested whole cleaned bodies first
+with the existing tournament, then with all 17 categories in one Choice.
+No examples, recipient headers, invented owner details or other emails were
+added. Order: tournament, direct, direct, tournament.
+
+The longest body contained 19,848 characters; the largest serialized preflight
+request was 23,608 UTF-8 bytes. A conservative 30,000-byte guard was used rather
+than pretending the local tokenizer measures Jev's budget. Every request was
+accepted. Saved states verify that all 600 requests in the corrected run
+contained an exact full cleaned body, without truncation. The largest reported
+input-token usage for any request was 7,134; this is provider accounting, not
+a separately measured state-token count.
+
+| Jev configuration                       | Correct / 61, two passes | HTTP calls per pass | Questions per pass | Input tokens per pass | Wall time, two passes |
+| --------------------------------------- | ------------------------ | ------------------: | -----------------: | --------------------- | --------------------- |
+| Previous laya-sized chunks + tournament | 59, 60                   |                 288 |                720 | 361,028 / 360,998     | 11.09s / 11.18s       |
+| Whole email + tournament                | 59, 59                   |                 200 |                500 | 283,709 / 283,738     | 6.07s / 9.09s         |
+| Whole email + one 17-way Choice         | 60, 59                   |                 100 |                100 | 161,051 / 161,051     | 3.03s / 6.44s         |
+
+Single-choice output usage was 14,337 tokens in both corrected passes;
+tournament output usage was 23,996 / 24,004. Every pass classified 100 messages
+without processing failures. Whole-email tournament predictions repeated
+exactly. Direct predictions changed on four messages, one labeled: the same
+`ops` versus `bulk` boundary seen in the preceding comparison. Both direct
+passes retained the `clients` to `other` error. No claim of improved accuracy is
+made: the benefit is matching the previously observed 59–60/61 range with
+65.3% fewer HTTP calls and 55.4% fewer accounted input tokens. Runtime also fell
+in these runs, but network/server/machine load was not isolated, so the timing
+spread matters. These are development results, not unseen validation accuracy.
+
+### Count actual calls, including corrections
+
+Counters increment at HTTP attempts, including failed attempts; retries and
+logical requests are separate counters. Questions are counted independently:
+the first tournament request contains four questions, followed by one final
+question in a second request. Concurrent requests remain separate HTTP calls.
+Per-attempt status records reconcile with the reported totals.
+
+The first test uncovered an existing 8,192-character chunking work guard:
+returning `fits=true` did not bypass it, and message 0091 still became three
+chunks. That expanded-context tournament made 204 calls and asked 510 questions
+per pass, scoring 59/61 twice. Its direct variant already used whole bodies,
+made 100 calls and scored 59/61 then 60/61, in 2.87s / 2.89s. These records remain
+under `runs/`; they are not mislabeled as whole-email tournament results.
+
+Added a failing regression test for a 20,000-character body, then bypassed the
+work guard in the isolated experiment and repeated both variants into
+`whole-runs/`. The corrected four passes made **600 HTTP calls**: 200 + 100 +
+100 + 200. The initial four passes made **608**, for **1,208 HTTP attempts total
+in this experiment**, with **zero retries**. This excludes the separate
+comparison in section 12. No extra model calls were used for warmup or preflight.
+
+### Decision and reproducibility
+
+The whole-email single-choice design is a more efficient Jev experimental path
+on this sample. It does not replace the user's chosen laya model or establish
+that laya can use the same context/choice sizes. Production behavior and
+`email.toml` remain unchanged. Archived the prototype and reverted its
+experimental dependency and chunker changes after the comparison.
+
+Seven harness tests passed, including failures before new implementation for
+full-state preservation, actual-attempt counting and the chunking guard.
+Formatting and release Clippy passed. The same limited rounding normalization
+and probability-argmax selection from section 12 were used. Corrected passes
+had no choice/argmax mismatches; probability normalization affected 4, 2, 1,
+and 5 answers respectively, in run order.
+
+Private source patch, protocol amendment, provider documentation snapshots,
+complete input/output records, request/status logs and analyses are at
+`~/.local/state/vs1-email/jev-context-20260921/`. `verification.json` records
+full-body checks; `whole-analysis.json` records corrected scores and counts.
