@@ -174,6 +174,14 @@ were reviewed by the assistant, not independently confirmed by the user.
 Previously consulted validation sets are no longer untouched holdouts. These
 counts are useful paired evidence, not whole-mailbox accuracy estimates.
 
+The [matched hosted Jev comparison](email-experiments.md#12-matched-hosted-jev-comparison)
+subsequently scored 59/61 and 60/61 against laya's repeated 36/61, using identical
+message states and preliminary questions under the current tournament. This
+shows that those inputs can support much higher accuracy with another backend;
+it does not distinguish local checkpoint limitations from runtime differences.
+The experiment adapted Jev's rounded probabilities and occasional non-argmax
+choice field explicitly. It did not replace laya or change the active config.
+
 ## Boundaries for subsequent work
 
 Keep the current laya checkpoint, typed API and local execution. First use this

@@ -466,3 +466,77 @@ possible questions-only design.
 Removed the prototype and kept the active config and classifier unchanged.
 Private protocols, amendments, source, tests, raw answers, requests and timing
 records are archived under `~/.local/state/vs1-email/question-only-20260921/`.
+
+## 12. Matched hosted Jev comparison
+
+Compared the same 100-message development subset and 61 frozen clear-case
+labels with TypeSafe's `jev-latest`, which returned `jev-1.13.0`. This compares
+backends under the current production tournament, not the rejected
+questions-only experiment. Local execution used typed-decisions, CUDA BF16,
+flash attention and batch size 16; hosted execution used up to 16 concurrent
+HTTP requests. Order: laya, Jev, Jev, laya.
+
+Both backends used the same cleaned message state, owner context, config,
+144 chunks, preliminary category groups and character-weighted aggregation.
+Saved requests verified identical states and preliminary questions. Each
+backend selected its own finalists, so final-choice options can differ.
+Every complete pass processed all 100 messages without failures, using 720
+questions in 288 requests.
+
+| Backend                    | Correct / 61, first pass | Correct / 61, repeat | Wall time, first / repeat |
+| -------------------------- | -----------------------: | -------------------: | ------------------------: |
+| Local laya typed-decisions |               36 (59.0%) |           36 (59.0%) |           10.21s / 19.14s |
+| Hosted Jev 1.13.0          |               59 (96.7%) |           60 (98.4%) |           11.09s / 11.18s |
+
+Jev fixed 24 baseline errors on the first pass and 25 on the repeat, introducing
+one regression in both. The consistent remaining error was `clients` classified
+as `other`; the first pass also classified an `ops` message as `bulk`.
+Laya repeated all 100 predictions exactly. Jev changed three predictions, one
+on a labeled message. This is a large paired difference on this selected sample,
+not a whole-mailbox accuracy estimate; the 39 unlabeled messages are excluded
+from the accuracy denominator.
+
+Timings include request preparation and private audit writes, exclude loading
+and local warmup, and include network latency for Jev. The local repeat was
+substantially slower; these runs did not isolate machine load, so do not infer
+a precise backend speed ratio. Hosted median individual request latency was
+309ms / 296ms, with no HTTP retries during either complete pass. Reported hosted
+usage was 361,028 / 360,998 input tokens and 34,564 / 34,558 output tokens;
+these are provider accounting, not a measured bill or equivalent local work.
+
+### Response compatibility
+
+Two initial attempts stopped in their first hosted batch. One Jev answer chose
+`identity` despite assigning `ops` a higher probability; another distribution
+summed to 0.99. The production validator correctly rejected both.
+
+The experimental adapter selects the probability argmax, matching the existing
+classifier's selection rule. It also normalizes finite probabilities in [0, 1]
+when their total differs from one by at most 0.025. Larger discrepancies remain
+invalid. Thus this comparison measures Jev distributions under our tournament,
+not the service's potentially differing `choice` field. Raw responses are saved
+before adaptation. Across 720 answers per complete pass, the first had one
+choice/argmax mismatch and six distributions needing normalization; the second
+had zero and five respectively. The adapter does not change production code.
+
+### Interpretation and artifacts
+
+The existing inputs and rules permit substantially better predictions through
+another backend. This suggests a limit in the current laya inference path,
+but does not distinguish checkpoint capability, task transfer and runtime
+numerical differences. Direct replay against upstream laya remains a useful
+separate diagnostic. This comparison does not authorize replacing laya.
+
+Four harness tests failed before implementation and passed afterward: changing
+only the remote model field, preserving parallel response order and errors,
+selecting probability argmax, and normalizing rounding without hiding larger
+invalid distributions. Release Clippy and formatting passed. Archived the
+harness and removed its experimental code/dependency; active `email.toml` and
+production behavior are unchanged. Concurrent model work was left untouched.
+
+Private protocols, amendments, source patch, raw requests/responses, baseline
+reports, frozen input hashes and analysis live under
+`~/.local/state/vs1-email/jev-comparison-20260921/`. `runs/` and `aligned-runs/`
+record aborted compatibility attempts; `normalized-runs/` contains the four
+complete measured passes. No validation-set evaluation or hosted integration
+was undertaken.
