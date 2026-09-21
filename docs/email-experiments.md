@@ -207,3 +207,59 @@ Decision: remove the prototype and retain no production changes. Do not tune
 thresholds against this outcome or spend validation labels on a candidate
 without a development gain. Findings and private reproducibility artifacts:
 `~/.local/state/vs1-email/money-events-100-20260921/`.
+
+## 9. Multiple yes/no evidence questions per category
+
+Added 3–4 category-specific `questions` to each rule in an isolated experimental
+`email.toml`: 53 supporting questions in total. Optional schema support retained
+compatibility with old configs and validated a 3–5 range, nonblank wording and
+unique questions. Twelve existing exclusions were asked separately.
+
+Every chunk received 65 binary (`noul`) questions. Two predeclared ways of
+combining support were compared: strongest answer, and average of the strongest
+two. These are alternative signals rather than a requirement that all answers
+be yes. An exclusion score of at least 0.75 vetoed its category; this heuristic
+was fixed before inference and does not imply calibrated probabilities.
+Each method shortlisted five categories for the existing final choice, then
+used unchanged length-weighted pooling across chunks. Both reused the same
+binary answers so the pooling comparison did not repeat extraction.
+
+The experiment ran against pinned, uncompressed source in an isolated Jujutsu
+workspace because separate model-compression work was active in the main
+working copy. It used the retained descriptions, CUDA BF16, flash attention,
+batch size 16, and the same 100-message development sample with 61 labels.
+
+| Method                                | Correct / 61, both passes | Mean runtime | Questions |
+| ------------------------------------- | ------------------------: | -----------: | --------: |
+| Current classifier                    |                        36 |       14.63s |       720 |
+| Strongest answer, then final choice   |                        35 |      129.16s |      9504 |
+| Strongest-two mean, then final choice |                        34 |      128.56s |      9504 |
+
+All 100 predictions per method repeated identically. Strongest-answer pooling
+fixed four cases but regressed five. Strongest-two pooling fixed five but
+regressed seven. The correct category was missing from all chunk finalists
+in 11 and nine labeled cases respectively, versus 17 for the baseline: better
+shortlist coverage still did not improve final accuracy.
+
+A post-hoc diagnostic that used the length-weighted supporting scores directly,
+without the final choice, scored 28/61 and 25/61 on the first pass. It was not
+adopted or tuned. Exclusions triggered 15 vetoes among 1,728 checks in that
+pass. Raw supporting answers are retained for further analysis.
+
+Timings varied considerably across passes (strongest-answer variant 142.98s
+and 115.34s); treat them as local observations rather than a precise throughput
+claim. The exact question-count increase is 13.2 times. The two experimental
+variants reused baseline chunk boundaries; their times include probing and
+final classification, not independent chunk-boundary preparation.
+
+Schema and pooling tests failed before implementation, then passed. Package
+tests, formatting and Clippy passed. Every probe and final request passed the
+state-budget check; all messages completed without failures. No validation run
+was needed after both development results regressed.
+
+Decision: revert the schema, questions in the active config, and experimental
+runner. The production classifier and active `email.toml` remain unchanged.
+The proposed question set is preserved as `questions.toml`, with the full
+prototype patch, source, raw answers, results and timings under
+`~/.local/state/vs1-email/multi-questions-20260921/`. Only findings are committed;
+unrelated model-compression changes are untouched.
