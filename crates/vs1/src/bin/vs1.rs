@@ -18,7 +18,7 @@ use std::{fs, time::Instant};
 use anyhow::{Context, bail};
 use candle_core::{DType, Device};
 use serde_json::json;
-use vs1::{SystemOne, SystemOneRequest};
+use vs1::{DecisionModel, SystemOne, SystemOneRequest};
 
 fn device(name: &str) -> anyhow::Result<Device> {
     match name {
@@ -35,7 +35,8 @@ fn main() -> anyhow::Result<()> {
     let mut args = std::env::args().skip(1);
     let mut path = None;
     let mut dump_ids = false;
-    let mut model_id = vs1::DEFAULT_REPO_ID.to_string();
+    let mut model_id: Option<String> = None;
+    let mut backend = "laya".to_string();
     let mut subfolder = String::new();
     let mut device_name = "cpu".to_string();
     let mut dtype: Option<DType> = None;
@@ -43,8 +44,11 @@ fn main() -> anyhow::Result<()> {
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--dump-ids" => dump_ids = true,
+            "--backend" => {
+                backend = args.next().context("--backend needs laya or jev")?
+            }
             "--model" => {
-                model_id = args.next().context("--model needs a value")?
+                model_id = Some(args.next().context("--model needs a value")?)
             }
             "--subfolder" => {
                 subfolder = args.next().context("--subfolder needs a value")?
@@ -72,7 +76,7 @@ fn main() -> anyhow::Result<()> {
         }
     }
     let path = path.context(
-        "usage: decide [--dump-ids] [--device cpu|cuda] request.json",
+        "usage: vs1 [--backend laya|jev] [--model MODEL] [--dump-ids] [--device cpu|cuda] request.json",
     )?;
     let raw = fs::read_to_string(&path)?;
     let (requests, single): (Vec<SystemOneRequest>, bool) =
@@ -81,27 +85,63 @@ fn main() -> anyhow::Result<()> {
             Err(_) => (vec![serde_json::from_str(&raw)?], true),
         };
 
-    let started = Instant::now();
-    let mut builder = SystemOne::from(&model_id)
-        .with_subfolder(subfolder)
-        .with_device(device(&device_name)?);
-    if let Some(dtype) = dtype {
-        builder = builder.with_dtype(dtype);
-    }
-    if let Some(batch_size) = batch_size {
-        builder = builder.with_batch_size(batch_size);
-    }
-    let model: SystemOne = builder.try_into()?;
-    eprintln!(
-        "loaded {} on {:?} as {:?} in {:.1?}",
-        model.model_name(),
-        model.device(),
-        model.dtype(),
-        started.elapsed()
-    );
+    let model: DecisionModel = match backend.as_str() {
+        "jev" => {
+            anyhow::ensure!(
+                !dump_ids
+                    && subfolder.is_empty()
+                    && device_name == "cpu"
+                    && dtype.is_none(),
+                "--dump-ids, --subfolder, --device and --dtype are local-only"
+            );
+            #[cfg(feature = "jev")]
+            {
+                vs1::JevClient::new(
+                    std::env::var("TYPESAFE_API_KEY")
+                        .context("TYPESAFE_API_KEY is required for Jev")?,
+                    model_id.as_deref().unwrap_or("jev-latest"),
+                )?
+                .with_concurrency(batch_size.unwrap_or(16))?
+                .into()
+            }
+            #[cfg(not(feature = "jev"))]
+            {
+                bail!("Jev requires building with --features jev")
+            }
+        }
+        "laya" => {
+            let started = Instant::now();
+            let mut builder = SystemOne::from(
+                model_id.as_deref().unwrap_or(vs1::DEFAULT_REPO_ID),
+            )
+            .with_subfolder(subfolder)
+            .with_device(device(&device_name)?);
+            if let Some(dtype) = dtype {
+                builder = builder.with_dtype(dtype);
+            }
+            if let Some(batch_size) = batch_size {
+                builder = builder.with_batch_size(batch_size);
+            }
+            let model: SystemOne = builder.try_into()?;
+            eprintln!(
+                "loaded {} on {:?} as {:?} in {:.1?}",
+                model.model_name(),
+                model.device(),
+                model.dtype(),
+                started.elapsed()
+            );
+            model.into()
+        }
+        _ => bail!("--backend must be laya or jev"),
+    };
 
     let started = Instant::now();
-    let responses = model.system_one_batch(&requests)?;
+    let result = model.system_one_batch(&requests);
+    #[cfg(feature = "jev")]
+    if let DecisionModel::Jev(client) = &model {
+        eprintln!("Jev calls: {}", serde_json::to_string(&client.stats())?);
+    }
+    let responses = result?;
     let elapsed = started.elapsed();
     let question_count: usize =
         requests.iter().map(|r| r.questions.len()).sum();
@@ -115,6 +155,7 @@ fn main() -> anyhow::Result<()> {
     for (request, response) in requests.iter().zip(&responses) {
         let mut entry = serde_json::to_value(response)?;
         if dump_ids {
+            let model = model.local().context("--dump-ids is local-only")?;
             let state = model.encode_state(&request.state)?;
             let mut ids = serde_json::Map::new();
             for (id, question) in &request.questions {

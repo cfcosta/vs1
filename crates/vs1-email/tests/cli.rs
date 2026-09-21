@@ -135,3 +135,19 @@ fn progress_file_is_created_without_overwriting_existing_results() {
         "previous results"
     );
 }
+#[test]
+fn jev_is_explicit_and_rejects_local_tuning_flags() {
+    let help = cli(&["--help"]);
+    assert!(String::from_utf8_lossy(&help.stdout).contains("--backend"));
+    let out = cli(&[
+        "--dry-run",
+        "--backend",
+        "jev",
+        "--device",
+        "cuda",
+        "--config",
+        "/missing",
+    ]);
+    assert!(!out.status.success());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("local-only"));
+}

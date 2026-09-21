@@ -21,6 +21,7 @@ clap = { version = "4", features = ["derive"] }
 
 [features]
 default = []
+jev = ["vs1/jev"]
 cuda = ["vs1/cuda", "candle-core/cuda"]
 flash-attn = ["cuda", "vs1/flash-attn"]
 metal = ["vs1/metal", "candle-core/metal"]

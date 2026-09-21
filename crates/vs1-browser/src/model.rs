@@ -15,6 +15,7 @@ use vs1::{SystemOne, SystemOneRequest};
 pub struct Backend {
     #[cfg(feature = "local")]
     model: Option<SystemOne>,
+    hosted: Option<vs1::JevClient>,
     client: reqwest::blocking::Client,
     pub metadata: Value,
 }
@@ -24,7 +25,7 @@ impl Backend {
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(25))
             .build()?;
-        if args.backend == "typesafe" {
+        if matches!(args.backend.as_str(), "typesafe" | "jev") {
             ensure!(
                 env::var("TYPESAFE_API_KEY").is_ok(),
                 "TYPESAFE_API_KEY is required for the Jev backend"
@@ -32,8 +33,12 @@ impl Backend {
             return Ok(Self {
                 #[cfg(feature = "local")]
                 model: None,
+                hosted: Some(vs1::JevClient::new(
+                    env::var("TYPESAFE_API_KEY")?,
+                    &args.model,
+                )?),
                 client,
-                metadata: json!({"backend":"typesafe","model":env::var("TYPESAFE_MODEL").unwrap_or("jev-latest".into())}),
+                metadata: json!({"backend":"typesafe","model":args.model}),
             });
         }
         #[cfg(feature = "local")]
@@ -53,7 +58,10 @@ impl Backend {
         args: &crate::ModelArgs,
         client: reqwest::blocking::Client,
     ) -> Result<Self> {
-        ensure!(args.backend == "local", "backend must be local or typesafe");
+        ensure!(
+            matches!(args.backend.as_str(), "local" | "laya"),
+            "backend must be local/laya or typesafe/jev"
+        );
         let started = Instant::now();
         let device = match args.device.as_str() {
             "cpu" => Device::Cpu,
@@ -87,6 +95,7 @@ impl Backend {
             "features":{"cuda":cfg!(feature="cuda"),"flash_attn":cfg!(feature="flash-attn"),"metal":cfg!(feature="metal")}});
         Ok(Self {
             model: Some(model),
+            hosted: None,
             client,
             metadata,
         })
@@ -107,15 +116,14 @@ impl Backend {
             }
             return Ok(response);
         }
-        {
-            let mut body = body.clone();
-            body["model"] = self.metadata["model"].clone();
-            self.post(
-                "https://api.typesafe.ai/v1/systemone",
-                &env::var("TYPESAFE_API_KEY")?,
-                &body,
-            )
-        }
+        let request: vs1::SystemOneRequest =
+            serde_json::from_value(body.clone())?;
+        Ok(serde_json::to_value(
+            self.hosted
+                .as_ref()
+                .context("hosted model not loaded")?
+                .system_one(&request)?,
+        )?)
     }
 
     pub fn inspect(&self, _body: &Value) -> Result<Value> {
@@ -275,6 +283,14 @@ fn validate_text(output: &Value) -> Result<String> {
         "invalid field value; nothing typed"
     );
     Ok(text.to_owned())
+}
+
+impl Drop for Backend {
+    fn drop(&mut self) {
+        if let Some(client) = &self.hosted {
+            eprintln!("Jev calls: {}", json!(client.stats()));
+        }
+    }
 }
 
 #[cfg(test)]

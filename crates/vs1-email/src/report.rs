@@ -166,3 +166,88 @@ fn aggregate(
         decisions: serde_json::Value::Null,
     })
 }
+/// One complete email and all categories per request, for hosted models with
+/// larger context/choice budgets. Never truncates or splits the body. Oversized
+/// requests are rejected by the provider. Raw provider answers are retained.
+pub fn dry_run_single_choice_with_progress(
+    config: &Config,
+    mailbox: &Mailbox,
+    batch_size: usize,
+    decide: &mut impl FnMut(&[SystemOneRequest]) -> Result<Vec<SystemOneResponse>>,
+    progress: &mut impl FnMut(&Classification) -> Result<()>,
+) -> Result<DryRunReport> {
+    ensure!(batch_size > 0, "batch size must be greater than zero");
+    ensure!(
+        config.rules().len() <= 255,
+        "Jev supports at most 255 categories"
+    );
+    let mut classifications = Vec::with_capacity(mailbox.emails.len());
+    for emails in mailbox.emails.chunks(batch_size) {
+        let mut raw = Vec::new();
+        let results = crate::classification::classify_batch_all(
+            config,
+            emails,
+            &mut |requests| {
+                let mut responses = decide(requests)?;
+                raw = responses.clone();
+                for response in &mut responses {
+                    normalize_hosted_choices(response)?;
+                }
+                Ok(responses)
+            },
+        )?;
+        for ((email, mut result), original) in
+            emails.iter().zip(results).zip(raw)
+        {
+            result.decisions = serde_json::json!({"provider":original,"evaluated":result.decisions});
+            let classification = aggregate(
+                config,
+                email,
+                vec![(email.body.chars().count(), result)],
+            )?;
+            progress(&classification)?;
+            classifications.push(classification);
+        }
+    }
+    Ok(DryRunReport {
+        dry_run: true,
+        mailbox: mailbox.path.clone(),
+        failures: mailbox.failures.clone(),
+        classifications,
+    })
+}
+/// The email policy uses probability argmax. Repair only small provider rounding
+/// discrepancies; the library's JevClient itself always returns unmodified answers.
+fn normalize_hosted_choices(response: &mut SystemOneResponse) -> Result<()> {
+    for answer in response.answers.values_mut() {
+        let vs1::Answer::Choice(a) = answer else {
+            anyhow::bail!("expected hosted category choice")
+        };
+        ensure!(
+            a.probabilities.contains_key(&a.choice),
+            "unknown provider choice"
+        );
+        ensure!(
+            a.probabilities
+                .values()
+                .all(|p| p.is_finite() && (0.0..=1.0).contains(p)),
+            "invalid provider probability"
+        );
+        let sum = a.probabilities.values().sum::<f32>();
+        ensure!(
+            (sum - 1.0).abs() <= 0.025,
+            "provider probabilities do not sum to one within rounding tolerance"
+        );
+        for p in a.probabilities.values_mut() {
+            *p /= sum;
+        }
+        a.choice = a
+            .probabilities
+            .iter()
+            .reduce(|a, b| if b.1 > a.1 { b } else { a })
+            .context("no probabilities")?
+            .0
+            .clone();
+    }
+    Ok(())
+}

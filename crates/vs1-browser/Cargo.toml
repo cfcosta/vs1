@@ -7,7 +7,7 @@ description = "Browser automation CLI using local vs1 decision models or hosted 
 repository = "https://github.com/cfcosta/vs1"
 
 [dependencies]
-vs1 = { workspace = true, optional = true }
+vs1 = { workspace = true, features = ["jev"] }
 candle-core = { version = "0.11.0", optional = true }
 anyhow = "1"
 base64 = "0.22"
@@ -25,7 +25,8 @@ url = "2"
 
 [features]
 default = []
-local = ["dep:vs1", "dep:candle-core"]
+local = ["dep:candle-core"]
+jev = ["vs1/jev"]
 cuda = ["local", "vs1/cuda", "candle-core/cuda"]
 flash-attn = ["cuda", "vs1/flash-attn"]
 metal = ["local", "vs1/metal", "candle-core/metal"]

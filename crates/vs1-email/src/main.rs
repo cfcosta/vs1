@@ -7,13 +7,19 @@ use std::{
 use anyhow::{Context, Result, ensure};
 use candle_core::{DType, Device};
 use clap::Parser;
-use vs1::SystemOne;
-use vs1_email::{Config, dry_run_with_progress, read_maildir, request_fits};
+use vs1::{DecisionModel, SystemOne};
+use vs1_email::{
+    Config,
+    dry_run_single_choice_with_progress,
+    dry_run_with_progress,
+    read_maildir,
+    request_fits,
+};
 
 #[derive(Parser)]
 #[command(
     version,
-    about = "Categorize a local Maildir mailbox using local laya models. Only --dry-run is implemented."
+    about = "Categorize a local Maildir mailbox using caller-selected laya or Jev models. Only --dry-run is implemented."
 )]
 struct Args {
     /// Print proposed categories as JSON without changing the mailbox.
@@ -31,9 +37,12 @@ struct Args {
     /// Global maximum messages across all folders, in sorted file-path order.
     #[arg(long, default_value = "100", value_parser = positive)]
     limit: usize,
-    /// Hugging Face checkpoint or local checkpoint directory.
-    #[arg(long, default_value = vs1::DEFAULT_REPO_ID)]
-    model: String,
+    /// Explicit backend; Jev sends email content to TypeSafe and requires TYPESAFE_API_KEY.
+    #[arg(long, default_value="laya",value_parser=["laya","jev"])]
+    backend: String,
+    /// Local checkpoint or hosted model ID; defaults to laya's checkpoint / jev-latest.
+    #[arg(long)]
+    model: Option<String>,
     #[arg(long, default_value = "")]
     subfolder: String,
     #[arg(long, default_value = "cpu", value_parser = ["cpu", "cuda", "metal"])]
@@ -65,6 +74,16 @@ fn main() -> Result<()> {
         args.dry_run,
         "mailbox changes are not implemented; use --dry-run"
     );
+    if args.backend == "jev" {
+        ensure!(
+            args.device == "cpu"
+                && args.dtype.is_none()
+                && args.subfolder.is_empty()
+                && args.max_len.is_none()
+                && args.head_max_len.is_none(),
+            "device, dtype, subfolder and token-budget options are local-only"
+        );
+    }
     let path = args.config.context("--config is required with --dry-run")?;
     if let (Some(head), Some(max)) = (args.head_max_len, args.max_len) {
         ensure!(head < max, "--head-max-len must be smaller than --max-len");
@@ -99,8 +118,25 @@ fn main() -> Result<()> {
     let started = std::time::Instant::now();
     let mut completed = 0usize;
     // An empty mailbox needs neither weights nor inference.
-    let model = if mailbox.emails.is_empty() {
+    let model: Option<DecisionModel> = if mailbox.emails.is_empty() {
         None
+    } else if args.backend == "jev" {
+        #[cfg(feature = "jev")]
+        {
+            Some(
+                vs1::JevClient::new(
+                    std::env::var("TYPESAFE_API_KEY")
+                        .context("TYPESAFE_API_KEY is required for Jev")?,
+                    args.model.as_deref().unwrap_or("jev-latest"),
+                )?
+                .with_concurrency(args.batch_size)?
+                .into(),
+            )
+        }
+        #[cfg(not(feature = "jev"))]
+        {
+            anyhow::bail!("Jev requires building with --features jev")
+        }
     } else {
         let device = match args.device.as_str() {
             "cpu" => Device::Cpu,
@@ -112,9 +148,11 @@ fn main() -> Result<()> {
             )?,
             _ => unreachable!("clap validates device"),
         };
-        let mut builder = SystemOne::from(&args.model)
-            .with_subfolder(&args.subfolder)
-            .with_device(device);
+        let mut builder = SystemOne::from(
+            args.model.as_deref().unwrap_or(vs1::DEFAULT_REPO_ID),
+        )
+        .with_subfolder(&args.subfolder)
+        .with_device(device);
         if let Some(n) = args.max_len {
             builder = builder.with_max_len(n);
         }
@@ -137,38 +175,55 @@ fn main() -> Result<()> {
             model.device(),
             model.dtype()
         );
-        Some(model)
+        Some(model.into())
     };
-    let report = dry_run_with_progress(
-        &config,
-        &mailbox,
-        args.batch_size,
-        &mut |request| {
-            request_fits(model.as_ref().context("model not loaded")?, request)
-        },
-        &mut |requests| {
-            let model = model.as_ref().context("model not loaded")?;
-            let response = model.system_one_batch(requests)?;
-            let questions: usize =
-                requests.iter().map(|r| r.questions.len()).sum();
-            completed += questions;
-            if completed / 100 != (completed - questions) / 100 {
-                eprintln!(
-                    "evaluated {completed} questions in {:.1}s",
-                    started.elapsed().as_secs_f64()
-                );
-            }
-            Ok(response)
-        },
-        &mut |classification| {
+    let mut decide=|requests:&[vs1::SystemOneRequest]|->Result<Vec<vs1::SystemOneResponse>> {
+        let response=model.as_ref().context("model not loaded")?.system_one_batch(requests)?;
+        let questions:usize=requests.iter().map(|r|r.questions.len()).sum();
+        completed+=questions;
+        if completed/100 != (completed-questions)/100 {eprintln!("evaluated {completed} questions in {:.1}s",started.elapsed().as_secs_f64());}
+        Ok(response)
+    };
+    let mut on_progress =
+        |classification: &vs1_email::Classification| -> Result<()> {
             if let Some(writer) = progress.as_mut() {
                 serde_json::to_writer(&mut *writer, classification)?;
                 writeln!(writer)?;
                 writer.flush()?;
             }
             Ok(())
-        },
-    )?;
+        };
+    let result = if args.backend == "jev" {
+        dry_run_single_choice_with_progress(
+            &config,
+            &mailbox,
+            args.batch_size,
+            &mut decide,
+            &mut on_progress,
+        )
+    } else {
+        dry_run_with_progress(
+            &config,
+            &mailbox,
+            args.batch_size,
+            &mut |r| {
+                request_fits(
+                    model
+                        .as_ref()
+                        .and_then(|m| m.local())
+                        .context("local model not loaded")?,
+                    r,
+                )
+            },
+            &mut decide,
+            &mut on_progress,
+        )
+    };
+    #[cfg(feature = "jev")]
+    if let Some(DecisionModel::Jev(client)) = &model {
+        eprintln!("Jev calls: {}", serde_json::to_string(&client.stats())?);
+    }
+    let report = result?;
     eprintln!(
         "completed {} emails from {} chunks and {completed} questions in {:.1}s",
         report.classifications.len(),

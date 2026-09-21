@@ -19,9 +19,12 @@ use serde_json::{Value, json};
 #[derive(Args, Debug)]
 pub struct ModelArgs {
     #[arg(long, default_value = "typesafe")]
-    #[cfg_attr(feature="local", arg(value_parser=["typesafe", "local"]))]
-    #[cfg_attr(not(feature="local"), arg(value_parser=["typesafe"]))]
+    #[cfg_attr(feature="local", arg(value_parser=["typesafe", "local", "jev", "laya"]))]
+    #[cfg_attr(not(feature="local"), arg(value_parser=["typesafe", "jev"]))]
     backend: String,
+    /// Hosted model ID, selected by the caller.
+    #[arg(long, env = "TYPESAFE_MODEL", default_value = "jev-latest")]
+    model: String,
     #[cfg(feature = "local")]
     #[arg(long, env = "VS1_DEVICE", default_value = "cpu")]
     device: String,

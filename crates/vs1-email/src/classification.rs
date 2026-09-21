@@ -45,8 +45,8 @@ pub struct ChunkEvidence {
     pub usage: Usage,
 }
 
-fn candidate_groups(candidates: &[usize]) -> Vec<&[usize]> {
-    let count = candidates.len().div_ceil(5);
+fn candidate_groups(candidates: &[usize], group_size: usize) -> Vec<&[usize]> {
+    let count = candidates.len().div_ceil(group_size);
     let mut offset = 0;
     (0..count)
         .map(|i| {
@@ -62,11 +62,12 @@ fn round_request(
     config: &Config,
     email: &Email,
     candidates: &[usize],
+    group_size: usize,
 ) -> SystemOneRequest {
     let mut request = SystemOneRequest::new(
         json!({"email":{"subject":email.subject,"from":email.from,"date":email.date,"body":email.body},"owner":config.owner()}),
     );
-    let groups = candidate_groups(candidates);
+    let groups = candidate_groups(candidates, group_size);
     for (index, group) in groups.iter().enumerate() {
         let criteria: Map<String, Value> = group
             .iter()
@@ -102,9 +103,11 @@ pub fn classification_request(
         config,
         email,
         &(0..config.rules().len()).collect::<Vec<_>>(),
+        5,
     )
 }
 struct Tournament {
+    group_size: usize,
     candidates: Vec<usize>,
     evidence: Vec<Value>,
     usage: Usage,
@@ -128,7 +131,7 @@ impl Tournament {
         self.model = Some(response.model.clone());
         self.usage.input_tokens += response.usage.input_tokens;
         self.usage.output_tokens += response.usage.output_tokens;
-        let groups = candidate_groups(&self.candidates);
+        let groups = candidate_groups(&self.candidates, self.group_size);
         let mut winners = Vec::new();
         for ((id, _), group) in request.questions.iter().zip(&groups) {
             let answer = response
@@ -244,9 +247,25 @@ pub(crate) fn classify_batch(
     emails: &[Email],
     decide: &mut impl FnMut(&[SystemOneRequest]) -> Result<Vec<SystemOneResponse>>,
 ) -> Result<Vec<Classification>> {
+    classify_batch_with_group_size(config, emails, 5, decide)
+}
+pub(crate) fn classify_batch_all(
+    config: &Config,
+    emails: &[Email],
+    decide: &mut impl FnMut(&[SystemOneRequest]) -> Result<Vec<SystemOneResponse>>,
+) -> Result<Vec<Classification>> {
+    classify_batch_with_group_size(config, emails, config.rules().len(), decide)
+}
+fn classify_batch_with_group_size(
+    config: &Config,
+    emails: &[Email],
+    group_size: usize,
+    decide: &mut impl FnMut(&[SystemOneRequest]) -> Result<Vec<SystemOneResponse>>,
+) -> Result<Vec<Classification>> {
     let mut states = emails
         .iter()
         .map(|_| Tournament {
+            group_size,
             candidates: (0..config.rules().len()).collect(),
             evidence: Vec::new(),
             usage: Usage::default(),
@@ -263,7 +282,14 @@ pub(crate) fn classify_batch(
             .collect::<Vec<_>>();
         let requests = active
             .iter()
-            .map(|i| round_request(config, &emails[*i], &states[*i].candidates))
+            .map(|i| {
+                round_request(
+                    config,
+                    &emails[*i],
+                    &states[*i].candidates,
+                    group_size,
+                )
+            })
             .collect::<Vec<_>>();
         let responses = decide(&requests)?;
         ensure!(
