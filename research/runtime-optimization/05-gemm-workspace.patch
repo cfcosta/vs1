@@ -1,0 +1,41 @@
+diff --git a/crates/vs1/src/gemm_cuda.rs b/crates/vs1/src/gemm_cuda.rs
+index b4a401018a..59bdc598ec 100644
+--- a/crates/vs1/src/gemm_cuda.rs
++++ b/crates/vs1/src/gemm_cuda.rs
+@@ -28,7 +28,7 @@
+ };
+ use candle_nn::Linear;
+ 
+-const WORKSPACE: usize = 64 * 1024 * 1024;
++const WORKSPACE: usize = 256 * 1024 * 1024;
+ 
+ fn err(e: impl std::fmt::Display) -> candle_core::Error {
+     candle_core::Error::Msg(e.to_string())
+@@ -558,7 +558,7 @@
+     }
+     fn report_path(name: &str) -> std::path::PathBuf {
+         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+-            .join("../../research/cuda-optimization")
++            .join("../../artifacts/runtime-optimization")
+             .join(name)
+     }
+ 
+@@ -948,6 +948,8 @@
+         xs: &Tensor,
+         linear: &Linear,
+     ) -> Option<candle_core::Result<Tensor>> {
++        // Preserve the already shipped short-shape specialization.
++        if xs.rank() == 2 && (129..=136).contains(&xs.dims()[0]) { return None; }
+         if xs.dtype() != DType::BF16
+             || !xs.device().is_cuda()
+             || xs.rank() != 2
+@@ -1078,7 +1080,8 @@
+                 hits: 0,
+             })
+         });
+-        let cases = crate::model::batch_bench::cases();
++        let cases: Vec<_> = crate::model::batch_bench::cases().into_iter()
++            .filter(|(name,_)| ["1", "8", "32", "browser_call3", "browser_call5"].contains(&name.as_str())).collect();
+         let mut expected = vec![];
+         for (_, requests) in &cases {
+             expected.push(snapshot(&model.system_one_batch(requests)?));

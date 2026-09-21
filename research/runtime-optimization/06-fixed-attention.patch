@@ -1,0 +1,56 @@
+diff --git a/crates/vs1/src/geglu_bench.rs b/crates/vs1/src/geglu_bench.rs
+index 4296a386a2..e332a5901a 100644
+--- a/crates/vs1/src/geglu_bench.rs
++++ b/crates/vs1/src/geglu_bench.rs
+@@ -139,3 +139,9 @@
+ fn paired_deferred() -> anyhow::Result<()> {
+     run_paired(&crate::modernbert::REFERENCE_DEFERRED)
+ }
++
++#[test]
++#[ignore = "requires CUDA, checkpoint, isolated GPU"]
++fn paired_fixed_attn() -> anyhow::Result<()> {
++    run_paired(&crate::modernbert::REFERENCE_FIXED_ATTN)
++}
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index cb6480819f..8345e1c1d0 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -450,7 +450,17 @@
+         let q = q.to_dtype(flash_dtype)?;
+         let k = k.to_dtype(flash_dtype)?;
+         let v = v.to_dtype(flash_dtype)?;
+-        let xs = match local_window {
++        let uniform = valid_lens.iter().all(|&n| n == max_seq_len);
++        let fixed = std::env::var_os("VS1_EXPERIMENT_FIXED_ATTN").is_some() && uniform;
++        #[cfg(test)]
++        let fixed = fixed && !REFERENCE_FIXED_ATTN.load(std::sync::atomic::Ordering::Relaxed);
++        let xs = if fixed {
++            let batch_shape = (valid_lens.len(), max_seq_len, self.num_attention_heads, self.attention_head_size);
++            let q = q.reshape(batch_shape)?;
++            let k = k.reshape(batch_shape)?;
++            let v = v.reshape(batch_shape)?;
++            candle_flash_attn::flash_attn_windowed(&q, &k, &v, 1.0, local_window, local_window)?.reshape(shape)?
++        } else { match local_window {
+             Some(window) => candle_flash_attn::flash_attn_varlen_windowed(
+                 &q,
+                 &k,
+@@ -474,7 +484,7 @@
+                 1.0,
+                 false,
+             )?,
+-        };
++        }};
+         let xs = xs.to_dtype(orig_dtype)?;
+ 
+         let xs = xs.reshape((total_tokens, d))?;
+@@ -1022,6 +1032,9 @@
+ pub(crate) static REFERENCE_DEFERRED: std::sync::atomic::AtomicBool =
+     std::sync::atomic::AtomicBool::new(false);
+ 
++#[cfg(all(test, feature = "flash-attn"))]
++pub(crate) static REFERENCE_FIXED_ATTN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
++
+ impl ModernBert {
+     pub fn load(vb: VarBuilder, config: &Config) -> Result<Self> {
+         let word_embeddings = embedding(

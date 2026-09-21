@@ -1,0 +1,2009 @@
+[
+  {
+    "shape": [832, 1024, 1024],
+    "baseline_ms": 0.04501200094819069,
+    "checked_inputs": 112,
+    "surviving": 1,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04505600035190582,
+        "workspace": 224,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 24,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.05926400050520897,
+        "workspace": 112,
+        "initial_mismatches": 312420,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 6,
+          "tile": 20,
+          "split_k": 4,
+          "reduction": 1,
+          "stages": 15,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.05132799968123436,
+        "workspace": 224,
+        "initial_mismatches": 271768,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04633599892258644,
+        "workspace": 224,
+        "initial_mismatches": 312420,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.042072001844644547,
+        "workspace": 0,
+        "initial_mismatches": 197339,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 5,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04633599892258644,
+        "workspace": 224,
+        "initial_mismatches": 271768,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 23,
+          "tile": 18,
+          "split_k": 2,
+          "reduction": 4,
+          "stages": 12,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.05323199927806854,
+        "workspace": 3407872,
+        "initial_mismatches": 225261,
+        "later_mismatches": 0,
+        "elements": 851968
+      }
+    ]
+  },
+  {
+    "shape": [832, 1024, 2624],
+    "baseline_ms": 0.09382399916648865,
+    "checked_inputs": 28,
+    "surviving": 1,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 6,
+          "tile": 20,
+          "split_k": 4,
+          "reduction": 1,
+          "stages": 15,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.0939520001411438,
+        "workspace": 224,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 24,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.13286399841308594,
+        "workspace": 112,
+        "initial_mismatches": 361318,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09907200187444687,
+        "workspace": 224,
+        "initial_mismatches": 332627,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 5,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.08089599758386612,
+        "workspace": 224,
+        "initial_mismatches": 409973,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09945599734783173,
+        "workspace": 224,
+        "initial_mismatches": 361318,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09587199985980988,
+        "workspace": 0,
+        "initial_mismatches": 307022,
+        "later_mismatches": 0,
+        "elements": 851968
+      },
+      {
+        "algorithm": {
+          "id": 23,
+          "tile": 18,
+          "split_k": 2,
+          "reduction": 4,
+          "stages": 12,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.10099200159311295,
+        "workspace": 3407872,
+        "initial_mismatches": 376343,
+        "later_mismatches": 0,
+        "elements": 851968
+      }
+    ]
+  },
+  {
+    "shape": [832, 2624, 1024],
+    "baseline_ms": 0.08100400120019913,
+    "checked_inputs": 56,
+    "surviving": 2,
+    "selected_row": 0,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.07872000336647034,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 2183168
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 21,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 10,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.08371199667453766,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 2183168
+      }
+    ]
+  },
+  {
+    "shape": [834, 1024, 1024],
+    "baseline_ms": 0.04339199885725975,
+    "checked_inputs": 112,
+    "surviving": 1,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.0432640016078949,
+        "workspace": 224,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 24,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.056832000613212585,
+        "workspace": 112,
+        "initial_mismatches": 313015,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 6,
+          "tile": 20,
+          "split_k": 4,
+          "reduction": 1,
+          "stages": 15,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04940799996256828,
+        "workspace": 224,
+        "initial_mismatches": 272250,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04428799822926521,
+        "workspace": 224,
+        "initial_mismatches": 313015,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04044799879193306,
+        "workspace": 0,
+        "initial_mismatches": 197664,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 5,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.044544000178575516,
+        "workspace": 224,
+        "initial_mismatches": 272250,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 23,
+          "tile": 18,
+          "split_k": 2,
+          "reduction": 4,
+          "stages": 12,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.05119999870657921,
+        "workspace": 3416064,
+        "initial_mismatches": 225742,
+        "later_mismatches": 0,
+        "elements": 854016
+      }
+    ]
+  },
+  {
+    "shape": [834, 1024, 2624],
+    "baseline_ms": 0.09254399687051773,
+    "checked_inputs": 28,
+    "surviving": 1,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 6,
+          "tile": 20,
+          "split_k": 4,
+          "reduction": 1,
+          "stages": 15,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09279999881982803,
+        "workspace": 224,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 24,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.13169999420642853,
+        "workspace": 112,
+        "initial_mismatches": 361300,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09915599972009659,
+        "workspace": 224,
+        "initial_mismatches": 332201,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 5,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.08140800148248672,
+        "workspace": 224,
+        "initial_mismatches": 410539,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09996800124645233,
+        "workspace": 224,
+        "initial_mismatches": 361300,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09663999825716019,
+        "workspace": 0,
+        "initial_mismatches": 306142,
+        "later_mismatches": 0,
+        "elements": 854016
+      },
+      {
+        "algorithm": {
+          "id": 23,
+          "tile": 18,
+          "split_k": 2,
+          "reduction": 4,
+          "stages": 12,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.10124800354242325,
+        "workspace": 3416064,
+        "initial_mismatches": 376793,
+        "later_mismatches": 0,
+        "elements": 854016
+      }
+    ]
+  },
+  {
+    "shape": [834, 2624, 1024],
+    "baseline_ms": 0.07794000208377838,
+    "checked_inputs": 56,
+    "surviving": 1,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.07718399912118912,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 2188416
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.08179199695587158,
+        "workspace": 588,
+        "initial_mismatches": 502265,
+        "later_mismatches": 0,
+        "elements": 2188416
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.08140800148248672,
+        "workspace": 588,
+        "initial_mismatches": 502265,
+        "later_mismatches": 0,
+        "elements": 2188416
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.08204799890518188,
+        "workspace": 588,
+        "initial_mismatches": 692343,
+        "later_mismatches": 0,
+        "elements": 2188416
+      }
+    ]
+  },
+  {
+    "shape": [1032, 1024, 1024],
+    "baseline_ms": 0.04224000126123428,
+    "checked_inputs": 112,
+    "surviving": 4,
+    "selected_row": 4,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 6,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 11,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04234800115227699,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04400400072336197,
+        "workspace": 288,
+        "initial_mismatches": 244034,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04390399903059006,
+        "workspace": 288,
+        "initial_mismatches": 244034,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 10,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04121600091457367,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.040192000567913055,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04057599976658821,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 24,
+          "tile": 23,
+          "split_k": 2,
+          "reduction": 4,
+          "stages": 0,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.06630399823188782,
+        "workspace": 4227072,
+        "initial_mismatches": 350779,
+        "later_mismatches": 0,
+        "elements": 1056768
+      }
+    ]
+  },
+  {
+    "shape": [1032, 1024, 2624],
+    "baseline_ms": 0.09510400146245956,
+    "checked_inputs": 28,
+    "surviving": 4,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 11,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09523200243711472,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 24,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.10376399755477905,
+        "workspace": 144,
+        "initial_mismatches": 228128,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 21,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 10,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09753599762916565,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 5,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.0997920036315918,
+        "workspace": 288,
+        "initial_mismatches": 430250,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 10,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09471999853849411,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09446399658918381,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1056768
+      },
+      {
+        "algorithm": {
+          "id": 23,
+          "tile": 18,
+          "split_k": 2,
+          "reduction": 4,
+          "stages": 12,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.1303039938211441,
+        "workspace": 4227072,
+        "initial_mismatches": 341022,
+        "later_mismatches": 0,
+        "elements": 1056768
+      }
+    ]
+  },
+  {
+    "shape": [1032, 2624, 1024],
+    "baseline_ms": 0.24652400612831116,
+    "checked_inputs": 56,
+    "surviving": 1,
+    "selected_row": 0,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 6,
+          "tile": 24,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.15052799880504608,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 2707968
+      }
+    ]
+  },
+  {
+    "shape": [1072, 1024, 1024],
+    "baseline_ms": 0.041600000113248825,
+    "checked_inputs": 112,
+    "surviving": 4,
+    "selected_row": 4,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 6,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 11,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04134399816393852,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04428799822926521,
+        "workspace": 288,
+        "initial_mismatches": 254682,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04387599974870682,
+        "workspace": 288,
+        "initial_mismatches": 254682,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 10,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04070400074124336,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04057599976658821,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.04057599976658821,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 24,
+          "tile": 23,
+          "split_k": 2,
+          "reduction": 4,
+          "stages": 0,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.06745599955320358,
+        "workspace": 4390912,
+        "initial_mismatches": 364595,
+        "later_mismatches": 0,
+        "elements": 1097728
+      }
+    ]
+  },
+  {
+    "shape": [1072, 1024, 2624],
+    "baseline_ms": 0.09510400146245956,
+    "checked_inputs": 28,
+    "surviving": 4,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 11,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09497600048780441,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 24,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.10367999970912933,
+        "workspace": 144,
+        "initial_mismatches": 236796,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 21,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 10,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.097120001912117,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 5,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09971199929714203,
+        "workspace": 288,
+        "initial_mismatches": 445514,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 10,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09523200243711472,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.09446399658918381,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1097728
+      },
+      {
+        "algorithm": {
+          "id": 23,
+          "tile": 18,
+          "split_k": 2,
+          "reduction": 4,
+          "stages": 12,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.131071999669075,
+        "workspace": 4390912,
+        "initial_mismatches": 352765,
+        "later_mismatches": 0,
+        "elements": 1097728
+      }
+    ]
+  },
+  {
+    "shape": [1072, 2624, 1024],
+    "baseline_ms": 0.1515520066022873,
+    "checked_inputs": 56,
+    "surviving": 1,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 6,
+          "tile": 24,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.15091200172901154,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 2812928
+      }
+    ]
+  },
+  {
+    "shape": [1536, 1024, 1024],
+    "baseline_ms": 0.07756800204515457,
+    "checked_inputs": 224,
+    "surviving": 1,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.07795199751853943,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1572864
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 4,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.05632000043988228,
+        "workspace": 384,
+        "initial_mismatches": 567892,
+        "later_mismatches": 0,
+        "elements": 1572864
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 7,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.059776000678539276,
+        "workspace": 384,
+        "initial_mismatches": 711835,
+        "later_mismatches": 0,
+        "elements": 1572864
+      }
+    ]
+  },
+  {
+    "shape": [1536, 1024, 2624],
+    "baseline_ms": 0.18854400515556335,
+    "checked_inputs": 56,
+    "surviving": 1,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.1923840045928955,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 1572864
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 4,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.1303039938211441,
+        "workspace": 384,
+        "initial_mismatches": 565853,
+        "later_mismatches": 0,
+        "elements": 1572864
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 7,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.13568000495433807,
+        "workspace": 384,
+        "initial_mismatches": 707247,
+        "later_mismatches": 0,
+        "elements": 1572864
+      }
+    ]
+  },
+  {
+    "shape": [1536, 2624, 1024],
+    "baseline_ms": 0.15398399531841278,
+    "checked_inputs": 112,
+    "surviving": 4,
+    "selected_row": 1,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 24,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.1528320014476776,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4030464
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.1478399932384491,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4030464
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 11,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.1555200070142746,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4030464
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 24,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.16806399822235107,
+        "workspace": 528,
+        "initial_mismatches": 1294632,
+        "later_mismatches": 0,
+        "elements": 4030464
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 19,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 10,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.15718400478363037,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4030464
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.13849599659442902,
+        "workspace": 1008,
+        "initial_mismatches": 1294632,
+        "later_mismatches": 0,
+        "elements": 4030464
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.13926400244235992,
+        "workspace": 1008,
+        "initial_mismatches": 936821,
+        "later_mismatches": 0,
+        "elements": 4030464
+      }
+    ]
+  },
+  {
+    "shape": [4128, 1024, 1024],
+    "baseline_ms": 0.14988799393177032,
+    "checked_inputs": 112,
+    "surviving": 2,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.22512799501419067,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4227072
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.23871999979019165,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4227072
+      }
+    ]
+  },
+  {
+    "shape": [4128, 1024, 2624],
+    "baseline_ms": 0.40140798687934875,
+    "checked_inputs": 28,
+    "surviving": 2,
+    "selected_row": 1,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 4,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.39206400513648987,
+        "workspace": 1056,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4227072
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 4,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.385919988155365,
+        "workspace": 1056,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4227072
+      }
+    ]
+  },
+  {
+    "shape": [4128, 2624, 1024],
+    "baseline_ms": 0.3750399947166443,
+    "checked_inputs": 56,
+    "surviving": 4,
+    "selected_row": null,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 24,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.46617600321769714,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 10831872
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 0,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.4182800054550171,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 10831872
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.41868001222610474,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 10831872
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.49522799253463745,
+        "workspace": 2772,
+        "initial_mismatches": 2466549,
+        "later_mismatches": 0,
+        "elements": 10831872
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.5062320232391357,
+        "workspace": 2772,
+        "initial_mismatches": 2466549,
+        "later_mismatches": 0,
+        "elements": 10831872
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 21,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 10,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.4787200093269348,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 10831872
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.4798719882965088,
+        "workspace": 2772,
+        "initial_mismatches": 3422843,
+        "later_mismatches": 0,
+        "elements": 10831872
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 23,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.5591040253639221,
+        "workspace": 1428,
+        "initial_mismatches": 3422843,
+        "later_mismatches": 0,
+        "elements": 10831872
+      }
+    ]
+  },
+  {
+    "shape": [4288, 1024, 1024],
+    "baseline_ms": 0.1528320014476776,
+    "checked_inputs": 112,
+    "surviving": 2,
+    "selected_row": 0,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.14795200526714325,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4390912
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.1480959951877594,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4390912
+      }
+    ]
+  },
+  {
+    "shape": [4288, 1024, 2624],
+    "baseline_ms": 0.4195840060710907,
+    "checked_inputs": 28,
+    "surviving": 2,
+    "selected_row": 1,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 4,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.3452160060405731,
+        "workspace": 1088,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4390912
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 4,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.3443000018596649,
+        "workspace": 1088,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 4390912
+      }
+    ]
+  },
+  {
+    "shape": [4288, 2624, 1024],
+    "baseline_ms": 0.37747201323509216,
+    "checked_inputs": 56,
+    "surviving": 4,
+    "selected_row": 1,
+    "algorithms": [
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 24,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.4307039976119995,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 11251712
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 0,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.32985201478004456,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 11251712
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.3303680121898651,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 11251712
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.42838799953460693,
+        "workspace": 2856,
+        "initial_mismatches": 2599542,
+        "later_mismatches": 0,
+        "elements": 11251712
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.3726080060005188,
+        "workspace": 2856,
+        "initial_mismatches": 2599542,
+        "later_mismatches": 0,
+        "elements": 11251712
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 21,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 10,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.5038080215454102,
+        "workspace": 0,
+        "initial_mismatches": 0,
+        "later_mismatches": 0,
+        "elements": 11251712
+      },
+      {
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.4450559914112091,
+        "workspace": 2856,
+        "initial_mismatches": 3611470,
+        "later_mismatches": 0,
+        "elements": 11251712
+      },
+      {
+        "algorithm": {
+          "id": 21,
+          "tile": 23,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 9,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "ms": 0.47014400362968445,
+        "workspace": 1428,
+        "initial_mismatches": 3611470,
+        "later_mismatches": 0,
+        "elements": 11251712
+      }
+    ]
+  }
+]

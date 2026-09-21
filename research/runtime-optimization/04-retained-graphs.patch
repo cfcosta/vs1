@@ -1,0 +1,308 @@
+diff --git a/crates/vs1/src/geglu_bench.rs b/crates/vs1/src/geglu_bench.rs
+index 4296a386a2..4abd8064fa 100644
+--- a/crates/vs1/src/geglu_bench.rs
++++ b/crates/vs1/src/geglu_bench.rs
+@@ -100,7 +100,12 @@
+         let expected = snapshot(&model.system_one_batch(&requests)?);
+         for warmup in 0..10 {
+             select_reference(warmup % 2 == 0);
+-            assert_eq!(snapshot(&model.system_one_batch(&requests)?), expected);
++            device.synchronize()?;
++            let start = Instant::now();
++            let output = model.system_one_batch(&requests)?;
++            device.synchronize()?;
++            eprintln!("STARTUP={}", json!({"name":name,"warmup":warmup,"reference":warmup%2==0,"ms":start.elapsed().as_secs_f64()*1000.0}));
++            assert_eq!(snapshot(&output), expected);
+         }
+         let (mut baseline, mut fused, mut ratios) = (vec![], vec![], vec![]);
+         let mut faster = 0;
+@@ -139,3 +144,9 @@
+ fn paired_deferred() -> anyhow::Result<()> {
+     run_paired(&crate::modernbert::REFERENCE_DEFERRED)
+ }
++
++#[test]
++#[ignore = "requires CUDA, checkpoint, isolated GPU"]
++fn paired_graphs() -> anyhow::Result<()> {
++    run_paired(&crate::model::REFERENCE_GRAPH)
++}
+diff --git a/crates/vs1/src/gemm_cuda.rs b/crates/vs1/src/gemm_cuda.rs
+index b4a401018a..7139c47715 100644
+--- a/crates/vs1/src/gemm_cuda.rs
++++ b/crates/vs1/src/gemm_cuda.rs
+@@ -256,7 +256,19 @@
+             )
+             .map_err(err)?;
+         }
+-        self.engine.completion.record(&stream).map_err(err)?;
++        // A captured ordinary event is only an internal graph dependency.
++        // Keep a real completion event usable by workspace handoff and Drop.
++        use candle_core::cuda_backend::cudarc::driver::sys as driver;
++        if stream.capture_status().map_err(err)? == driver::CUstreamCaptureStatus::CU_STREAM_CAPTURE_STATUS_ACTIVE {
++            unsafe {
++                driver::cuEventRecordWithFlags(
++                    self.engine.completion.cu_event(), stream.cu_stream(),
++                    driver::CUevent_record_flags_enum::CU_EVENT_RECORD_EXTERNAL as u32,
++                ).result().map_err(err)?;
++            }
++        } else {
++            self.engine.completion.record(&stream).map_err(err)?;
++        }
+         self.engine.last_thread.set(Some(thread));
+         drop(_out_guard);
+         Ok((
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index f4925af4ee..1bc245e700 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -100,7 +100,46 @@
+     device: Device,
+     dtype: DType,
+     batch_size: usize,
+-}
++    #[cfg(feature = "flash-attn")]
++    graph: std::sync::Mutex<GraphCache>,
++}
++
++#[cfg(feature = "flash-attn")]
++#[derive(Default)]
++struct GraphCache {
++    entries: Vec<MarkerGraph>,
++    seen: Vec<(Vec<usize>, usize)>,
++}
++
++// SAFETY: experimental graph handles are exclusively accessed under the model
++// mutex. Launch binds the owning context; teardown synchronizes that context.
++#[cfg(feature = "flash-attn")]
++unsafe impl Send for GraphCache {}
++#[cfg(feature = "flash-attn")]
++impl Drop for GraphCache {
++    fn drop(&mut self) {
++        for entry in &self.entries {
++            let dev = entry.input.device().as_cuda_device().unwrap();
++            dev.cuda_stream().context().bind_to_thread().unwrap();
++            entry.input.device().synchronize().unwrap();
++        }
++        self.entries.clear();
++    }
++}
++
++#[cfg(feature = "flash-attn")]
++struct MarkerGraph {
++    _prepared: Vec<Tensor>,
++    key: Vec<usize>,
++    input: Tensor,
++    indices: Tensor,
++    pooled: Tensor,
++    logits: Tensor,
++    graph: candle_core::cuda_backend::cudarc::driver::CudaGraph,
++}
++
++#[cfg(all(test, feature = "flash-attn"))]
++pub(crate) static REFERENCE_GRAPH: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+ 
+ impl SystemOne {
+     /// Starts configuring a model from a Hub repo id or a local
+@@ -199,6 +238,8 @@
+             device: device.clone(),
+             dtype,
+             batch_size,
++            #[cfg(feature = "flash-attn")]
++            graph: std::sync::Mutex::new(GraphCache::default()),
+         })
+     }
+ 
+@@ -416,7 +457,86 @@
+     /// attention is one varlen flash kernel. Used on CUDA when built
+     /// with `flash-attn`.
+     #[cfg(feature = "flash-attn")]
+-    fn marker_logits_packed(
++    fn marker_logits_packed(&self, c: &Collated) -> Result<(Tensor, Vec<Vec<f32>>)> {
++        use candle_core::cuda_backend::{WrapErr, cudarc::driver::sys};
++        #[cfg(test)]
++        if REFERENCE_GRAPH.load(std::sync::atomic::Ordering::Relaxed) { return self.marker_logits_packed_eager(c); }
++        if std::env::var_os("VS1_EXPERIMENT_GRAPHS").is_none() || c.lens.iter().sum::<usize>() > 1536 {
++            return self.marker_logits_packed_eager(c);
++        }
++        let mut key = vec![c.batch, c.seq_len, c.max_markers];
++        key.extend(&c.lens);
++        key.extend(c.kinds.iter().map(|&x| x as usize));
++        key.extend(c.marker_pos.iter().map(|&x| x as usize));
++        let packed: Vec<_> = c.input_ids.chunks(c.seq_len).zip(&c.lens)
++            .flat_map(|(row,&len)| row[..len].iter().copied()).collect();
++        let mut cache = self.graph.lock().unwrap();
++        let hit = cache.entries.iter().position(|g| g.key == key);
++        if hit.is_none() {
++            if cache.entries.len() >= 8 {
++                return self.marker_logits_packed_eager(c);
++            }
++            if let Some((_, count)) = cache.seen.iter_mut().find(|(k, _)| *k == key) {
++                *count += 1;
++                if *count < 3 { return self.marker_logits_packed_eager(c); }
++            } else {
++                if cache.seen.len() >= 32 { cache.seen.remove(0); }
++                cache.seen.push((key.clone(), 1));
++                return self.marker_logits_packed_eager(c);
++            }
++            let dev = self.device.as_cuda_device()?;
++            let stream = dev.cuda_stream();
++            let input = Tensor::from_vec(packed.clone(), packed.len(), &self.device)?;
++            let _cache_guard = dev.enable_cuda_graph_htod_cache();
++            let indices = Tensor::arange(0u32, packed.len() as u32, &self.device)?;
++            // Prepare all value-dependent and large host uploads outside capture.
++            let token_kinds: Vec<u32> = c.kinds.iter().zip(&c.lens)
++                .flat_map(|(&kind,&len)| std::iter::repeat_n(kind,len)).collect();
++            let kinds = Tensor::from_vec(token_kinds, packed.len(), &self.device)?;
++            let mut offsets = vec![];
++            let mut start = 0u32;
++            for &len in &c.lens { offsets.push(start); start += len as u32; }
++            let marker: Vec<_> = c.marker_pos.chunks(c.max_markers.max(1)).zip(&offsets)
++                .flat_map(|(row,&offset)| row.iter().map(move |&m| m+offset)).collect();
++            let marker = Tensor::from_vec(marker, c.batch*c.max_markers, &self.device)?;
++            let offsets = Tensor::from_vec(offsets, c.batch, &self.device)?;
++            let (seqlens, max_len) = crate::modernbert::cumulative_seqlens(&c.lens, &self.device)?;
++            let positions = crate::modernbert::packed_position_ids(&c.lens, &self.device)?;
++            let forward = || -> Result<(Tensor,Tensor)> {
++                let hidden = self.encoder.forward_prepacked(&input, &c.lens, &positions)?;
++                let (_, h) = hidden.dims2()?;
++                let mut hidden = (hidden + self.type_emb.index_select(&kinds,0)?)?;
++                for layer in &self.head { hidden = layer.forward_packed(&hidden,&seqlens,max_len)?; }
++                let marked = hidden.index_select(&marker,0)?.reshape((c.batch,c.max_markers,h))?;
++                let logits = self.scorer.forward(&marked)?;
++                let pooled = hidden.index_select(&offsets,0)?.to_dtype(DType::F32)?.contiguous()?;
++                Ok((pooled,logits))
++            };
++            forward()?;
++            let mut prepared = self.encoder.graph_dependencies();
++            self.device.synchronize()?;
++            stream.begin_capture(sys::CUstreamCaptureMode::CU_STREAM_CAPTURE_MODE_THREAD_LOCAL).w()?;
++            let captured = forward();
++            let graph = stream.end_capture(sys::CUgraphInstantiate_flags::CUDA_GRAPH_INSTANTIATE_FLAG_AUTO_FREE_ON_LAUNCH).w()?;
++            let (pooled, logits) = captured?;
++            let graph = graph.ok_or_else(|| candle_core::Error::Msg("empty graph".into()))?;
++            graph.launch().w()?;
++            // Captured operations refer to these prepared buffers. Keep them alive.
++            // Initial prototype retains them through the stored tensors below.
++            cache.entries.push(MarkerGraph { key, input, indices, pooled, logits, graph,
++                _prepared: { prepared.extend([kinds, marker, offsets, seqlens, positions]); prepared } });
++        } else {
++            let g = &cache.entries[hit.unwrap_or(cache.entries.len()-1)];
++            let input = Tensor::from_vec(packed.clone(), packed.len(), &self.device)?;
++            g.input.scatter_set(&g.indices, &input, 0)?;
++            g.graph.launch().w()?;
++        }
++        let g = &cache.entries[hit.unwrap_or(cache.entries.len()-1)];
++        Ok((g.pooled.copy()?, g.logits.to_vec2::<f32>()?))
++    }
++
++    #[cfg(feature = "flash-attn")]
++    fn marker_logits_packed_eager(
+         &self,
+         collated: &Collated,
+     ) -> Result<(Tensor, Vec<Vec<f32>>)> {
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index cb6480819f..95026d9022 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -926,7 +926,7 @@
+ }
+ 
+ #[cfg(feature = "flash-attn")]
+-fn packed_position_ids(
++pub(crate) fn packed_position_ids(
+     valid_lens: &[usize],
+     device: &Device,
+ ) -> Result<Tensor> {
+@@ -1239,6 +1239,92 @@
+         packed_xs.apply(&self.final_norm)
+     }
+ 
++    #[cfg(feature = "flash-attn")]
++    pub fn forward_prepacked(
++        &self,
++        xs: &Tensor,
++        valid_lens: &[usize],
++        positions: &Tensor,
++    ) -> Result<Tensor> {
++        let xs = xs.apply(&self.word_embeddings)?;
++        let (seqlens, max_seq_len) =
++            cumulative_seqlens(valid_lens, xs.device())?;
++        let local_window = self.local_attention_size / 2;
++        // A window of `local_window` on each side covers every pair of
++        // positions only while the sequence is at most `local_window +
++        // 1` tokens long; past that some pairs are farther apart than
++        // the window and must be hidden, exactly as the masked path's
++        // `|i - j| > local_window` bias hides them.
++        let full_attention_threshold = local_window + 1;
++        let mut packed_xs = xs.apply(&self.norm)?;
++        // Fuse each final residual addition with the next normalization while
++        // preserving the BF16 sum as a separate rounding boundary.
++        let deferred = packed_xs.device().is_cuda()
++            && packed_xs.dtype() == DType::BF16
++            && packed_xs.dim(1)? == 1024
++            && packed_xs.elem_count() <= u32::MAX as usize / 2;
++        #[cfg(test)]
++        let deferred = deferred
++            && !REFERENCE_DEFERRED.load(std::sync::atomic::Ordering::Relaxed);
++        let mut pending = None;
++        for layer in self.layers.iter() {
++            let effective_window = if layer.uses_local_attention
++                && max_seq_len > full_attention_threshold
++            {
++                Some(local_window)
++            } else {
++                None
++            };
++            if deferred {
++                let (residual, mlp) = layer.forward_varlen_packed_input(
++                    &packed_xs,
++                    pending.as_ref(),
++                    valid_lens,
++                    positions,
++                    &seqlens,
++                    max_seq_len,
++                    effective_window,
++                    &self.retile,
++                )?;
++                packed_xs = residual;
++                pending = Some(mlp);
++                continue;
++            }
++            let (residual, mlp) = layer.forward_varlen_packed_input(
++                &packed_xs,
++                None,
++                valid_lens,
++                positions,
++                &seqlens,
++                max_seq_len,
++                effective_window,
++                &self.retile,
++            )?;
++            packed_xs = (residual + mlp)?;
++        }
++        if let Some(pending) = pending {
++            return Ok(crate::residual_norm_cuda::forward(
++                &packed_xs,
++                &pending,
++                self.final_norm.weight(),
++                self.final_norm.eps(),
++            )?
++            .1);
++        }
++        packed_xs.apply(&self.final_norm)
++    }
++
++    #[cfg(feature = "flash-attn")]
++    pub fn graph_dependencies(&self) -> Vec<Tensor> {
++        let mut out = Vec::new();
++        for layer in &self.layers {
++            if let Some((_, (cos, sin))) = layer.attn.rotary_emb.packed_cos_sin.0.lock().unwrap().as_ref() {
++                out.extend([cos.clone(), sin.clone()]);
++            }
++        }
++        out
++    }
++
+     /// Forward pass for fixed-length query batches where padding rows
+     /// must produce outputs (ColBERT query expansion feeds [MASK]
+     /// expansion rows into MaxSim) without serving as attention keys.

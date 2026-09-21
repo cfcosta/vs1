@@ -1,0 +1,33 @@
+{
+  "tensorrt": "10.13.3.9",
+  "cases": [
+    {
+      "validation_index": 0,
+      "logits": [-3.796875, 1.6640625],
+      "teacher_logits": [-3.75, 1.6484375],
+      "logits_exact": false,
+      "max_probability_error": 0.0017992854118347168,
+      "decision_equal": true,
+      "action_error": 0.0
+    },
+    {
+      "validation_index": 36,
+      "logits": [4.1875, -0.1396484375],
+      "teacher_logits": [4.09375, -0.1025390625],
+      "logits_exact": false,
+      "max_probability_error": 0.00617218017578125,
+      "decision_equal": true,
+      "action_error": 0.0
+    },
+    {
+      "validation_index": 60,
+      "logits": [12.3125, -0.06201171875],
+      "teacher_logits": [13.75, -0.032958984375],
+      "logits_exact": false,
+      "max_probability_error": 0.0009894014801830053,
+      "decision_equal": true,
+      "action_error": 0.0
+    }
+  ],
+  "scope": "Existing BF16 fixed-shape engine; exact-output rejection gate, no latency claim."
+}
