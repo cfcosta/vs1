@@ -183,3 +183,13 @@ Cargo feature and `--backend local`. Accelerator features imply `local`.
 Both CLIs have `-cuda`, `-flash-attn`, and `-metal` Nix package variants;
 select a backend supported by your host. The browser CLI connects to an external
 Chrome/Chromium instance through CDP; the package does not bundle a browser.
+
+## Email categorization
+
+[`vs1-email`](crates/vs1-email/README.md) categorizes an IMAP mailbox with local
+laya inference and ordered TOML `[[rules]]`. Start with
+[`examples/email-rules.toml`](examples/email-rules.toml), fill in owner context,
+and run `nix run .#vs1-email -- --config examples/email-rules.toml --dry-run`.
+Set `VS1_EMAIL_HOST`, `VS1_EMAIL_USERNAME`, and `VS1_EMAIL_PASSWORD` for IMAP.
+Dry-run emits JSON proposals without changing messages; execution without
+`--dry-run` returns an explicit not-implemented error.

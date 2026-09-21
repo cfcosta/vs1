@@ -107,6 +107,8 @@
                   ./crates/vs1-browser/Cargo.toml
                   ./crates/vs1-browser/src
                   ./crates/vs1-browser/assets
+                  ./crates/vs1-email
+                  ./examples/email-rules.toml
                 ];
               };
 
@@ -250,6 +252,7 @@
             {
               vs1 = null;
               vs1-browser = null;
+              vs1-email = null;
             }
       );
 

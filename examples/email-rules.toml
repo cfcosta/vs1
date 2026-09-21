@@ -1,0 +1,113 @@
+# Fill these with your own context. Lists are facts, not sender filters.
+# Each email receives one category; order is preserved, not first-match priority.
+[owner]
+capture_venues = ["Nubank", "Clear"]
+fixed_bills = []
+clients = []
+spouse = ""
+
+[[rules]]
+category = "capture"
+what = "A periodic statement, extrato, fatura or nota de corretagem reporting a balance or a whole period for one of `owner.capture_venues`"
+not_for = "A single purchase, or notice that one payment posted"
+examples = ["Extrato da fatura do Cartão Nubank", "Clear nota de negociação"]
+
+[[rules]]
+category = "bills"
+what = "An amount now due on one of `owner.fixed_bills`: the boleto, ficha, cota, fatura or dunning letter"
+not_for = "A community notice, maintenance warning or offer from the same administrator or utility"
+examples = [
+  "Imóvel 893327516 - Fatura com vencimento em 09/03/2026",
+  "Carta de Cobrança - Bl: 2 - Un: 000164",
+]
+
+[[rules]]
+category = "fiscal"
+what = "Tax and accounting for either taxpayer: DAS, GPS, DARF, IRPF, carnê-leão, informe de rendimentos, NFS-e, the accountant's requests"
+
+[[rules]]
+category = "income"
+what = "Money arriving: a payment notice, an inbound transfer, a Pix recebido, a payout"
+not_for = "Agreeing the work or the rate before any money moves"
+
+[[rules]]
+category = "receipts"
+what = "A one-off purchase receipt or order confirmation from any merchant, including a subscription renewal"
+not_for = "A balance or a whole period for one venue"
+examples = ["Your receipt from Apple", "Thank you for your Steam purchase"]
+
+[[rules]]
+category = "careers"
+what = "A hiring process where I am the candidate: recruiter outreach, ATS status, interview scheduling, take-homes, offers, rejections"
+not_for = "Work delivered to a counterparty who pays me"
+examples = [
+  "Invitation to the Next Stage with Parity Technologies",
+  "Application for position @ SUSE",
+]
+
+[[rules]]
+category = "clients"
+what = "An engagement with one of `owner.clients` or a prospect: scope, kickoff, syncs, deliverables, rates, onboarding, contractor terms"
+not_for = "Work delivered by someone who pays me a salary or a fee for a role I applied to"
+examples = [
+  "Kick-Off - Open Strategy",
+  "Caina's Onboarding",
+  "EMIS & BIZUP - API",
+]
+
+[[rules]]
+category = "papers"
+what = "An executed, keep-forever artifact: signed contract, NDA, offer letter, apólice, procuração, certidão, diploma, alteração contratual"
+
+[[rules]]
+category = "equity"
+what = "Ownership: cap-table platforms, option grants and acceptances, vesting, share purchase or buyback, shareholder notices"
+examples = [
+  "You have Options to accept",
+  "Independent Contractor Agreement, including equity",
+]
+
+[[rules]]
+category = "household"
+what = "Coordination with `owner.spouse`: her forwards, a shared task assigning me a payment, family logistics, her security alerts arriving here"
+not_for = "The same obligation arriving directly from the company that issued it"
+
+[[rules]]
+category = "identity"
+what = "Civil and cross-border bureaucracy: CPF or CNPJ verification, certidões, credit-bureau notices, customs clearance, postal authorizations, consular and residence paperwork"
+examples = [
+  "SOLICITAÇÃO DE CPF / CNPJ – rastreio WB 7716004295",
+  "Seu CPF foi consultado por uma empresa",
+]
+
+[[rules]]
+category = "security"
+what = "Account integrity: verification codes, sign-in alerts, password resets, breach notices, admin-console risk warnings, credential cleanup"
+not_for = "A payment problem on the same account"
+
+[[rules]]
+category = "ops"
+what = "Running my own infrastructure and developer accounts: domain and certificate renewals, host and CDN notices, repository and CI mail, storage quota, API billing changes"
+not_for = "The paid receipt for that same service"
+
+[[rules]]
+category = "health"
+what = "Health, fitness and pets as care: appointments, exam results, plan changes, gym and jiu-jitsu registrations, veterinary"
+not_for = "The premium now due on the health plan, or a pharmacy purchase"
+
+[[rules]]
+category = "travel"
+what = "An itinerary as a plan: booking confirmation, check-in, boarding, reservation change, loyalty balance"
+not_for = "The charge or receipt paid for that ticket"
+
+[[rules]]
+category = "bulk"
+what = "Broadcast mail carrying no obligation: newsletters, promotions, product announcements, community notices, surveys"
+examples = [
+  "Consórcio QuintoAndar com redução de 50%",
+  "[HELBOR SPAZIO VITTA] Dia do Meio Ambiente",
+]
+
+[[rules]]
+category = "other"
+what = "Fits none of the above"

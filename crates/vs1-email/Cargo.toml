@@ -22,3 +22,11 @@ rustls = { version = "0.23", default-features = false, features = [
 ] }
 webpki-roots = "1"
 clap = { version = "4", features = ["derive", "env"] }
+
+[features]
+default = []
+cuda = ["vs1/cuda", "candle-core/cuda"]
+flash-attn = ["cuda", "vs1/flash-attn"]
+metal = ["vs1/metal", "candle-core/metal"]
+mkl = ["vs1/mkl", "candle-core/mkl"]
+accelerate = ["vs1/accelerate", "candle-core/accelerate"]
