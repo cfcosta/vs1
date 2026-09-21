@@ -157,3 +157,76 @@ fn combines_every_chunk_by_length_instead_of_using_only_first_chunk() {
         12
     );
 }
+
+#[test]
+fn records_oversized_message_and_continues_without_partial_classifications() {
+    let config = Config::parse("[[rules]]\ncategory='income'\nwhat='Income'\n[[rules]]\ncategory='other'\nwhat='Other'").unwrap();
+    let mailbox = Mailbox {
+        path: "/mail".into(),
+        failures: vec![],
+        emails: (0..3)
+            .map(|i| Email {
+                path: format!("/mail/{i}").into(),
+                message_id: i.to_string(),
+                subject: i.to_string(),
+                from: String::new(),
+                to: String::new(),
+                date: String::new(),
+                body: "body".into(),
+            })
+            .collect(),
+    };
+    let report=dry_run(&config,&mailbox,3,&mut |r|Ok(serde_json::to_value(&r.state)?["email"]["subject"]!="1"),&mut |requests|Ok(requests.iter().map(|_|serde_json::from_value(json!({"model":"test","usage":{"input_tokens":1,"output_tokens":0},"answers":{"category":{"type":"choice","choice":"income","probabilities":{"income":1.0,"other":0.0},"confidence":1.0}}})).unwrap()).collect())).unwrap();
+    assert_eq!(
+        report
+            .classifications
+            .iter()
+            .map(|c| c.message_id.as_str())
+            .collect::<Vec<_>>(),
+        ["0", "2"]
+    );
+    assert_eq!(report.failures.len(), 1);
+    assert_eq!(report.failures[0].path, std::path::PathBuf::from("/mail/1"));
+    assert!(report.failures[0].error.contains("metadata exceeds"));
+}
+
+#[test]
+fn progress_retains_completed_messages_before_a_later_backend_failure() {
+    let config=Config::parse("[[rules]]\ncategory='income'\nwhat='Income'\n[[rules]]\ncategory='other'\nwhat='Other'").unwrap();
+    let mailbox = Mailbox {
+        path: "/mail".into(),
+        failures: vec![],
+        emails: (0..2)
+            .map(|i| Email {
+                path: format!("/mail/{i}").into(),
+                message_id: i.to_string(),
+                subject: String::new(),
+                from: String::new(),
+                to: String::new(),
+                date: String::new(),
+                body: String::new(),
+            })
+            .collect(),
+    };
+    let mut calls = 0;
+    let mut saved = Vec::new();
+    let result = vs1_email::dry_run_with_progress(
+        &config,
+        &mailbox,
+        1,
+        &mut |_| Ok(true),
+        &mut |_| {
+            calls += 1;
+            if calls == 2 {
+                anyhow::bail!("backend stopped");
+            }
+            Ok(vec![serde_json::from_value(json!({"model":"test","usage":{"input_tokens":1,"output_tokens":0},"answers":{"category":{"type":"choice","choice":"income","probabilities":{"income":1.0,"other":0.0},"confidence":1.0}}})).unwrap()])
+        },
+        &mut |c| {
+            saved.push(c.message_id.clone());
+            Ok(())
+        },
+    );
+    assert!(result.is_err());
+    assert_eq!(saved, ["0"]);
+}

@@ -9,7 +9,7 @@ use crate::{
     Config,
     Mailbox,
     MessageFailure,
-    classification::classification_response,
+    classification::classify_batch,
     classification_request,
     split_body,
 };
@@ -29,60 +29,76 @@ pub fn dry_run(
     fits: &mut impl FnMut(&SystemOneRequest) -> Result<bool>,
     decide: &mut impl FnMut(&[SystemOneRequest]) -> Result<Vec<SystemOneResponse>>,
 ) -> Result<DryRunReport> {
+    dry_run_with_progress(
+        config,
+        mailbox,
+        batch_size,
+        fits,
+        decide,
+        &mut |_| Ok(()),
+    )
+}
+
+/// Calls progress after each complete email; earlier records survive later errors.
+pub fn dry_run_with_progress(
+    config: &Config,
+    mailbox: &Mailbox,
+    batch_size: usize,
+    fits: &mut impl FnMut(&SystemOneRequest) -> Result<bool>,
+    decide: &mut impl FnMut(&[SystemOneRequest]) -> Result<Vec<SystemOneResponse>>,
+    progress: &mut impl FnMut(&Classification) -> Result<()>,
+) -> Result<DryRunReport> {
     ensure!(batch_size > 0, "batch size must be greater than zero");
     let mut classifications = Vec::with_capacity(mailbox.emails.len());
+    let mut failures = mailbox.failures.clone();
     for emails in mailbox.emails.chunks(batch_size) {
         let mut jobs = Vec::new();
         for (index, email) in emails.iter().enumerate() {
             let mut part = email.clone();
-            for body in split_body(&email.body, &mut |text| {
+            let bodies = split_body(&email.body, &mut |text| {
                 part.body = text.to_owned();
                 fits(&classification_request(config, &part))
             })
-            .with_context(|| format!("cannot chunk {}", email.path.display()))?
-            {
+            .with_context(|| format!("cannot chunk {}", email.path.display()));
+            let bodies = match bodies {
+                Ok(bodies) => bodies,
+                Err(error) => {
+                    failures.push(MessageFailure {
+                        path: email.path.clone(),
+                        error: format!("{error:#}"),
+                    });
+                    continue;
+                }
+            };
+            for body in bodies {
                 part.body = body.to_owned();
-                jobs.push((
-                    index,
-                    body.chars().count(),
-                    classification_request(config, &part),
-                ));
+                jobs.push((index, body.chars().count(), part.clone()));
             }
         }
         let mut results =
             (0..emails.len()).map(|_| Vec::new()).collect::<Vec<_>>();
         for batch in jobs.chunks(batch_size) {
-            let requests = batch
+            let parts = batch
                 .iter()
-                .map(|(_, _, request)| request.clone())
+                .map(|(_, _, part)| part.clone())
                 .collect::<Vec<_>>();
-            let responses = decide(&requests)?;
-            ensure!(
-                responses.len() == batch.len(),
-                "model returned {} responses for {} chunks",
-                responses.len(),
-                batch.len()
-            );
-            for ((index, chars, _), response) in batch.iter().zip(responses) {
-                let result =
-                    classification_response(config, &emails[*index], response)
-                        .with_context(|| {
-                            format!(
-                                "cannot classify {}",
-                                emails[*index].path.display()
-                            )
-                        })?;
+            let responses = classify_batch(config, &parts, decide)?;
+            for ((index, chars, _), result) in batch.iter().zip(responses) {
                 results[*index].push((*chars, result));
             }
         }
         for (email, chunks) in emails.iter().zip(results) {
-            classifications.push(aggregate(config, email, chunks)?);
+            if !chunks.is_empty() {
+                let classification = aggregate(config, email, chunks)?;
+                progress(&classification)?;
+                classifications.push(classification);
+            }
         }
     }
     Ok(DryRunReport {
         dry_run: true,
         mailbox: mailbox.path.clone(),
-        failures: mailbox.failures.clone(),
+        failures,
         classifications,
     })
 }
@@ -112,6 +128,7 @@ fn aggregate(
         usage.input_tokens += chunk.usage.input_tokens;
         usage.output_tokens += chunk.usage.output_tokens;
         evidence.push(ChunkEvidence {
+            decisions: chunk.decisions,
             body_chars: chars,
             category: chunk.category,
             confidence: chunk.confidence,
@@ -146,5 +163,6 @@ fn aggregate(
         model,
         usage,
         chunks: evidence,
+        decisions: serde_json::Value::Null,
     })
 }

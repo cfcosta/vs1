@@ -70,6 +70,9 @@ pub fn request_fits(
     let state = model.encode_state(&request.state)?;
     for (id, question) in &request.questions {
         let overhead = model.build_sequence(&empty, id, question)?.ids.len();
+        // Reserve the full header budget for later tournament finalists.
+        let overhead =
+            overhead.max(model.config().head_max_len.saturating_add(4));
         if overhead + state.len() > model.config().max_len {
             return Ok(false);
         }

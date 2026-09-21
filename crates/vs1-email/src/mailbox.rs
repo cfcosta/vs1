@@ -34,7 +34,7 @@ pub fn parse_email(path: impl Into<PathBuf>, raw: &[u8]) -> Result<Email> {
         to: header("To"),
         subject: header("Subject"),
         date: header("Date"),
-        body: body_text(&parsed)?,
+        body: crate::clean_body(&body_text(&parsed)?),
     })
 }
 
@@ -74,15 +74,39 @@ fn body_text(mail: &ParsedMail<'_>) -> Result<String> {
             .join("\n"));
     }
     match mail.ctype.mimetype.as_str() {
-        "text/plain" => Ok(mail.get_body()?),
+        "text/plain" => {
+            let body = mail.get_body()?;
+            if looks_like_html_document(&body) {
+                render_html(&body)
+            } else {
+                Ok(body)
+            }
+        }
         "text/html" => {
             let html = mail.get_body()?;
-            Ok(html2text::config::plain()
-                .link_footnotes(false)
-                .string_from_read(html.as_bytes(), 120)?)
+            render_html(&html)
         }
         _ => Ok(String::new()),
     }
+}
+
+fn looks_like_html_document(body: &str) -> bool {
+    let lower = body
+        .trim_start_matches(['\u{feff}', ' ', '\n', '\r', '\t'])
+        .to_ascii_lowercase();
+    // Require a document wrapper, not isolated tags or CSS in developer mail.
+    (lower.starts_with("<!doctype html")
+        || lower.starts_with("<html>")
+        || lower.starts_with("<html ")
+        || lower.starts_with("<html\n")
+        || lower.starts_with("<html\r"))
+        && lower.contains("</html>")
+}
+
+fn render_html(html: &str) -> Result<String> {
+    Ok(html2text::config::plain()
+        .link_footnotes(false)
+        .string_from_read(html.as_bytes(), 120)?)
 }
 
 /// Reads a Maildir or sync root, including all descendant Maildir folders.

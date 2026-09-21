@@ -57,6 +57,7 @@ fn request_preserves_context_and_all_criteria_in_order() {
     assert!(options[1].starts_with("other:"));
     assert!(state.get("criteria").is_none());
     assert!(state["email"].get("path").is_none());
+    assert!(state["email"].get("to").is_none());
 }
 
 #[test]
@@ -125,5 +126,21 @@ fn rejects_missing_wrong_unknown_or_invalid_model_answers() {
             "inference failed"
         ))
         .is_err()
+    );
+}
+
+#[test]
+fn recipients_cannot_change_model_input() {
+    let original = email();
+    let mut many_recipients = original.clone();
+    many_recipients.to = "Recipient <recipient@example.test>, ".repeat(1000);
+    assert_eq!(
+        serde_json::to_value(classification_request(&config(), &original))
+            .unwrap(),
+        serde_json::to_value(classification_request(
+            &config(),
+            &many_recipients
+        ))
+        .unwrap()
     );
 }

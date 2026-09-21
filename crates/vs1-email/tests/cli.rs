@@ -98,3 +98,40 @@ fn empty_local_maildir_needs_no_credentials_or_model() {
     assert_eq!(report["classifications"], serde_json::json!([]));
     assert!(report.get("host").is_none());
 }
+
+#[test]
+fn progress_file_is_created_without_overwriting_existing_results() {
+    let dir = tempfile::tempdir().unwrap();
+    for name in ["cur", "new", "tmp"] {
+        std::fs::create_dir(dir.path().join(name)).unwrap();
+    }
+    let config = dir.path().join("rules.toml");
+    std::fs::write(
+        &config,
+        "[[rules]]\ncategory='a'\nwhat='A'\n[[rules]]\ncategory='b'\nwhat='B'",
+    )
+    .unwrap();
+    let progress = dir.path().join("progress.jsonl");
+    let args = [
+        "--dry-run",
+        "--config",
+        config.to_str().unwrap(),
+        "--mailbox",
+        dir.path().to_str().unwrap(),
+        "--progress-jsonl",
+        progress.to_str().unwrap(),
+    ];
+    let out = cli(&args);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(std::fs::read(&progress).unwrap(), b"");
+    std::fs::write(&progress, "previous results").unwrap();
+    assert!(!cli(&args).status.success());
+    assert_eq!(
+        std::fs::read_to_string(&progress).unwrap(),
+        "previous results"
+    );
+}

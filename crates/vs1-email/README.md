@@ -32,36 +32,60 @@ times may update when files are read. The limit defaults to 100 messages total a
 sorted absolute path order. Unreadable or malformed messages are listed in `failures` with their paths
 and errors; the remaining messages are classified. Attachments are excluded;
 MIME headers and transfer encodings are decoded, plain text is preferred, and
-HTML-only mail is converted to visible text, excluding scripts and styles. Attachment-only messages use their headers.
+HTML-only mail and complete HTML documents mislabeled as plain text are converted
+to visible text, excluding scripts and styles. Isolated HTML/CSS examples in
+ordinary plain text are preserved. Before
+chunking, text cleanup collapses horizontal whitespace and repeated blank lines,
+removes decorative table borders, and retains table cell values and paragraph
+breaks. Recognized tracking redirects (SendGrid click links, Mailchimp click
+links, and compressed `/c/` links on email tracking hosts) are removed entirely.
+Known tracking query parameters are removed from other URLs. Long opaque
+values are removed only for recognized token parameters such as `sparams` and
+`access_token`; domains, paths, fragments and ordinary query fields remain.
+This preprocessing is for model input: resulting links may no longer be usable
+for authentication. Quoted history and boilerplate prose are retained. Attachment-only messages use their headers.
 
 Stdout is one JSON report with `dry_run`, the absolute selected root path in
 `mailbox`, `failures`, and `classifications`. Each classification includes its per-chunk evidence and absolute
 source `path`, Message-ID, subject, category, confidence, per-category
-probabilities, model name, and token usage. Folder discovery and inference failures abort the run; per-message read
-and MIME failures are included in the report. Inference runs locally; the first model load may
+probabilities, model name, and token usage. Folder discovery and inference failures abort the run; per-message read,
+MIME and chunk-preparation failures are included in the report. Inference runs locally; the first model load may
 download weights from Hugging Face. Use `--model /path/to/checkpoint` for
 local model assets. Empty mailboxes skip model loading.
 
 The model defaults to `convaiinnovations/laya`. Use `--model` for a local
 checkpoint directory or another Hugging Face checkpoint, `--subfolder
-multilingual` for the multilingual variant, and `--device cpu|cuda|metal` with
+multilingual` or `--subfolder typed-decisions` for alternate checkpoints, and `--device cpu|cuda|metal` with
 optional `--dtype f32|bf16|f16` and `--batch-size`. `--batch-size` defaults to 16 and controls how many messages are submitted
-together to the model. The model prepares requests in parallel on CUDA and
+together to the model. Each chunk may require multiple tournament rounds. The model prepares requests in parallel on CUDA and
 packs their sequences into batched forward passes. Reduce it if GPU memory
 is insufficient. The final partial batch is included and results retain file order.
 
 Emails are split into nonoverlapping UTF-8 body chunks, preferring whitespace
-boundaries. Every chunk repeats the email headers and owner context. The actual
+boundaries. Every chunk repeats the subject, sender, date and owner context. Recipient
+lists are excluded from model input. The actual
 model tokenizer checks the complete request against the checkpoint budget, so
 body text is never silently dropped. Oversized metadata that leaves no body
-capacity produces an explicit error. Empty bodies still produce one request.
+capacity is recorded in `failures`; other messages continue. Empty bodies still produce one request.
 
 `--max-len` and `--head-max-len` default to the checkpoint's own configuration
 (512/192 for the base model, 1024/256 for multilingual). Overriding these is
 experimental: a longer sequence can degrade decisions, not just increase cost.
-Rule descriptions are choice criteria, not email content. Laya still caps
-individual descriptions at 48 tokens and can shorten them further to fit the
-question-header budget, particularly with many categories.
+Each decision compares at most five categories. Larger rule sets use balanced
+contests in configuration order: their winners advance to another small contest
+until a final choice is reached. All contests in a round run in batches; for 17
+rules this is four preliminary questions and one final question per body chunk.
+An early elimination can lose the correct category, so this is an approximation.
+
+Descriptions use plain text, followed by exclusions and examples. Keep them
+short: laya caps each option at 48 tokens and can shorten it further to fit the
+header budget. The root `email.toml` uses concise descriptions. Body chunks
+reserve the full question-header budget so later finalists cannot truncate them.
+
+Final-round scores are conditional on the surviving shortlist. Eliminated
+categories receive zero in that chunk's `probabilities`; zero does not mean
+impossibility. Each chunk's `decisions` retains every round's candidates and raw
+answers, including eliminated choices. Usage includes all rounds.
 
 Chunk category probabilities are averaged using each chunk's Unicode character
 count as its weight (an empty body has weight one). The highest aggregate score
@@ -87,3 +111,8 @@ nix build .#vs1-email
 
 Tests use synthetic messages and temporary Maildirs; they need neither
 mailbox credentials nor model downloads.
+
+For long runs, add `--progress-jsonl /path/to/new-results.jsonl`. Each completed
+email is flushed as one JSON line while inference continues. The file must not
+already exist. These partial results survive later inference errors; they are
+not an automatic resume mechanism. The final stdout report includes failures.

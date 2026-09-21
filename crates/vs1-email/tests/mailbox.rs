@@ -32,3 +32,25 @@ fn html_mail_exposes_visible_text_without_style_or_script_noise() {
     assert!(!email.body.contains("tracking()"));
     assert!(!email.body.contains("<p>"));
 }
+
+#[test]
+fn renders_html_document_mislabeled_as_plain_text() {
+    for mime in ["text/plain", "text/html"] {
+        let raw = format!(
+            "Content-Type: {mime}; charset=utf-8\r\n\r\n<!doctype html><html><head><style>.secret {{ color:red; }}</style></head><body><p>Account recovery code: <b>001234</b></p><p>Amount: 123.45 &amp; invoice AB-42</p></body></html>"
+        );
+        let mail = parse_email("test", raw.as_bytes()).unwrap();
+        assert!(mail.body.contains("Account recovery code:"));
+        assert!(mail.body.contains("001234"));
+        assert!(mail.body.contains("Amount: 123.45 & invoice AB-42"));
+        assert!(!mail.body.contains("secret"));
+        assert!(!mail.body.contains("<html"));
+    }
+}
+
+#[test]
+fn preserves_plain_text_discussing_html_and_css() {
+    let body = "Try <div> or <html> in the example.\nCSS: .alert { color: red; }\nUse <style> for CSS. Amount: 123.45";
+    let raw = format!("Content-Type: text/plain\r\n\r\n{body}");
+    assert_eq!(parse_email("test", raw.as_bytes()).unwrap().body, body);
+}

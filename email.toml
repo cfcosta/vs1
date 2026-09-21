@@ -1,11 +1,6 @@
-# Area classification: one folder per message.
-# question: Which folder should `message` be filed in?
-# focus: Classify what the message is for, not who sent it.
-# One sender sends statements, marketing and dunning letters.
-# The current CLI supports rules and owner context; the instructions above
-# are comments, not configurable model instructions.
-
-# Fill in your owner context before classifying mail.
+# Classify message purpose, not sender. Decisions use at most five choices.
+# Keep descriptions short: laya caps each option at 48 tokens.
+# Fill in owner context before relying on owner-dependent categories.
 [owner]
 capture_venues = []
 fixed_bills = []
@@ -14,106 +9,80 @@ spouse = ""
 
 [[rules]]
 category = "capture"
-what = "A periodic statement, extrato, fatura or nota de corretagem reporting a balance or a whole period for one of `owner.capture_venues`"
-not_for = "A single purchase, or notice that one payment posted"
-examples = ["Extrato da fatura do Cartão Nubank", "Clear nota de negociação"]
+what = "Periodic balances, statements or brokerage notes for owner.capture_venues."
+not_for = "Single purchases or payments."
 
 [[rules]]
 category = "bills"
-what = "An amount now due on one of `owner.fixed_bills`: the boleto, ficha, cota, fatura or dunning letter"
-not_for = "A community notice, maintenance warning or offer from the same administrator or utility"
-examples = [
-  "Imóvel 893327516 - Fatura com vencimento em 09/03/2026",
-  "Carta de Cobrança - Bl: 2 - Un: 000164",
-]
+what = "Amounts due for owner.fixed_bills: invoices, boletos, overdue payment demands."
+not_for = "Community notices or offers."
 
 [[rules]]
 category = "fiscal"
-what = "Tax and accounting for either taxpayer: DAS, GPS, DARF, IRPF, carnê-leão, informe de rendimentos, NFS-e, the accountant's requests"
+what = "Tax and accounting: DAS, GPS, DARF, IRPF, NFS-e, income reports, accountant requests."
 
 [[rules]]
 category = "income"
-what = "Money arriving: a payment notice, an inbound transfer, a Pix recebido, a payout"
-not_for = "Agreeing the work or the rate before any money moves"
+what = "Money arriving: incoming transfers, Pix recebido, payments or payouts received."
+not_for = "Negotiating future work or rates."
 
 [[rules]]
 category = "receipts"
-what = "A one-off purchase receipt or order confirmation from any merchant, including a subscription renewal"
-not_for = "A balance or a whole period for one venue"
-examples = ["Your receipt from Apple", "Thank you for your Steam purchase"]
+what = "Purchase receipts, order confirmations or paid subscription renewals."
+not_for = "Periodic account statements."
 
 [[rules]]
 category = "careers"
-what = "A hiring process where I am the candidate: recruiter outreach, ATS status, interview scheduling, take-homes, offers, rejections"
-not_for = "Work delivered to a counterparty who pays me"
-examples = [
-  "Invitation to the Next Stage with Parity Technologies",
-  "Application for position @ SUSE",
-]
+what = "Hiring me: recruiters, applications, interviews, take-homes, offers, rejections."
+not_for = "Delivering paid work."
 
 [[rules]]
 category = "clients"
-what = "An engagement with one of `owner.clients` or a prospect: scope, kickoff, syncs, deliverables, rates, onboarding, contractor terms"
-not_for = "Work delivered by someone who pays me a salary or a fee for a role I applied to"
-examples = [
-  "Kick-Off - Open Strategy",
-  "Caina's Onboarding",
-  "EMIS & BIZUP - API",
-]
+what = "Client or prospect engagements: scope, deliverables, rates, contractor onboarding. See owner.clients."
+not_for = "Employment or hiring processes."
 
 [[rules]]
 category = "papers"
-what = "An executed, keep-forever artifact: signed contract, NDA, offer letter, apólice, procuração, certidão, diploma, alteração contratual"
+what = "Executed permanent documents: signed contracts, NDAs, policies, certificates, diplomas."
+not_for = "Unsigned drafts or signature requests."
 
 [[rules]]
 category = "equity"
-what = "Ownership: cap-table platforms, option grants and acceptances, vesting, share purchase or buyback, shareholder notices"
-examples = [
-  "You have Options to accept",
-  "Independent Contractor Agreement, including equity",
-]
+what = "Ownership: option grants, vesting, shares, buybacks, cap tables, shareholder notices."
 
 [[rules]]
 category = "household"
-what = "Coordination with `owner.spouse`: her forwards, a shared task assigning me a payment, family logistics, her security alerts arriving here"
-not_for = "The same obligation arriving directly from the company that issued it"
+what = "Coordination with owner.spouse: forwards, shared payments, family logistics, her security alerts."
+not_for = "Obligations sent directly by companies."
 
 [[rules]]
 category = "identity"
-what = "Civil and cross-border bureaucracy: CPF or CNPJ verification, certidões, credit-bureau notices, customs clearance, postal authorizations, consular and residence paperwork"
-examples = [
-  "SOLICITAÇÃO DE CPF / CNPJ – rastreio WB 7716004295",
-  "Seu CPF foi consultado por uma empresa",
-]
+what = "Civil bureaucracy: CPF/CNPJ, credit inquiries, customs, postal authorizations, consular or residence paperwork."
 
 [[rules]]
 category = "security"
-what = "Account integrity: verification codes, sign-in alerts, password resets, breach notices, admin-console risk warnings, credential cleanup"
-not_for = "A payment problem on the same account"
+what = "Account security: verification codes, login alerts, password resets, breaches, credential cleanup."
+not_for = "Payment problems."
 
 [[rules]]
 category = "ops"
-what = "Running my own infrastructure and developer accounts: domain and certificate renewals, host and CDN notices, repository and CI mail, storage quota, API billing changes"
-not_for = "The paid receipt for that same service"
+what = "Own infrastructure and developer accounts: domains, hosting, repositories, CI, quotas, API billing changes."
+not_for = "Paid receipts for services."
 
 [[rules]]
 category = "health"
-what = "Health, fitness and pets as care: appointments, exam results, plan changes, gym and jiu-jitsu registrations, veterinary"
-not_for = "The premium now due on the health plan, or a pharmacy purchase"
+what = "Medical, fitness or pet care: appointments, results, plan changes, gym registrations, veterinary."
+not_for = "Premiums due or pharmacy purchases."
 
 [[rules]]
 category = "travel"
-what = "An itinerary as a plan: booking confirmation, check-in, boarding, reservation change, loyalty balance"
-not_for = "The charge or receipt paid for that ticket"
+what = "Travel plans: reservations, check-in, boarding, itinerary changes, loyalty balances."
+not_for = "Ticket charges or paid receipts."
 
 [[rules]]
 category = "bulk"
-what = "Broadcast mail carrying no obligation: newsletters, promotions, product announcements, community notices, surveys"
-examples = [
-  "Consórcio QuintoAndar com redução de 50%",
-  "[HELBOR SPAZIO VITTA] Dia do Meio Ambiente",
-]
+what = "Broadcasts without obligations: newsletters, promotions, announcements, community notices, surveys."
 
 [[rules]]
 category = "other"
-what = "Fits none of the above"
+what = "None of the defined categories fits."

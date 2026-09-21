@@ -8,7 +8,7 @@ use anyhow::{Context, Result, ensure};
 use candle_core::{DType, Device};
 use clap::Parser;
 use vs1::SystemOne;
-use vs1_email::{Config, dry_run, read_maildir, request_fits};
+use vs1_email::{Config, dry_run_with_progress, read_maildir, request_fits};
 
 #[derive(Parser)]
 #[command(
@@ -19,6 +19,9 @@ struct Args {
     /// Print proposed categories as JSON without changing the mailbox.
     #[arg(long)]
     dry_run: bool,
+    /// Write completed classifications as JSONL while running; file must not exist.
+    #[arg(long)]
+    progress_jsonl: Option<PathBuf>,
     /// TOML file containing [[rules]] and optional [owner] context.
     #[arg(long)]
     config: Option<PathBuf>,
@@ -74,6 +77,20 @@ fn main() -> Result<()> {
         .context("--mailbox must specify a local Maildir or sync root")?;
     let mailbox = read_maildir(&mailbox_path, args.limit)?;
 
+    let mut progress = args
+        .progress_jsonl
+        .as_ref()
+        .map(|path| {
+            std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(path)
+                .with_context(|| {
+                    format!("cannot create progress file {}", path.display())
+                })
+        })
+        .transpose()?
+        .map(io::BufWriter::new);
     eprintln!(
         "read {} messages; {} read/decode failures",
         mailbox.emails.len(),
@@ -122,7 +139,7 @@ fn main() -> Result<()> {
         );
         Some(model)
     };
-    let report = dry_run(
+    let report = dry_run_with_progress(
         &config,
         &mailbox,
         args.batch_size,
@@ -132,19 +149,34 @@ fn main() -> Result<()> {
         &mut |requests| {
             let model = model.as_ref().context("model not loaded")?;
             let response = model.system_one_batch(requests)?;
-            completed += requests.len();
-            if completed / 100 != (completed - requests.len()) / 100 {
+            let questions: usize =
+                requests.iter().map(|r| r.questions.len()).sum();
+            completed += questions;
+            if completed / 100 != (completed - questions) / 100 {
                 eprintln!(
-                    "classified {completed} chunks in {:.1}s",
+                    "evaluated {completed} questions in {:.1}s",
                     started.elapsed().as_secs_f64()
                 );
             }
             Ok(response)
         },
+        &mut |classification| {
+            if let Some(writer) = progress.as_mut() {
+                serde_json::to_writer(&mut *writer, classification)?;
+                writeln!(writer)?;
+                writer.flush()?;
+            }
+            Ok(())
+        },
     )?;
     eprintln!(
-        "completed {} emails from {completed} chunks in {:.1}s",
+        "completed {} emails from {} chunks and {completed} questions in {:.1}s",
         report.classifications.len(),
+        report
+            .classifications
+            .iter()
+            .map(|c| c.chunks.len())
+            .sum::<usize>(),
         started.elapsed().as_secs_f64()
     );
     let mut stdout = io::stdout().lock();
