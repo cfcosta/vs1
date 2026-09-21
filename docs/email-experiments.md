@@ -1111,3 +1111,19 @@ additional to the classifier table. Preparation includes imports, model loading,
 leakage checks, tokenization, pooling, retrieval and serialization. The tokenizer's
 raw long-input warning precedes explicit chunking; each encoded chunk is checked
 against the model token ceiling before inference.
+
+## 22. Retrieval coverage, neighbor voting, compact context and gating
+
+Ran four frozen follow-up experiments on the existing diagnostic sample and a
+fresh 300-message set (271 scored references, 29 unresolved). Actual neighbor
+agreement routing improves Laya 135→160/271 while reducing classifier calls
+1,156→662. OpenJev with native label-only context scores 118/271 versus its
+111/271 baseline. Expanded-bank retrieval provides no overall accuracy gain,
+and confidence gating is worse and slower than full retrieval. Production
+remains unchanged; the two useful options are retained as opt-in research
+support, with diagnostic regressions and reference limitations documented.
+
+See [full results and disposition](email-retrieval-followup.md) and
+[aggregate metrics](email-retrieval-followup.json). Jev remains baseline-only,
+scoring 222/271 on the fresh set. All references are assistant-reviewed rather
+than independently verified ground truth.
