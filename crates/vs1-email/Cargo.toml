@@ -30,3 +30,7 @@ accelerate = ["vs1/accelerate", "candle-core/accelerate"]
 
 [dev-dependencies]
 tempfile = "3"
+
+[[example]]
+name = "backend_benchmark"
+required-features = ["jev"]
