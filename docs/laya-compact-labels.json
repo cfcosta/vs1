@@ -1,0 +1,246 @@
+{
+  "date": "2026-09-21",
+  "messages": 200,
+  "labeled": 156,
+  "unresolved": 44,
+  "labels_sha256": "6cb28a20e0359c312de132aa2318bc2b19e44e08df0d2c5e2acf2858288c3df8",
+  "model": "laya-typed-decisions",
+  "device": "CUDA RTX 3080 Ti",
+  "dtype": "BF16",
+  "flash_attention": true,
+  "batch_size": 16,
+  "timing_caveat": "Dota 2 shares GPU; timing is not an isolated throughput comparison",
+  "outcome": "Both compact variants regressed; experiment code reverted; existing descriptions retained",
+  "paired_comparisons": {
+    "laya-compact": {
+      "fixed": 6,
+      "regressed": 25,
+      "regressed_by_category": {
+        "security": 1,
+        "careers": 1,
+        "bulk": 17,
+        "fiscal": 3,
+        "ops": 1,
+        "other": 2
+      },
+      "new_category_for_lost_bulk": {
+        "careers": 2,
+        "ops": 10,
+        "clients": 3,
+        "receipts": 1,
+        "security": 1
+      },
+      "all_request_states_identical": true,
+      "first_round_options_identical": true,
+      "classification_changes": 90
+    },
+    "laya-compact-exclusions": {
+      "fixed": 9,
+      "regressed": 12,
+      "regressed_by_category": {
+        "careers": 1,
+        "bulk": 6,
+        "fiscal": 2,
+        "security": 1,
+        "other": 2
+      },
+      "new_category_for_lost_bulk": {
+        "careers": 1,
+        "equity": 1,
+        "ops": 2,
+        "receipts": 2
+      },
+      "all_request_states_identical": true,
+      "first_round_options_identical": true,
+      "classification_changes": 69
+    }
+  },
+  "runs": [
+    {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 87,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5576923076923077,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 30.706390304000006,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.062249165,
+      "load_seconds": 0.390402059,
+      "run_seconds": 34.18761219,
+      "total_seconds": 34.712210861,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "process_wall_seconds": 34.869073587993626,
+      "development": {
+        "labeled": 44,
+        "correct": 26
+      },
+      "remaining": {
+        "labeled": 112,
+        "correct": 61
+      }
+    },
+    {
+      "backend": "laya",
+      "audit_mode": "laya-compact",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 68,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.4358974358974359,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 25.303246099000006,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.060383537,
+      "load_seconds": 0.270060205,
+      "run_seconds": 28.650407839,
+      "total_seconds": 29.052914838,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "process_wall_seconds": 29.208762380992994,
+      "development": {
+        "labeled": 44,
+        "correct": 21
+      },
+      "remaining": {
+        "labeled": 112,
+        "correct": 47
+      }
+    },
+    {
+      "backend": "laya",
+      "audit_mode": "laya-compact-exclusions",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 84,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5384615384615384,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 28.603784328,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.06148883,
+      "load_seconds": 0.29774841,
+      "run_seconds": 32.1099954,
+      "total_seconds": 32.546978553,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "process_wall_seconds": 32.719108938996214,
+      "development": {
+        "labeled": 44,
+        "correct": 24
+      },
+      "remaining": {
+        "labeled": 112,
+        "correct": 60
+      }
+    },
+    {
+      "backend": "laya",
+      "audit_mode": "laya-compact-exclusions",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 84,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5384615384615384,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 30.930363598000003,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.067512014,
+      "load_seconds": 0.424690791,
+      "run_seconds": 34.529194652,
+      "total_seconds": 35.102358751,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "process_wall_seconds": 35.27212844300084,
+      "repeat_prediction_agreement": 200
+    },
+    {
+      "backend": "laya",
+      "audit_mode": "laya-compact",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 68,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.4358974358974359,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 30.641849513999997,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.06505625,
+      "load_seconds": 0.427668544,
+      "run_seconds": 34.235439784,
+      "total_seconds": 34.801287789,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "process_wall_seconds": 34.96848105700337,
+      "repeat_prediction_agreement": 200
+    }
+  ]
+}

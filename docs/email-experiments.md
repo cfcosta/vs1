@@ -659,3 +659,75 @@ is runtime configuration; users do not need another package or a feature flag.
 The normal default-feature workspace suite and Clippy passed after that change;
 the regular `vs1-email` Nix package built successfully. A live generic CLI call
 without `--features` returned all three question types in one HTTP attempt.
+
+## 15. Compact category descriptions on laya
+
+Compared three formulations on the frozen 200-message sample from the
+[backend benchmark](email-backend-benchmark.md). All 200 messages were processed;
+accuracy uses the same 156 assistant-reviewed labels, with 44 unresolved cases
+excluded for every variant. No reference labels were changed.
+
+The candidates were fixed before inference:
+
+1. Existing `email.toml` descriptions and exclusions.
+2. The exact compact positive descriptions used in the OpenJev audit.
+3. Those compact descriptions plus **all existing `not_for` exclusions**.
+
+The original configuration supplied the token-fit callback for every variant.
+Only the descriptions in the actual inference requests were replaced, including
+the final tournament round. Every transformed request was checked to fit without
+truncation. This held chunk boundaries, metadata, owner context, instructions,
+initial option groups/order, tournament algorithm and character-weighted pooling
+constant. Actual finalist identities can change with first-round predictions.
+
+Captured effective requests verified identical state content and ordering across
+all 704 requests, as well as identical first-round option IDs/order. Each run used
+**352 chunks, 704 logical requests, 1,760 questions and 56 batch calls**, with no
+HTTP inference calls. Execution used `typed-decisions`, CUDA BF16, FlashAttention,
+batch size 16 and four Rayon threads. The baseline reproduced all 200 previous
+predictions exactly.
+
+| Formulation             | Correct / 156 | First 50: /44 labeled | Remaining 150: /112 labeled | Fixes / regressions against baseline |
+| ----------------------- | ------------: | --------------------: | --------------------------: | -----------------------------------: |
+| Existing descriptions   |    87 (55.8%) |                    26 |                          61 |                                    — |
+| Compact only            |    68 (43.6%) |                    21 |                          47 |                               6 / 25 |
+| Compact plus exclusions |    84 (53.8%) |                    24 |                          60 |                               9 / 12 |
+
+Compact-only lost 17 previously correct `bulk` messages; ten of those became
+`ops`. Retaining exclusions reduced that to six lost `bulk` messages, but did
+not recover the baseline overall. This is evidence that the OpenJev wording
+improvement does not transfer directly to laya. It does not establish that
+every shorter formulation would regress, or isolate length from lost semantic
+detail and changed wording.
+
+Timing was measured while Dota 2 shared the RTX 3080 Ti. These are observed
+end-to-end timings under competing GPU load, not an isolated speed comparison
+against the earlier backend benchmark. All runs include first-call overhead,
+mail parsing, model loading and result serialization; call time is the sum of
+batch inference wall intervals. The additional experiment captures and fit
+checks are included in total time for all three variants.
+
+| Formulation             | Call wall, pass 1 / repeat | Total, pass 1 / repeat |
+| ----------------------- | -------------------------: | ---------------------: |
+| Existing descriptions   |                30.706s / — |            34.712s / — |
+| Compact only            |          25.303s / 30.642s |      29.053s / 34.801s |
+| Compact plus exclusions |          28.604s / 30.930s |      32.547s / 35.102s |
+
+Both candidate repeats matched all 200 first-pass predictions: **68/156** and
+**84/156** again. Neither candidate improved either labeled subset. Their
+implementation and experimental tests were reverted; the current descriptions,
+production pipeline and existing benchmark defaults are unchanged. Only these
+findings and aggregate measurements are retained in the repository. The private
+source and executable snapshots preserve exact reproduction of the failed
+experiments.
+
+Aggregate data: [laya-compact-labels.json](laya-compact-labels.json).
+
+The request transformation was implemented with a failing test first, then
+passed all five harness tests and Clippy. Tests checked unchanged state,
+instructions, candidate IDs/order and original requests, plus exclusion
+preservation in both preliminary and final-round questions.
+
+Private raw reports, effective request captures and source/executable snapshots
+are under `~/.local/state/vs1-email/three-backends-200-20260921/`, with the
+`laya-wording-` prefix and `laya-wording-audit/` subdirectory.

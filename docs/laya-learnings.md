@@ -184,6 +184,13 @@ choice field explicitly. It did not replace laya or change the active config.
 
 ## Boundaries for subsequent work
 
+The [200-message compact-description experiment](email-experiments.md#15-compact-category-descriptions-on-laya)
+held all chunks and tournament settings fixed. Existing wording scored 87/156;
+the OpenJev compact wording scored 68/156, and restoring all exclusions reached
+84/156. Both candidates repeated exactly and were reverted. Shorter labels
+are not automatically better for laya; the wording gain observed with OpenJev
+did not transfer. Most compact-only regressions were informational broadcasts.
+
 Keep the current laya checkpoint, typed API and local execution. First use this
 training-data evidence to frame questions and interpret errors. Do not assume
 that a generative prompting technique, extra questions, confidence threshold,
