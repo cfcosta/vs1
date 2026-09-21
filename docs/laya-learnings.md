@@ -182,6 +182,50 @@ it does not distinguish local checkpoint limitations from runtime differences.
 The experiment adapted Jev's rounded probabilities and occasional non-argmax
 choice field explicitly. It did not replace laya or change the active config.
 
+## Direct categorization in the training data
+
+A follow-up inspection of all 300 customer-service training rows confirms an
+explicit `category` choice question: "What is this customer conversation primarily
+about?" Its criteria are identical across every row:
+
+| Category  | Training description                                 |
+| --------- | ---------------------------------------------------- |
+| account   | Login, plan changes, profile or access management.   |
+| billing   | A charge, invoice, subscription or payment problem.  |
+| delivery  | Shipping, fulfilment or delivery of a physical item. |
+| refund    | The customer is explicitly asking for money back.    |
+| technical | The product or service is not working as expected.   |
+
+Every state contains `account` and `thread`; 167 also contain `orders`. Threads
+have one to seven turns (median five), with customer and agent roles. The input
+contains the complete scenario, without a tournament or chunk-level voting.
+The five choices can overlap: `tr_customer_service_000166` concerns an unwanted
+charge after a plan downgrade and assigns billing probability 0.76 and account
+0.206667. This is a purpose distinction, not simply keyword matching.
+
+Teacher argmax counts are account 77, billing 68, technical 68, delivery 60 and
+refund 27. Median top probability is 0.916667; 34 cases have top probability
+below 0.7 and eight have a top-two margin below 0.2. These are properties of the
+provided soft targets, not measured laya accuracy. The targets come from teacher
+samples; even apparently similar cancellation requests can receive different
+account-versus-billing labels.
+
+This supports investigating direct categorization, but does not establish that
+arbitrary new labels or a 17-way email taxonomy will generalize. The source is
+the pinned full Parquet in the provenance section, read with PyArrow 25.0.1;
+the dataset card separately provides a 100-case customer-service test split.
+
+Two next steps follow from this evidence. First replay the native category
+question unchanged through our runtime, measuring agreement with both teacher
+argmax and soft distributions. Training replay is a compatibility diagnostic;
+use the separate test split for held-out task evaluation. Second, if that works,
+test a semantic hierarchy in which a broad purpose selects a relevant set of
+subcategories. Our current tournament instead forces a winner from each group,
+including groups with no fitting category, and later compares those winners.
+A hierarchy could avoid that mismatch but introduces routing errors of its own;
+it is an untested hypothesis, not a demonstrated fix. Shortening descriptions
+alone already failed the frozen email comparison below.
+
 ## Boundaries for subsequent work
 
 The [200-message compact-description experiment](email-experiments.md#15-compact-category-descriptions-on-laya)
