@@ -13,3 +13,6 @@ pub use classification::{
 
 mod mailbox;
 pub use mailbox::{Mailbox, parse_email, read_mailbox};
+
+mod report;
+pub use report::{DryRunReport, dry_run};
