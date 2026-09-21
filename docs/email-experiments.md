@@ -163,3 +163,47 @@ Tests for Unicode-safe opening limits and bounded multi-chunk nominations
 failed before implementation and passed afterward. Package tests, Clippy and
 formatting passed. Frozen configuration, source, results and timing evidence:
 `~/.local/state/vs1-email/email-context-100-20260921/`.
+
+## 8. Financial-event extraction before category routing
+
+Add one first-round choice question per chunk asking what financial event is
+explicitly reported: completed purchase payment, unpaid obligation, incoming
+money, statement/tax matter, or none/unclear. Route the first three to receipts,
+bills, or income only when the selected score is at least 0.45 and exceeds the
+runner-up by at least 0.10. Strong statement/tax evidence or conflicting
+transaction types forces fallback to the current classifier. These thresholds
+were fixed before inference; scores are not calibrated probabilities.
+
+Run on all 100 development messages to expose nonfinancial false positives,
+with the retained descriptions, CUDA BF16, flash attention and batch size 16.
+Two repetitions reverse method order.
+
+| Method                              | Correct / 61 | Mean runtime | Questions |
+| ----------------------------------- | -----------: | -----------: | --------: |
+| Current classifier                  |           36 |       10.83s |       720 |
+| Financial-event probe plus fallback |           36 |       11.63s |       864 |
+
+Both methods produced identical categories for all 100 messages, on both
+passes. Only one message obtained an eligible financial route, and its existing
+category was already correct. No errors were fixed. Baseline question answers
+also remained unchanged when the probe was added to the batches. The extra
+probe adds 20% more questions without an accuracy improvement. Runtime is
+noisy: baseline passes were 9.73s and 11.93s; event passes 11.53s and 11.73s.
+
+Raw answers indicate why lowering thresholds is not justified by this test:
+both labeled incoming-money messages were called outgoing paid purchases, and
+one tax/accounting message was also called a paid purchase. Their low scores
+prevented overrides. Many receipt passages did select paid, but weak separation
+and footer disagreement prevented a reliable route. This rejects the specific
+event question and routing policy, not every possible evidence-extraction model.
+
+The model-built question header used 189 tokens including special tokens,
+below its 256-token budget. Every augmented request passed the exact state
+capacity check. Routing tests failed before implementation and then passed;
+package tests, Clippy and formatting passed. All 100 messages completed in
+each run without processing failures.
+
+Decision: remove the prototype and retain no production changes. Do not tune
+thresholds against this outcome or spend validation labels on a candidate
+without a development gain. Findings and private reproducibility artifacts:
+`~/.local/state/vs1-email/money-events-100-20260921/`.
