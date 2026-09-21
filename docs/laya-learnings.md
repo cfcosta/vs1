@@ -312,3 +312,9 @@ the preliminary groups. It reduced complete reference elimination from 42 to
 It is retained, with unchanged question count. Final-only replay scored 88/156;
 one near tie changed with batch boundaries. This is a modest reused-sample
 improvement, not evidence that elimination or email generalization is solved.
+
+The [frozen-output pooling comparison](email-experiments.md#20-median-max-and-softmax-chunk-pooling-no-improvement)
+found no improvement over the current 89/156: median scored 87, maximum and
+unweighted mean 88, and two softmax-weighted variants 89. None fixed a labeled
+error. Only 36 reviewed emails have multiple chunks, limiting what this test
+can establish. Current character-weighted aggregation is retained.

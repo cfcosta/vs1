@@ -923,3 +923,63 @@ Aggregate data: [laya-wildcard.json](laya-wildcard.json). Private research scrip
 plan and isolated replay are in `wildcard-audit/` under the frozen 200-message
 artifact directory; integrated outputs have the `wildcard-` prefix. Root config,
 model weights, descriptions, MIME handling, chunking and pooling are unchanged.
+
+## 20. Median, max and softmax chunk pooling: no improvement
+
+Used the saved integrated runner-up run (89/156), holding all model outputs,
+chunks and final candidate sets fixed. This required zero new model calls.
+Of 200 messages, 51 have multiple chunks; only 36 of the 156 reviewed messages
+have multiple chunks. All single-chunk predictions were verified unchanged.
+The offline implementation reproduced all 200 current predictions before testing
+alternatives. Labels and source report hashes are in the aggregate artifact.
+
+For category c and chunk i with probability p_ic, tested per-category median,
+per-category maximum, and softmax-weighted pooling across chunks. Softmax uses
+weights exp(p_ic / T) and takes the weighted average of p_ic; T was fixed to
+0.25 before evaluation, with no temperature search. Also tested the same weights
+multiplied by chunk character count, and an equal-weight mean as a control for
+removing length weighting. Numerically stable softmax subtracts the category's
+maximum chunk probability before exponentiation.
+
+Normalize each resulting category vector to sum to one. Median uses the average
+of the central two values for even counts, and falls back to the existing
+length-weighted mean if all category medians are zero. This is possible because
+eliminated candidates have zero chunk scores. Config order resolves ties.
+`max` here means maximum category probability across chunks, not token-embedding
+MaxSim. Applying softmax after the existing pooled vector would preserve argmax
+and therefore cannot improve filing accuracy; the tested softmax operates before
+pooling, across the chunk dimension for each category.
+
+| Aggregator                          | Correct /156 | Correct multi-chunk /36 | Fixes | Regressions |
+| ----------------------------------- | -----------: | ----------------------: | ----: | ----------: |
+| Existing length-weighted mean       |           89 |                      22 |     — |           — |
+| Equal-weight mean                   |           88 |                      21 |     0 |           1 |
+| Median                              |           87 |                      20 |     0 |           2 |
+| Maximum                             |           88 |                      21 |     0 |           1 |
+| Softmax-weighted, T=0.25            |           89 |                      22 |     0 |           0 |
+| Length and softmax weighted, T=0.25 |           89 |                      22 |     0 |           0 |
+
+None corrected a labeled error. Mean lost one careers message; median lost that
+message and one bulk message; maximum lost one other message. Tied accuracy
+does not imply identical predictions: softmax changed seven of 200 predictions,
+and length-softmax changed one, without fixing or regressing a labeled correct
+answer. References for 44 messages remain unresolved. Each offline pooling pass
+took roughly 1.5–3 milliseconds for all 200 messages in Python; these are small
+research timings, not CLI latency estimates.
+
+Observed failing tests before implementing the aggregators, then passed all five
+tests covering exact mean/median/max behavior, the softmax formula, single-chunk
+identity, normalization and all-zero-median fallback. A second full evaluation
+reproduced every prediction for all six methods. This is a deterministic offline
+replay of frozen CUDA BF16/FlashAttention outputs, not a fresh inference repeat.
+
+No candidate improved accuracy, so production remains unchanged. Failed
+candidates existed only in private research scripts; no experimental pooling
+implementation was added to the crate. Results do not rule out all temperatures
+or token-level similarity, but provide no evidence to replace current pooling.
+Nor can these formulas recover a category eliminated in every chunk.
+
+Aggregate data: [laya-pooling.json](laya-pooling.json). Reproducible private scripts,
+predictions and hashes are under `pooling-audit/` in the frozen 200-message
+artifact directory. This is the same reused, assistant-reviewed reference set;
+fresh independently reviewed evaluation remains outstanding.

@@ -1,0 +1,85 @@
+{
+  "messages": 200,
+  "labeled": 156,
+  "unresolved": 44,
+  "multichunk_messages": 51,
+  "multichunk_labeled": 36,
+  "temperature": 0.25,
+  "additional_model_calls": 0,
+  "labels_sha256": "6cb28a20e0359c312de132aa2318bc2b19e44e08df0d2c5e2acf2858288c3df8",
+  "source_sha256": "5a5701143020840108e86a58024a5eac4e2f2acfb6899122e8885a9267188e60",
+  "results": {
+    "length_mean": {
+      "correct": 89,
+      "fixed": 0,
+      "regressed": 0,
+      "changed": 0,
+      "multichunk_correct": 22,
+      "pooling_seconds": 0.00215619700611569,
+      "regressions_by_category": {}
+    },
+    "mean": {
+      "correct": 88,
+      "fixed": 0,
+      "regressed": 1,
+      "changed": 8,
+      "multichunk_correct": 21,
+      "pooling_seconds": 0.001999077998334542,
+      "regressions_by_category": {
+        "careers": 1
+      }
+    },
+    "median": {
+      "correct": 87,
+      "fixed": 0,
+      "regressed": 2,
+      "changed": 10,
+      "multichunk_correct": 20,
+      "pooling_seconds": 0.0016201399848796427,
+      "regressions_by_category": {
+        "careers": 1,
+        "bulk": 1
+      }
+    },
+    "max": {
+      "correct": 88,
+      "fixed": 0,
+      "regressed": 1,
+      "changed": 10,
+      "multichunk_correct": 21,
+      "pooling_seconds": 0.0014343509974423796,
+      "regressions_by_category": {
+        "other": 1
+      }
+    },
+    "softmax": {
+      "correct": 89,
+      "fixed": 0,
+      "regressed": 0,
+      "changed": 7,
+      "multichunk_correct": 22,
+      "pooling_seconds": 0.0025247740268241614,
+      "regressions_by_category": {}
+    },
+    "length_softmax": {
+      "correct": 89,
+      "fixed": 0,
+      "regressed": 0,
+      "changed": 1,
+      "multichunk_correct": 22,
+      "pooling_seconds": 0.0026271030073985457,
+      "regressions_by_category": {}
+    }
+  },
+  "repeat_predictions_identical": true,
+  "outcome": "No improvement; retain existing character-weighted mean",
+  "formulas": {
+    "length_mean": "sum(max(chars_i,1)*p_ic)/sum(max(chars_i,1))",
+    "mean": "mean_i(p_ic)",
+    "median": "median_i(p_ic); even count uses mean of central values; if every class median is zero, fall back to length_mean",
+    "max": "max_i(p_ic), not token-level MaxSim",
+    "softmax": "sum_i(exp(p_ic/0.25)*p_ic)/sum_i(exp(p_ic/0.25))",
+    "length_softmax": "sum_i(max(chars_i,1)*exp(p_ic/0.25)*p_ic)/sum_i(max(chars_i,1)*exp(p_ic/0.25))"
+  },
+  "normalization": "Normalize pooled scores over categories; stable ties follow config order; single chunk returns original distribution"
+}
