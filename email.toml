@@ -14,8 +14,8 @@ not_for = "Single purchases or payments."
 
 [[rules]]
 category = "bills"
-what = "Amounts due for owner.fixed_bills: invoices, boletos, overdue payment demands."
-not_for = "Community notices or offers."
+what = "Unpaid bills requiring payment for owner.fixed_bills: boleto, invoice, overdue demand."
+not_for = "Already paid purchases, receipts, notices or offers."
 
 [[rules]]
 category = "fiscal"
@@ -28,17 +28,17 @@ not_for = "Negotiating future work or rates."
 
 [[rules]]
 category = "receipts"
-what = "Purchase receipts, order confirmations or paid subscription renewals."
-not_for = "Periodic account statements."
+what = "Already paid purchases or confirmed orders: receipt, recibo, você comprou, pagamento processado."
+not_for = "Unpaid bills or periodic statements."
 
 [[rules]]
 category = "careers"
-what = "Hiring me: recruiters, applications, interviews, take-homes, offers, rejections."
+what = "Recruiting me for a job: application, interview invitation, assessment, offer or rejection."
 not_for = "Delivering paid work."
 
 [[rules]]
 category = "clients"
-what = "Client or prospect engagements: scope, deliverables, rates, contractor onboarding. See owner.clients."
+what = "Delivering work to owner.clients or prospects: scope, deliverables, rates, contractor onboarding."
 not_for = "Employment or hiring processes."
 
 [[rules]]
@@ -66,8 +66,8 @@ not_for = "Payment problems."
 
 [[rules]]
 category = "ops"
-what = "Own infrastructure and developer accounts: domains, hosting, repositories, CI, quotas, API billing changes."
-not_for = "Paid receipts for services."
+what = "Operational developer notifications: GitHub/GitLab issues, pull requests, CI, hosting, domains, quotas."
+not_for = "Developer newsletters, product promotions or paid receipts."
 
 [[rules]]
 category = "health"
@@ -81,7 +81,7 @@ not_for = "Ticket charges or paid receipts."
 
 [[rules]]
 category = "bulk"
-what = "Broadcasts without obligations: newsletters, promotions, announcements, community notices, surveys."
+what = "Marketing or informational broadcasts: newsletters, developer digests, product announcements, promotions, surveys."
 
 [[rules]]
 category = "other"
