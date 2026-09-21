@@ -170,8 +170,8 @@ fn write_new(path: &Path, value: &impl serde::Serialize) -> Result<()> {
 fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     ensure!(
-        (4..=5).contains(&args.len()),
-        "ROOT export|laya|jev|openjev|openjev-bf16 RUN_NAME [original|compact1024|compact512|plain512]"
+        (4..=6).contains(&args.len()),
+        "ROOT export|laya|jev|openjev|openjev-bf16 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|prepare]"
     );
     let root = Path::new(&args[1]);
     let backend = args[2].as_str();
@@ -179,6 +179,35 @@ fn main() -> Result<()> {
         .get(4)
         .map(String::as_str)
         .unwrap_or(default_audit(backend));
+    let retrieval_mode = args.get(5).map(String::as_str).unwrap_or("none");
+    ensure!(
+        ["none", "matched", "full", "text", "labels", "prepare"]
+            .contains(&retrieval_mode),
+        "unknown retrieval mode"
+    );
+    ensure!(
+        backend != "jev" || retrieval_mode == "none",
+        "Jev baseline only"
+    );
+    ensure!(
+        retrieval_mode != "prepare" || backend.starts_with("openjev"),
+        "context preparation requires OpenJev"
+    );
+    let examples: Value = if retrieval_mode == "none" {
+        json!({})
+    } else {
+        serde_json::from_slice(&fs::read(root.join("examples.json"))?)?
+    };
+    let count = if root.join("benchmark.json").exists() {
+        serde_json::from_slice::<Value>(&fs::read(
+            root.join("benchmark.json"),
+        )?)?["messages"]
+            .as_u64()
+            .context("messages must be positive integer")? as usize
+    } else {
+        200
+    };
+    ensure!(count > 0, "empty benchmark");
     let budget = audit_budget(audit_mode)?;
     ensure!(
         audit_mode == "original" || backend.starts_with("openjev"),
@@ -186,17 +215,17 @@ fn main() -> Result<()> {
     );
     let total = Instant::now();
     let config = Config::parse(&fs::read_to_string(root.join("email.toml"))?)?;
-    let mailbox = vs1_email::read_maildir(&root.join("sample"), 200)?;
+    let mailbox = vs1_email::read_maildir(&root.join("sample"), count)?;
     ensure!(
-        mailbox.emails.len() == 200 && mailbox.failures.is_empty(),
-        "expected 200 parsed emails"
+        mailbox.emails.len() == count && mailbox.failures.is_empty(),
+        "unexpected parsed email count"
     );
     if backend == "export" {
         return write_new(&root.join("emails.json"), &mailbox.emails);
     }
     let labels: BTreeMap<String, Option<String>> =
         serde_json::from_slice(&fs::read(root.join("labels.json"))?)?;
-    ensure!(labels.len() == 200, "expected 200 reference entries");
+    ensure!(labels.len() == count, "unexpected reference count");
     let reference = mailbox
         .emails
         .iter()
@@ -217,6 +246,7 @@ fn main() -> Result<()> {
     let load_seconds;
     let run_seconds;
     let mut records = Vec::<Value>::new();
+    let mut chunk_states = Vec::<Value>::new();
     match backend {
         "laya" => {
             let model: vs1::SystemOne =
@@ -238,9 +268,30 @@ fn main() -> Result<()> {
                 &config,
                 &mailbox,
                 16,
-                &mut |r| vs1_email::request_fits(&model, r),
+                &mut |r| {
+                    let mode = if retrieval_mode == "none" {
+                        "none"
+                    } else {
+                        "full"
+                    };
+                    vs1_email::request_fits(
+                        &model,
+                        &retrieval_request(r, &examples, mode)?,
+                    )
+                },
                 &mut |rs| {
-                    metrics.measure(rs, || Ok(model.system_one_batch(rs)?))
+                    for r in rs.iter().filter(|r| r.questions.len() > 1) {
+                        chunk_states.push(serde_json::to_value(&r.state)?);
+                    }
+                    let augmented = rs
+                        .iter()
+                        .map(|r| {
+                            retrieval_request(r, &examples, retrieval_mode)
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                    metrics.measure(&augmented, || {
+                        Ok(model.system_one_batch(&augmented)?)
+                    })
                 },
             )?;
             run_seconds = run.elapsed().as_secs_f64();
@@ -329,6 +380,44 @@ fn main() -> Result<()> {
             );
             load_seconds = load.elapsed().as_secs_f64();
             let run = Instant::now();
+            if retrieval_mode == "prepare" {
+                let mut fitted = examples.clone();
+                for email in &mailbox.emails {
+                    let key = format!("{}\n{}", email.subject, email.date);
+                    let mut part = email.clone();
+                    part.body.clear();
+                    let base = audit_request(&config, &part, audit_mode)?;
+                    let base_len = model
+                        .build_input(
+                            &base.state.render(),
+                            "category",
+                            &base.questions["category"],
+                        )?
+                        .ids
+                        .len();
+                    ensure!(base_len <= budget, "metadata exceeds budget");
+                    let reserve = 64.min((budget - base_len) / 2);
+                    let fitted_row = fit_example_text(
+                        examples.get(&key).context("missing examples")?.clone(),
+                        |rows| {
+                            let map = json!({key.clone():rows});
+                            let r = retrieval_request(&base, &map, "full")?;
+                            Ok(model
+                                .build_input(
+                                    &r.state.render(),
+                                    "category",
+                                    &r.questions["category"],
+                                )?
+                                .ids
+                                .len()
+                                <= budget - reserve)
+                        },
+                    )?;
+                    fitted[&key] = fitted_row;
+                }
+                write_new(&root.join("examples-fitted.json"), &fitted)?;
+                return Ok(());
+            }
             let mut inputs = Vec::new();
             let mut jobs = Vec::new();
             for email in &mailbox.emails {
@@ -336,6 +425,15 @@ fn main() -> Result<()> {
                 let bodies = vs1_email::split_body(&email.body, &mut |body| {
                     part.body = body.into();
                     let r = audit_request(&config, &part, audit_mode)?;
+                    let r = retrieval_request(
+                        &r,
+                        &examples,
+                        if retrieval_mode == "none" {
+                            "none"
+                        } else {
+                            "full"
+                        },
+                    )?;
                     Ok(model
                         .build_input(
                             &r.state.render(),
@@ -351,6 +449,7 @@ fn main() -> Result<()> {
                 for body in &bodies {
                     part.body = (*body).into();
                     let r = audit_request(&config, &part, audit_mode)?;
+                    let r = retrieval_request(&r, &examples, retrieval_mode)?;
                     let input = model.build_input(
                         &r.state.render(),
                         "category",
@@ -360,6 +459,11 @@ fn main() -> Result<()> {
                         input.ids.len() <= budget,
                         "OpenJev input would truncate"
                     );
+                    let mut state = serde_json::to_value(&r.state)?;
+                    if let Some(o) = state.as_object_mut() {
+                        o.remove("labeled_examples");
+                    }
+                    chunk_states.push(state);
                     inputs.push(input);
                     lengths.push(body.chars().count());
                 }
@@ -425,7 +529,11 @@ fn main() -> Result<()> {
         }
         _ => anyhow::bail!("unknown backend"),
     }
-    ensure!(predictions.len() == 200, "missing predictions");
+    ensure!(predictions.len() == count, "missing predictions");
+    write_new(
+        &root.join(format!("{}.chunks.json", args[3])),
+        &chunk_states,
+    )?;
     let predicted = labels
         .keys()
         .map(|id| predictions[id].as_deref())
@@ -435,7 +543,7 @@ fn main() -> Result<()> {
         &root.join(format!("{}.results.json", args[3])),
         &json!({"predictions":predictions,"records":records}),
     )?;
-    let summary = json!({"backend":backend,"audit_mode":audit_mode,"budget":budget,"messages":200,"chunks":chunks,"chunk_abstentions":chunk_abstentions,"abstentions":predicted.iter().filter(|p|p.is_none()).count(),"correct":correct,"labeled":labeled,"labeled_abstentions":labeled_abstentions,"accuracy":correct as f64/labeled as f64,"metrics":metrics,"http":http,"setup_seconds":setup,"load_seconds":load_seconds,"run_seconds":run_seconds,"total_seconds":total.elapsed().as_secs_f64(),"timing":"cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"});
+    let summary = json!({"backend":backend,"audit_mode":audit_mode,"budget":budget,"messages":count,"retrieval_mode":retrieval_mode,"chunks":chunks,"chunk_abstentions":chunk_abstentions,"abstentions":predicted.iter().filter(|p|p.is_none()).count(),"correct":correct,"labeled":labeled,"labeled_abstentions":labeled_abstentions,"accuracy":correct as f64/labeled as f64,"metrics":metrics,"http":http,"setup_seconds":setup,"load_seconds":load_seconds,"run_seconds":run_seconds,"total_seconds":total.elapsed().as_secs_f64(),"timing":"cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"});
     write_new(&root.join(format!("{}.summary.json", args[3])), &summary)?;
     eprintln!("{summary}");
     Ok(())
@@ -483,4 +591,139 @@ fn compact_audit_preserves_category_ids_and_rejects_unknown_rules() {
     assert_eq!(default_audit("openjev-bf16"), "compact512");
     assert_eq!(default_audit("laya"), "original");
     assert_eq!(default_audit("jev"), "original");
+}
+
+fn retrieval_request(
+    request: &SystemOneRequest,
+    examples: &Value,
+    mode: &str,
+) -> Result<SystemOneRequest> {
+    if matches!(mode, "none" | "matched") {
+        return Ok(request.clone());
+    }
+    ensure!(
+        matches!(mode, "full" | "text" | "labels"),
+        "unknown retrieval mode"
+    );
+    let mut request = request.clone();
+    let vs1::State::Json(ref mut state) = request.state else {
+        anyhow::bail!("JSON required")
+    };
+    let key = format!(
+        "{}\n{}",
+        state["email"]["subject"]
+            .as_str()
+            .context("subject missing")?,
+        state["email"]["date"].as_str().context("date missing")?
+    );
+    let mut selected = examples
+        .get(&key)
+        .context("missing examples")?
+        .as_array()
+        .context("examples must be an array")?
+        .clone();
+    for row in &mut selected {
+        let row = row.as_object_mut().context("example must be object")?;
+        match mode {
+            "text" => {
+                row.remove("category");
+            }
+            "labels" => {
+                row.remove("subject");
+                row.remove("body");
+            }
+            _ => {}
+        }
+    }
+    if selected.is_empty() {
+        return Ok(request);
+    }
+    state["labeled_examples"] = json!(selected);
+    Ok(request)
+}
+
+#[test]
+fn retrieval_ablations_preserve_target_and_remove_only_named_fields() {
+    let r = SystemOneRequest::new(
+        json!({"email":{"subject":"target","date":"now","body":"target text"}}),
+    );
+    let examples = json!({"target\nnow":[{"subject":"example","body":"example text","category":"bills"}]});
+    for (mode, expected) in [
+        (
+            "full",
+            json!([{"subject":"example","body":"example text","category":"bills"}]),
+        ),
+        ("text", json!([{"subject":"example","body":"example text"}])),
+        ("labels", json!([{"category":"bills"}])),
+    ] {
+        let changed = serde_json::to_value(
+            retrieval_request(&r, &examples, mode).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(changed["state"]["email"]["body"], "target text");
+        assert_eq!(changed["state"]["labeled_examples"], expected);
+        assert_eq!(changed["questions"], json!({}));
+    }
+    for mode in ["none", "matched"] {
+        assert_eq!(
+            serde_json::to_value(
+                retrieval_request(&r, &examples, mode).unwrap()
+            )
+            .unwrap(),
+            serde_json::to_value(&r).unwrap()
+        );
+    }
+    assert!(retrieval_request(&r, &examples, "invalid").is_err());
+    assert!(retrieval_request(&r, &json!({}), "full").is_err());
+}
+
+fn fit_example_text(
+    mut examples: Value,
+    mut fits: impl FnMut(&Value) -> Result<bool>,
+) -> Result<Value> {
+    loop {
+        if fits(&examples)? {
+            return Ok(examples);
+        }
+        let rows = examples.as_array_mut().context("examples must be array")?;
+        let mut longest = None;
+        for (i, row) in rows.iter().enumerate() {
+            for field in ["subject", "body"] {
+                let n = row[field].as_str().unwrap_or("").chars().count();
+                if n > 0 && longest.is_none_or(|(_, _, len)| n > len) {
+                    longest = Some((i, field, n));
+                }
+            }
+        }
+        if let Some((i, field, n)) = longest {
+            rows[i][field] = json!(
+                rows[i][field]
+                    .as_str()
+                    .unwrap()
+                    .chars()
+                    .take(n / 2)
+                    .collect::<String>()
+            );
+        } else {
+            ensure!(!rows.is_empty(), "target metadata cannot fit");
+            rows.pop();
+        }
+    }
+}
+#[test]
+fn fitting_context_shrinks_text_before_dropping_labels() {
+    let examples =
+        json!([{"subject":"longsubject","body":"longbody","category":"bills"}]);
+    let fitted = fit_example_text(examples, |v| {
+        Ok(v[0]["subject"].as_str().unwrap().is_empty()
+            && v[0]["body"].as_str().unwrap().is_empty())
+    })
+    .unwrap();
+    assert_eq!(fitted, json!([{"subject":"","body":"","category":"bills"}]));
+    let empty = fit_example_text(json!([{"category":"bills"}]), |v| {
+        Ok(v.as_array().unwrap().is_empty())
+    })
+    .unwrap();
+    assert_eq!(empty, json!([]));
+    assert!(fit_example_text(json!([]), |_| Ok(false)).is_err());
 }

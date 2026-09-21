@@ -44,3 +44,67 @@ audit also exports decoded selected messages for reproducibility.
 See [experiment findings](../../docs/email-experiments.md#10-checkpoint-retrieval-embedding-and-larger-model-experiments)
 for results and limitations. The private reproduction inputs and rejected
 prototypes are under `~/.local/state/vs1-email/next-four-20260921/`.
+
+## Three-backend ablations on a frozen sample
+
+`backend_benchmark` also supports baseline and retrieval comparisons on an
+arbitrary frozen sample. It remains a research example; the normal CLI does not
+load example banks or launch an embedding model.
+
+The private benchmark directory contains:
+
+- `sample/`: a frozen Maildir with stable, lexically ordered numeric filenames.
+- `benchmark.json`: `{"messages":300}` (defaults to 200 if absent).
+- `email.toml`: frozen category definitions and owner context.
+- `labels.json`: filename-to-category map, with `null` for unresolved references.
+- `examples.json`: two selected examples per subject/newline/date key, produced
+  by `prepare.py` using a separate reviewed training bank.
+
+Freeze labels before inference. Exclude sender and template overlap between
+training and test messages, check duplicate subject/date keys, and preserve raw
+file hashes. The encoder consumes training and target text; target reference
+labels must never enter example retrieval or inference.
+
+Build with CUDA and FlashAttention:
+
+```sh
+nix develop -c cargo build --release -p vs1-email --features cuda,flash-attn --example backend_benchmark
+```
+
+The command is `backend_benchmark ROOT BACKEND RUN_NAME [AUDIT_MODE] [EXAMPLE_MODE]`.
+`AUDIT_MODE` is `original` for laya/Jev and `compact512` for the native OpenJev
+comparison. Example modes are:
+
+| Mode      | Context during inference           | Context used to choose chunk boundaries |
+| --------- | ---------------------------------- | --------------------------------------- |
+| `none`    | None                               | None                                    |
+| `matched` | None                               | Full examples                           |
+| `full`    | Example subject, body and category | Full examples                           |
+| `text`    | Example subject and body           | Full examples                           |
+| `labels`  | Example category only              | Full examples                           |
+
+Jev is baseline-only: whole cleaned emails, no retrieval or local chunking.
+OpenJev uses F32 CUDA, batch four; laya uses BF16 CUDA, batch 16. The normal
+baseline and matched baseline are both necessary: adding examples otherwise
+changes chunk boundaries and confounds context effects with rechunking.
+The ablations share the token ceiling and target chunks, not identical sequence
+lengths. Do not pad removed fields with arbitrary prose.
+
+For tight contexts, `openjev ... compact512 prepare` performs tokenizer-only
+fitting and writes `examples-fitted.json`. It repeatedly halves the longest
+example subject/body, preserving labels and order. It drops a last example only
+if all strings are empty and the context still does not fit. It reserves up to
+64 tokens for the target body, or half the space remaining after metadata if
+less is available. No predictions or reference labels guide this operation.
+Preserve the original example file, then use the same fitted examples for both
+local backends and every ablation. This fitting is separate from retrieval;
+record how many examples/characters were removed.
+
+Outputs include private raw results, summary metrics and `.chunks.json` files.
+Compare chunk-state arrays exactly across `matched`, `full`, `text` and `labels`
+within each backend. All target body text must be covered without truncation.
+Record retrieval preparation time separately from classifier call/run/total
+time. Local logical requests and questions are not HTTP calls; hosted statistics
+include attempts and retries. OpenJev call timing excludes input preparation,
+while laya's batch API includes tokenization, so cross-backend call timing has
+different boundaries. End-to-end totals are also recorded.
