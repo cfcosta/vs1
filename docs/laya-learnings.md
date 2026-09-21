@@ -304,3 +304,11 @@ bottleneck. A separate [native category-name control](email-experiments.md#18-na
 retained 92/100 agreement after descriptive renaming versus 94/100 originally.
 Exact familiar label IDs are not sufficient to explain the large native/email
 gap; new category meanings and input distributions remain separate variables.
+
+A narrower [runner-up retention experiment](email-experiments.md#19-one-runner-up-in-the-spare-final-slot-retained)
+filled the final's spare fifth slot using the closest relative runner-up from
+the preliminary groups. It reduced complete reference elimination from 42 to
+38 emails and scored 89/156 twice in the integrated pipeline versus 87/156.
+It is retained, with unchanged question count. Final-only replay scored 88/156;
+one near tie changed with batch boundaries. This is a modest reused-sample
+improvement, not evidence that elimination or email generalization is solved.

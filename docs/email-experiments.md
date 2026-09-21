@@ -859,3 +859,67 @@ Aggregate data: [laya-native-label-control.json](laya-native-label-control.json)
 Raw replay files are under `artifacts/browser-training/samples/`, with the
 `native-category-alias` prefix. Unlike a new untouched benchmark, this is a
 paired diagnostic on the already inspected test split.
+
+## 19. One runner-up in the spare final slot: retained
+
+Investigated the 42 labeled errors whose correct category was eliminated in
+all chunks. Across their 52 chunks, reference-category ranks were second 23,
+third seven, fourth eleven and fifth eleven. The median winner/reference
+probability gap was 0.0864. This suggested testing selective retention rather
+than repeating the failed experiment that kept two candidates from every group.
+
+Frozen rule: when four preliminary winners leave exactly one spare slot in the
+five-choice final, retain one additional candidate. Select the runner-up with
+highest probability relative to its own group's winner. Preserve all winners,
+resolve ratio ties in configuration order, and present finalists in configuration
+order. This ratio is a selection heuristic, not a calibrated cross-group
+probability. No threshold or labels enter selection. Other round sizes retain
+the previous behavior; the change adds no rounds or questions.
+
+The isolated experiment reused all original first-round outputs and 352 request
+states. Every original winner was retained, descriptions/instructions stayed
+fixed, and every five-choice final fit without truncation. It scored 88/156,
+fixing five messages and regressing four; all-chunk reference exclusion dropped
+from 42 to 38. Character-weighted pooling reproduced the baseline before
+candidate scoring. Three research tests followed observed failures.
+
+After that gain, implemented the rule in the Rust tournament with a failing
+mock test first: a plausible runner-up must reach and win the final without
+an extra round. Added equal-ratio tie coverage; all crate tests and all-target
+Clippy passed. The normal benchmark then recomputed all preliminary and final
+rounds, including parsing and chunking. A repeat matched every response and
+prediction exactly, while the old saved executable reproduced the prior baseline.
+
+| Run                  | Correct /156 | Call wall | Total wall |
+| -------------------- | -----------: | --------: | ---------: |
+| Baseline repeat      |   87 (55.8%) |   21.845s |    25.237s |
+| Integrated runner-up |   89 (57.1%) |   21.725s |    25.082s |
+| Integrated repeat    |   89 (57.1%) |   21.539s |    24.814s |
+
+All runs used CUDA BF16, FlashAttention, four Rayon threads and batch size 16:
+352 chunks, 704 logical requests, 1,760 questions and 56 batch calls. Timings
+are observed under variable shared-machine load, not evidence of a speed gain.
+The saved baseline also captures effective requests; the integrated benchmark
+does not, so total timers have a small instrumentation difference.
+
+Integrated first-round responses and selected finalist lists matched the
+isolated experiment exactly. One near-tie final changed with batching: the
+isolated run favored security 0.2813 over bulk 0.2776; the production batch
+favored bulk 0.2798 over security 0.2785, which matched its reference. Final-only
+replay used different batch boundaries from production. This is evidence of
+batch-dependent numerical sensitivity; it does not establish the kernel-level
+cause. The integrated repeat was identical, but the isolated result supports
+only a one-message gain, versus two in production batching.
+
+The integrated change fixed six and regressed four emails. Four previously
+fully excluded references now reached at least one final; two of those messages
+became correct. The first 50 messages scored 26/44 (baseline 26), and the
+remaining 150 scored 63/112 (baseline 61). This is a small gain on a repeatedly
+used, assistant-labeled sample, not a fresh generalization result. Forty-four
+unresolved labels remain excluded. Retain the measured improvement, but a fresh
+independently reviewed holdout remains necessary before claiming broader gains.
+
+Aggregate data: [laya-wildcard.json](laya-wildcard.json). Private research scripts,
+plan and isolated replay are in `wildcard-audit/` under the frozen 200-message
+artifact directory; integrated outputs have the `wildcard-` prefix. Root config,
+model weights, descriptions, MIME handling, chunking and pooling are unchanged.

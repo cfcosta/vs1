@@ -107,3 +107,49 @@ fn large_tournament_terminates_and_retains_eliminated_rounds() {
     assert_eq!(result.decisions.as_array().unwrap().len(), 4);
     assert_eq!(result.usage.input_tokens, 4);
 }
+
+#[test]
+fn closest_relative_runner_up_can_win_without_an_extra_round() {
+    let mut rounds = 0;
+    let result = classify(&config(17), &email(), &mut |r| {
+        rounds += 1;
+        let mut answers = Map::new();
+        for (id, q) in &r.questions {
+            let labels = q.render_options().iter().map(|s| s.split(':').next().unwrap().to_owned()).collect::<Vec<_>>();
+            let weights = if rounds == 1 {
+                match labels[0].as_str() {
+                    "c0" => vec![0.7, 0.075, 0.075, 0.075, 0.075],
+                    "c5" => vec![0.4, 0.39, 0.105, 0.105],
+                    "c9" => vec![0.8, 0.2, 0.0, 0.0],
+                    "c13" => vec![0.26, 0.25, 0.25, 0.24],
+                    _ => panic!("unexpected group"),
+                }
+            } else {
+                assert_eq!(labels, ["c0", "c5", "c6", "c9", "c13"]);
+                vec![0.0, 0.0, 1.0, 0.0, 0.0]
+            };
+            let choice = if rounds == 1 { &labels[0] } else { &labels[2] };
+            let probabilities: Map<String,Value> = labels.iter().cloned().zip(weights.into_iter().map(|p| json!(p))).collect();
+            answers.insert(id.clone(),json!({"type":"choice","choice":choice,"probabilities":probabilities,"confidence":0.0}));
+        }
+        Ok(serde_json::from_value(json!({"model":"mock","usage":{"input_tokens":1,"output_tokens":0},"answers":answers})).unwrap())
+    }).unwrap();
+    assert_eq!(rounds, 2);
+    assert_eq!(result.category, "c6");
+}
+
+#[test]
+fn spare_final_slot_breaks_equal_ratios_in_configuration_order() {
+    let mut rounds = 0;
+    classify(&config(17), &email(), &mut |r| {
+        rounds += 1;
+        let answers: Map<String,Value> = r.questions.iter().map(|(id,q)| {
+            let labels=q.render_options().iter().map(|s|s.split(':').next().unwrap().to_owned()).collect::<Vec<_>>();
+            if rounds == 2 { assert_eq!(labels, ["c0", "c1", "c5", "c9", "c13"]); }
+            let probabilities:Map<String,Value>=labels.iter().map(|s|(s.clone(),json!(1.0/labels.len() as f64))).collect();
+            (id.clone(),json!({"type":"choice","choice":labels[0],"probabilities":probabilities,"confidence":0.0}))
+        }).collect();
+        Ok(serde_json::from_value(json!({"model":"mock","usage":{"input_tokens":1,"output_tokens":0},"answers":answers})).unwrap())
+    }).unwrap();
+    assert_eq!(rounds, 2);
+}

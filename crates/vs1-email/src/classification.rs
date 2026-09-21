@@ -133,6 +133,7 @@ impl Tournament {
         self.usage.output_tokens += response.usage.output_tokens;
         let groups = candidate_groups(&self.candidates, self.group_size);
         let mut winners = Vec::new();
+        let mut wildcard: Option<(usize, f64)> = None;
         for ((id, _), group) in request.questions.iter().zip(&groups) {
             let answer = response
                 .answers
@@ -194,6 +195,24 @@ impl Tournament {
                 })
                 .context("no candidates")?;
             winners.push(best);
+            // Fill the final's single spare slot without adding another round.
+            // Compare runners relative to their own group winner, not raw
+            // probabilities from differently sized candidate sets.
+            if groups.len() > 1 && groups.len() + 1 == self.group_size {
+                for candidate in group.iter().copied().filter(|i| *i != best) {
+                    let ratio = f64::from(
+                        answer.probabilities
+                            [&config.rules()[candidate].category],
+                    ) / f64::from(
+                        answer.probabilities[&config.rules()[best].category],
+                    );
+                    if wildcard.is_none_or(|(old, score)| {
+                        ratio > score || (ratio == score && candidate < old)
+                    }) {
+                        wildcard = Some((candidate, ratio));
+                    }
+                }
+            }
             if groups.len() == 1 {
                 let mut scores = vec![0.0; config.rules().len()];
                 let total: f64 =
@@ -205,6 +224,10 @@ impl Tournament {
                 }
                 self.scores = Some(scores);
             }
+        }
+        if let Some((candidate, _)) = wildcard {
+            winners.push(candidate);
+            winners.sort_unstable();
         }
         self.evidence.push(json!({"candidates":self.candidates.iter().map(|i|&config.rules()[*i].category).collect::<Vec<_>>(),"answers":response.answers}));
         self.candidates = winners;

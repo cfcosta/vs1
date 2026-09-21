@@ -1,0 +1,163 @@
+{
+  "messages": 200,
+  "labeled": 156,
+  "unresolved": 44,
+  "labels_sha256": "6cb28a20e0359c312de132aa2318bc2b19e44e08df0d2c5e2acf2858288c3df8",
+  "isolated_replay": {
+    "messages": 200,
+    "labeled": 156,
+    "correct": 88,
+    "fixed": 5,
+    "regressed": 4,
+    "all_chunks_excluded": 38,
+    "final_call_seconds": 4.301759259,
+    "final_process_seconds": 4.757431694,
+    "final_questions": 352,
+    "complete_pipeline_questions": 1760,
+    "regressions_by_category": {
+      "ops": 2,
+      "bulk": 2
+    }
+  },
+  "integrated_fixed": 6,
+  "integrated_regressed": 4,
+  "integrated_repeat_identical": true,
+  "baseline_repeat_predictions_identical": true,
+  "preliminary_responses_identical": true,
+  "all_chunk_exclusions_before": 42,
+  "all_chunk_exclusions_after": 38,
+  "formerly_excluded_emails_now_correct": 2,
+  "batching_sensitive_message_count": 1,
+  "runs": {
+    "wildcard-baseline-repeat": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 87,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5576923076923077,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 21.844844742,
+        "hosted_request_seconds_sum": 0.0,
+        "batch_seconds": [
+          0.91477423, 0.199084163, 0.323198193, 0.085944372, 1.030561997, 0.259486785, 0.781870081,
+          0.199825749, 0.373074154, 0.087955039, 0.83981293, 0.209125228, 0.287399271, 0.076624394,
+          0.617226953, 0.147195388, 0.047154259, 0.018237549, 0.769907884, 0.197409696, 0.19525989,
+          0.065871745, 0.826617281, 0.202043646, 0.483984674, 0.123410726, 0.819932226, 0.204141532,
+          0.482949862, 0.121480798, 0.794763514, 0.204259432, 0.553640896, 0.134020365, 0.862766797,
+          0.211157946, 0.941679027, 0.242117653, 0.656409971, 0.162498109, 0.665859209, 0.167367116,
+          0.248039605, 0.069441162, 0.778885615, 0.198929369, 0.577460963, 0.146655753, 0.86767291,
+          0.215884797, 0.839241869, 0.20942368, 0.36566697, 0.089483301, 0.519795965, 0.130162053
+        ]
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.073408605,
+      "load_seconds": 0.312611372,
+      "run_seconds": 24.77096298,
+      "total_seconds": 25.237239149,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"
+    },
+    "wildcard-integrated-1": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 89,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5705128205128205,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 21.725466670999996,
+        "hosted_request_seconds_sum": 0.0,
+        "batch_seconds": [
+          0.88627182, 0.200485826, 0.320753921, 0.086031644, 0.998794799, 0.258306879, 0.765500103,
+          0.199892772, 0.368629341, 0.100554897, 0.825387103, 0.215823625, 0.285656298, 0.080388002,
+          0.608682105, 0.158805297, 0.04638759, 0.017760621, 0.763990487, 0.194692067, 0.191731327,
+          0.064521468, 0.805603429, 0.200816126, 0.464768011, 0.120328805, 0.782021309, 0.199140048,
+          0.460122313, 0.11951711, 0.749351209, 0.191048582, 0.529529679, 0.138143136, 0.949354434,
+          0.237371723, 1.039099216, 0.26198101, 0.67210984, 0.16758314, 0.671761053, 0.177121387,
+          0.247555296, 0.072864813, 0.781091483, 0.211870755, 0.585830618, 0.16028097, 0.832364533,
+          0.215259683, 0.781427454, 0.205770017, 0.342354825, 0.103682408, 0.484998463, 0.124295801
+        ]
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.061499678,
+      "load_seconds": 0.294459476,
+      "run_seconds": 24.661281104,
+      "total_seconds": 25.081585878,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"
+    },
+    "wildcard-integrated-2": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 89,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5705128205128205,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 21.538647110000003,
+        "hosted_request_seconds_sum": 0.0,
+        "batch_seconds": [
+          0.845076261, 0.201566658, 0.305916263, 0.081349149, 0.966576884, 0.246814227, 0.788076974,
+          0.211648271, 0.403434565, 0.110128777, 0.854431714, 0.218562026, 0.272928203, 0.074929511,
+          0.586037051, 0.152127798, 0.042628066, 0.018786805, 0.751034014, 0.192992626, 0.18641157,
+          0.068793583, 0.836817634, 0.22258829, 0.519489105, 0.122813423, 0.7941524, 0.205061117,
+          0.468955672, 0.117825657, 0.761484668, 0.1865049, 0.531942725, 0.138090492, 0.835212831,
+          0.216910329, 0.914708933, 0.232627274, 0.637271697, 0.157002957, 0.646928603, 0.169865852,
+          0.243738602, 0.069745577, 0.754695549, 0.19440867, 0.555909739, 0.149565617, 0.86467172,
+          0.223427427, 0.8468012, 0.21853931, 0.369302079, 0.104104569, 0.513139295, 0.134092201
+        ]
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.060055879,
+      "load_seconds": 0.281150768,
+      "run_seconds": 24.407949888,
+      "total_seconds": 24.814411242,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"
+    }
+  },
+  "outcome": "Retained: modest repeated improvement on reused sample; fresh holdout remains needed",
+  "plan": {
+    "selection": "Four original winners plus one runner-up with maximum runner/winner ratio within its original group; stable ties and finalist ordering follow original config; no thresholds or label-dependent decisions",
+    "baseline": "question-style-baseline-1",
+    "first_round": "Reuse frozen original first-round outputs exactly",
+    "pooling": "Original character-weighted pooling"
+  }
+}

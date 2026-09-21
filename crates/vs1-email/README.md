@@ -109,6 +109,10 @@ Each decision compares at most five categories. Larger rule sets use balanced
 contests in configuration order: their winners advance to another small contest
 until a final choice is reached. All contests in a round run in batches; for 17
 rules this is four preliminary questions and one final question per body chunk.
+When four winners leave one spare slot in the five-way final, the closest
+runner-up also advances. Closeness is the runner's probability divided by its
+own group's winning probability; ties and finalist order follow configuration
+order. This uses the existing preliminary answers and adds no model question.
 An early elimination can lose the correct category, so this is an approximation.
 
 Descriptions use plain text, followed by exclusions and examples. Keep them
