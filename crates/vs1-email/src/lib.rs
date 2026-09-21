@@ -10,3 +10,6 @@ pub use classification::{
     classification_request,
     classify,
 };
+
+mod mailbox;
+pub use mailbox::{Mailbox, parse_email, read_mailbox};
