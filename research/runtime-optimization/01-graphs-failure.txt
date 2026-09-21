@@ -1,0 +1,10 @@
+warning: Using 'builtins.derivation' to create a derivation named 'treefmt.toml' that references the store path '/nix/store/fcs8yylx29n29zxmzr8r4i657v1grzh0-source' without a proper context. The resulting derivation will not have a correct store reference, so this is unreliable and may stop working in the future.
+building '/nix/store/38kmncbc78axjhqav4750bjn9903qbgg-treefmt.toml.drv'...
+building '/nix/store/rnjr62k2rksjs4sjlwjwh2a7fin461cf-treefmt.drv'...
+building '/nix/store/av3gjiaqi18bcxjdnq64svnaqmqn27fa-vs1-env.drv'...
+   Compiling vs1 v0.1.0 (/home/cfcosta/Code/cfcosta/vs1/crates/vs1)
+    Finished `release` profile [optimized] target(s) in 3.46s
+     Running `target/release/examples/cuda_bench artifacts/runtime-optimization/graphs.json 30 artifacts/runtime-optimization/baseline.json`
+one: p50=7.283ms p95=7.683ms questions/s=137.3
+expected={"json":[{"model":"rl-agent","answers":{"relevant":{"type":"noul","noul":0.733471691608429}},"usage":{"input_tokens":129,"output_tokens":0}}],"action_probabilities":[[["relevant",1.0]]]} actual={"json":[{"model":"rl-agent","answers":{"relevant":{"type":"noul","noul":null}},"usage":{"input_tokens":129,"output_tokens":0}}],"action_probabilities":[[["relevant",null]]]}
+Error: original changed after replay

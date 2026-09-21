@@ -713,17 +713,34 @@ impl ModernBertLayer {
     fn forward_varlen_packed_input(
         &self,
         packed_xs: &Tensor,
+        pending: Option<&Tensor>,
         valid_lens: &[usize],
         positions: &Tensor,
         seqlens: &Tensor,
         max_seq_len: usize,
         local_window: Option<usize>,
         retile: &crate::gemm_cuda::Retile,
-    ) -> Result<Tensor> {
-        let mut xs = packed_xs.clone();
-        if let Some(norm) = &self.attn_norm {
-            xs = xs.apply(norm)?;
-        }
+    ) -> Result<(Tensor, Tensor)> {
+        let (residual, xs) =
+            if let (Some(pending), Some(norm)) = (pending, &self.attn_norm) {
+                crate::residual_norm_cuda::forward(
+                    packed_xs,
+                    pending,
+                    norm.weight(),
+                    norm.eps(),
+                )?
+            } else {
+                let residual = match pending {
+                    Some(pending) => (packed_xs + pending)?,
+                    None => packed_xs.clone(),
+                };
+                let normalized = match &self.attn_norm {
+                    Some(norm) => residual.apply(norm)?,
+                    None => residual.clone(),
+                };
+                (residual, normalized)
+            };
+        let packed_xs = &residual;
         let attn_out = self.attn.forward_varlen_fully_packed(
             &xs,
             positions,
@@ -754,10 +771,10 @@ impl ModernBertLayer {
                 self.mlp_norm.weight(),
                 self.mlp_norm.eps(),
             )?;
-            return residual
-                + self.mlp.forward_with_output(&normalized, |xs, w| {
-                    packed_linear(xs, w, retile)
-                })?;
+            let mlp = self.mlp.forward_with_output(&normalized, |xs, w| {
+                packed_linear(xs, w, retile)
+            })?;
+            return Ok((residual, mlp));
         }
         let xs = (attn_out + packed_xs)?;
         let mlp_out = self
@@ -765,7 +782,7 @@ impl ModernBertLayer {
             .forward_with_output(&xs.apply(&self.mlp_norm)?, |xs, w| {
                 packed_linear(xs, w, retile)
             })?;
-        xs + mlp_out
+        Ok((xs, mlp_out))
     }
 
     #[cfg(feature = "flash-attn")]
@@ -1001,6 +1018,10 @@ pub struct ModernBert {
     retile: Arc<crate::gemm_cuda::Retile>,
 }
 
+#[cfg(all(test, feature = "flash-attn"))]
+pub(crate) static REFERENCE_DEFERRED: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
 impl ModernBert {
     pub fn load(vb: VarBuilder, config: &Config) -> Result<Self> {
         let word_embeddings = embedding(
@@ -1161,6 +1182,16 @@ impl ModernBert {
         let full_attention_threshold = local_window + 1;
         let mut packed_xs =
             pack_varlen_bsd(&xs, valid_lens)?.apply(&self.norm)?;
+        // Fuse each final residual addition with the next normalization while
+        // preserving the BF16 sum as a separate rounding boundary.
+        let deferred = packed_xs.device().is_cuda()
+            && packed_xs.dtype() == DType::BF16
+            && packed_xs.dim(1)? == 1024
+            && packed_xs.elem_count() <= u32::MAX as usize / 2;
+        #[cfg(test)]
+        let deferred = deferred
+            && !REFERENCE_DEFERRED.load(std::sync::atomic::Ordering::Relaxed);
+        let mut pending = None;
         for layer in self.layers.iter() {
             let effective_window = if layer.uses_local_attention
                 && max_seq_len > full_attention_threshold
@@ -1169,8 +1200,24 @@ impl ModernBert {
             } else {
                 None
             };
-            packed_xs = layer.forward_varlen_packed_input(
+            if deferred {
+                let (residual, mlp) = layer.forward_varlen_packed_input(
+                    &packed_xs,
+                    pending.as_ref(),
+                    valid_lens,
+                    &positions,
+                    &seqlens,
+                    max_seq_len,
+                    effective_window,
+                    &self.retile,
+                )?;
+                packed_xs = residual;
+                pending = Some(mlp);
+                continue;
+            }
+            let (residual, mlp) = layer.forward_varlen_packed_input(
                 &packed_xs,
+                None,
                 valid_lens,
                 &positions,
                 &seqlens,
@@ -1178,6 +1225,16 @@ impl ModernBert {
                 effective_window,
                 &self.retile,
             )?;
+            packed_xs = (residual + mlp)?;
+        }
+        if let Some(pending) = pending {
+            return Ok(crate::residual_norm_cuda::forward(
+                &packed_xs,
+                &pending,
+                self.final_norm.weight(),
+                self.final_norm.eps(),
+            )?
+            .1);
         }
         packed_xs.apply(&self.final_norm)
     }

@@ -133,3 +133,9 @@ fn run_paired_many(references: &[&'static AtomicBool]) -> anyhow::Result<()> {
     eprintln!("PAIRED_REPORT={}", serde_json::to_string(&report)?);
     Ok(())
 }
+
+#[test]
+#[ignore = "requires CUDA, checkpoint, isolated GPU"]
+fn paired_deferred() -> anyhow::Result<()> {
+    run_paired(&crate::modernbert::REFERENCE_DEFERRED)
+}

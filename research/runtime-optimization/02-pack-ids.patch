@@ -1,0 +1,57 @@
+diff --git a/crates/vs1/src/geglu_bench.rs b/crates/vs1/src/geglu_bench.rs
+index 0bc9610606..31bfecd980 100644
+--- a/crates/vs1/src/geglu_bench.rs
++++ b/crates/vs1/src/geglu_bench.rs
+@@ -133,3 +133,9 @@
+     eprintln!("PAIRED_REPORT={}", serde_json::to_string(&report)?);
+     Ok(())
+ }
++
++#[test]
++#[ignore = "requires CUDA, checkpoint, isolated GPU"]
++fn paired_pack_ids() -> anyhow::Result<()> {
++    run_paired(&crate::modernbert::REFERENCE_PACK)
++}
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index 4d5154d68b..a87e2bb51a 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -1001,6 +1001,9 @@
+     retile: Arc<crate::gemm_cuda::Retile>,
+ }
+ 
++#[cfg(all(test, feature = "flash-attn"))]
++pub(crate) static REFERENCE_PACK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
++
+ impl ModernBert {
+     pub fn load(vb: VarBuilder, config: &Config) -> Result<Self> {
+         let word_embeddings = embedding(
+@@ -1147,7 +1150,16 @@
+         xs: &Tensor,
+         valid_lens: &[usize],
+     ) -> Result<Tensor> {
+-        let xs = xs.apply(&self.word_embeddings)?;
++        let early_pack = std::env::var_os("VS1_EXPERIMENT_PACK_IDS").is_some();
++        #[cfg(test)]
++        let early_pack = early_pack && !REFERENCE_PACK.load(std::sync::atomic::Ordering::Relaxed);
++        let xs = if early_pack {
++            let mut rows = Vec::with_capacity(valid_lens.len());
++            for (i, &len) in valid_lens.iter().enumerate() {
++                rows.push(xs.get(i)?.narrow(0, 0, len.max(1))?);
++            }
++            Tensor::cat(&rows, 0)?.apply(&self.word_embeddings)?
++        } else { xs.apply(&self.word_embeddings)? };
+         let (seqlens, max_seq_len) =
+             cumulative_seqlens(valid_lens, xs.device())?;
+         let positions =
+@@ -1159,8 +1171,8 @@
+         // the window and must be hidden, exactly as the masked path's
+         // `|i - j| > local_window` bias hides them.
+         let full_attention_threshold = local_window + 1;
+-        let mut packed_xs =
+-            pack_varlen_bsd(&xs, valid_lens)?.apply(&self.norm)?;
++        let mut packed_xs = if early_pack { xs.apply(&self.norm)? }
++            else { pack_varlen_bsd(&xs, valid_lens)?.apply(&self.norm)? };
+         for layer in self.layers.iter() {
+             let effective_window = if layer.uses_local_attention
+                 && max_seq_len > full_attention_threshold

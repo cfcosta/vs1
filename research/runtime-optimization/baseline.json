@@ -1,0 +1,2196 @@
+{
+  "dtype": "BF16",
+  "flash_attn": true,
+  "iterations": 30,
+  "cases": [
+    {
+      "name": "one",
+      "first_call_ms": 121.789221,
+      "alternate_outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.5660808682441711
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [[["relevant", 1.0]]]
+      },
+      "questions": 1,
+      "lengths": [129],
+      "p50_ms": 6.72836,
+      "p95_ms": 8.649799,
+      "questions_per_second": 148.62462769530762,
+      "latencies_ms": [
+        5.9615149999999995, 5.969345, 5.972385, 5.9910939999999995, 6.006424, 6.006464,
+        6.0093250000000005, 6.011025, 6.018814, 6.040685, 6.1394329999999995, 6.269643, 6.368742,
+        6.432201999999999, 6.68497, 6.77175, 6.77899, 6.792000000000001, 6.80937,
+        6.8156099999999995, 6.8245700000000005, 6.85826, 6.876859, 7.053678, 7.268767, 7.353517,
+        8.168711, 8.233422000000001, 8.649799, 8.762828
+      ],
+      "outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.733471691608429
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [[["relevant", 1.0]]]
+      }
+    },
+    {
+      "name": "five",
+      "first_call_ms": 16.446433,
+      "alternate_outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevance": {
+                "type": "noul",
+                "noul": 0.966300129890442
+              },
+              "topic": {
+                "type": "choice",
+                "choice": "index",
+                "probabilities": {
+                  "index": 0.9529609084129332,
+                  "travel": 0.02351958863437176,
+                  "food": 0.02351958863437176
+                },
+                "confidence": 0.7976463437080383
+              },
+              "detail": {
+                "type": "score",
+                "score": 0.7973871827125549,
+                "legend": {
+                  "0": "brief",
+                  "1": "medium",
+                  "2": "detailed"
+                },
+                "probabilities": {
+                  "0": 0.29786643385887146,
+                  "1": 0.6068798899650574,
+                  "2": 0.09525363892316818
+                },
+                "confidence": 0.1918885707855225
+              },
+              "pdf": {
+                "type": "noul",
+                "noul": 0.0358135886490345
+              },
+              "hash": {
+                "type": "noul",
+                "noul": 0.6911527514457703
+              }
+            },
+            "usage": {
+              "input_tokens": 622,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [
+          [
+            ["relevance", 1.0],
+            ["topic", 1.0],
+            ["detail", 1.0],
+            ["pdf", 1.0],
+            ["hash", 1.0]
+          ]
+        ]
+      },
+      "questions": 5,
+      "lengths": [122, 113, 116, 123, 123],
+      "p50_ms": 14.555094,
+      "p95_ms": 16.301223,
+      "questions_per_second": 343.5223434489671,
+      "latencies_ms": [
+        13.569589, 13.57684, 13.59179, 13.717669, 13.728838, 13.734279, 13.782689, 13.833229,
+        13.851308, 13.862698, 13.980007, 14.099087, 14.205986, 14.492445, 14.552064, 14.558124,
+        14.597394, 14.767223, 15.036141, 15.12012, 15.335689, 15.336119, 15.428619, 15.447259,
+        15.636678000000002, 15.642278, 15.943056, 16.064255, 16.301223, 16.488152999999997
+      ],
+      "outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevance": {
+                "type": "noul",
+                "noul": 0.9575358629226683
+              },
+              "topic": {
+                "type": "choice",
+                "choice": "index",
+                "probabilities": {
+                  "index": 0.9606446027755736,
+                  "travel": 0.019852356985211372,
+                  "food": 0.01950300857424736
+                },
+                "confidence": 0.8241713047027588
+              },
+              "detail": {
+                "type": "score",
+                "score": 0.8701056838035583,
+                "legend": {
+                  "0": "brief",
+                  "1": "medium",
+                  "2": "detailed"
+                },
+                "probabilities": {
+                  "0": 0.2474132925271988,
+                  "1": 0.6350678205490112,
+                  "2": 0.11751892417669296
+                },
+                "confidence": 0.19396227598190308
+              },
+              "pdf": {
+                "type": "noul",
+                "noul": 0.03357183188199997
+              },
+              "hash": {
+                "type": "noul",
+                "noul": 0.7670146822929382
+              }
+            },
+            "usage": {
+              "input_tokens": 597,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [
+          [
+            ["relevance", 1.0],
+            ["topic", 1.0],
+            ["detail", 1.0],
+            ["pdf", 1.0],
+            ["hash", 1.0]
+          ]
+        ]
+      }
+    },
+    {
+      "name": "thirty",
+      "first_call_ms": 81.577568,
+      "alternate_outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.5510280132293701
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6148509979248047
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.5713945031166077
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6256359219551086
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6342440247535706
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.520176112651825
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6369808912277222
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.5801734924316406
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6614181995391846
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.542242705821991
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.4475107192993164
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.5334310531616211
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.4700016379356384
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.4660787880420685
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.5103382468223572
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.38351795077323914
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.49852290749549866
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.4911383092403412
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.4768752157688141
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.47982388734817505
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.4094300866127014
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.4465370774269104
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.41611334681510925
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.3914642035961151
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.3877173364162445
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.3203119933605194
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.4023064970970154
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.3895891308784485
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.3797996938228607
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.37056633830070496
+              }
+            },
+            "usage": {
+              "input_tokens": 134,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]]
+        ]
+      },
+      "questions": 30,
+      "lengths": [
+        129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129,
+        129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129
+      ],
+      "p50_ms": 81.86982649999999,
+      "p95_ms": 85.265497,
+      "questions_per_second": 366.43536798016794,
+      "latencies_ms": [
+        78.591226, 79.75565900000001, 79.824378, 80.018007, 80.562854, 80.904103, 80.945822,
+        81.018061, 81.086551, 81.099751, 81.110631, 81.15983, 81.446639, 81.495439, 81.558218,
+        82.181435, 82.255964, 82.287394, 82.325914, 82.348473, 82.405654, 82.48066299999999,
+        82.768561, 83.707896, 84.918569, 84.931888, 84.95478800000001, 85.196847, 85.265497,
+        85.744823
+      ],
+      "outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7361581325531006
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7161923050880432
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.706078827381134
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7209714651107788
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7395864725112915
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6886246800422668
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7467285990715027
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7403443455696106
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7763821482658386
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7315422296524048
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6197363138198853
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7048511505126953
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6552162766456604
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6732224822044373
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6890468001365662
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6297781467437744
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7161923050880432
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7272663712501526
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7504352331161499
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7121721506118774
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6471642851829529
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7169922590255737
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6701823472976685
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6631801128387451
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.660314679145813
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6561055779457092
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.692831814289093
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6894686222076416
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6945058107376099
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6732224822044373
+              }
+            },
+            "usage": {
+              "input_tokens": 129,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]]
+        ]
+      }
+    },
+    {
+      "name": "mixed_lengths",
+      "first_call_ms": 102.486694,
+      "alternate_outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.862887978553772
+              }
+            },
+            "usage": {
+              "input_tokens": 58,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8457466959953308
+              }
+            },
+            "usage": {
+              "input_tokens": 96,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6631801128387451
+              }
+            },
+            "usage": {
+              "input_tokens": 210,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7357754111289978
+              }
+            },
+            "usage": {
+              "input_tokens": 419,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7767239212989807
+              }
+            },
+            "usage": {
+              "input_tokens": 58,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7871329188346863
+              }
+            },
+            "usage": {
+              "input_tokens": 96,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6627400517463684
+              }
+            },
+            "usage": {
+              "input_tokens": 210,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7217631936073303
+              }
+            },
+            "usage": {
+              "input_tokens": 419,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8176844716072083
+              }
+            },
+            "usage": {
+              "input_tokens": 58,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.803166389465332
+              }
+            },
+            "usage": {
+              "input_tokens": 96,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.5459067821502686
+              }
+            },
+            "usage": {
+              "input_tokens": 210,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6882022023200989
+              }
+            },
+            "usage": {
+              "input_tokens": 419,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8251943588256836
+              }
+            },
+            "usage": {
+              "input_tokens": 58,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.756290078163147
+              }
+            },
+            "usage": {
+              "input_tokens": 96,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6041286587715149
+              }
+            },
+            "usage": {
+              "input_tokens": 210,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6784002780914307
+              }
+            },
+            "usage": {
+              "input_tokens": 419,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8074888586997986
+              }
+            },
+            "usage": {
+              "input_tokens": 58,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7620511651039124
+              }
+            },
+            "usage": {
+              "input_tokens": 96,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6161327362060547
+              }
+            },
+            "usage": {
+              "input_tokens": 210,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.701562762260437
+              }
+            },
+            "usage": {
+              "input_tokens": 419,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8006637096405029
+              }
+            },
+            "usage": {
+              "input_tokens": 58,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7712114453315735
+              }
+            },
+            "usage": {
+              "input_tokens": 96,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.5740452408790588
+              }
+            },
+            "usage": {
+              "input_tokens": 210,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6873563528060913
+              }
+            },
+            "usage": {
+              "input_tokens": 419,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8257617354393005
+              }
+            },
+            "usage": {
+              "input_tokens": 58,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6860852837562561
+              }
+            },
+            "usage": {
+              "input_tokens": 96,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6065400838851929
+              }
+            },
+            "usage": {
+              "input_tokens": 210,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7023868560791016
+              }
+            },
+            "usage": {
+              "input_tokens": 419,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8206021785736084
+              }
+            },
+            "usage": {
+              "input_tokens": 58,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7369224429130554
+              }
+            },
+            "usage": {
+              "input_tokens": 96,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]]
+        ]
+      },
+      "questions": 30,
+      "lengths": [
+        57, 93, 201, 399, 57, 93, 201, 399, 57, 93, 201, 399, 57, 93, 201, 399, 57, 93, 201, 399,
+        57, 93, 201, 399, 57, 93, 201, 399, 57, 93
+      ],
+      "p50_ms": 103.390704,
+      "p95_ms": 105.291558,
+      "questions_per_second": 290.16148298980534,
+      "latencies_ms": [
+        102.124677, 102.176356, 102.240556, 102.283706, 102.402865, 102.503584, 102.512115,
+        102.513014, 102.591004, 102.612683, 102.644614, 102.732103, 102.733203, 103.137961,
+        103.345459, 103.435949, 103.526369, 103.555008, 103.631318, 103.649788, 103.658948,
+        103.733468, 103.760507, 104.334574, 104.344884, 104.736451, 104.89738, 105.11092,
+        105.291558, 105.294538
+      ],
+      "outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.9121146202087402
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8896960616111755
+              }
+            },
+            "usage": {
+              "input_tokens": 93,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7330865263938904
+              }
+            },
+            "usage": {
+              "input_tokens": 201,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7606196999549866
+              }
+            },
+            "usage": {
+              "input_tokens": 399,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8415908217430115
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.9133695363998412
+              }
+            },
+            "usage": {
+              "input_tokens": 93,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7407228350639343
+              }
+            },
+            "usage": {
+              "input_tokens": 201,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7346251606941223
+              }
+            },
+            "usage": {
+              "input_tokens": 399,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8472819924354553
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.9105230569839478
+              }
+            },
+            "usage": {
+              "input_tokens": 93,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6649376153945923
+              }
+            },
+            "usage": {
+              "input_tokens": 201,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6865093111991882
+              }
+            },
+            "usage": {
+              "input_tokens": 399,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8389474749565125
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.9098791480064392
+              }
+            },
+            "usage": {
+              "input_tokens": 93,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6860852837562561
+              }
+            },
+            "usage": {
+              "input_tokens": 201,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6999108195304871
+              }
+            },
+            "usage": {
+              "input_tokens": 399,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8330068588256836
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.925595760345459
+              }
+            },
+            "usage": {
+              "input_tokens": 93,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7121721506118774
+              }
+            },
+            "usage": {
+              "input_tokens": 201,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7169922590255737
+              }
+            },
+            "usage": {
+              "input_tokens": 399,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.81650710105896
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.9355077147483826
+              }
+            },
+            "usage": {
+              "input_tokens": 93,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.6835346817970276
+              }
+            },
+            "usage": {
+              "input_tokens": 201,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7181896567344666
+              }
+            },
+            "usage": {
+              "input_tokens": 399,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8431597948074341
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.9258664846420288
+              }
+            },
+            "usage": {
+              "input_tokens": 93,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7011502385139465
+              }
+            },
+            "usage": {
+              "input_tokens": 201,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.7272663712501526
+              }
+            },
+            "usage": {
+              "input_tokens": 399,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.8389474749565125
+              }
+            },
+            "usage": {
+              "input_tokens": 57,
+              "output_tokens": 0
+            }
+          },
+          {
+            "model": "rl-agent",
+            "answers": {
+              "relevant": {
+                "type": "noul",
+                "noul": 0.9242279529571532
+              }
+            },
+            "usage": {
+              "input_tokens": 93,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]],
+          [["relevant", 1.0]]
+        ]
+      }
+    },
+    {
+      "name": "browser_call3",
+      "first_call_ms": 24.189667,
+      "alternate_outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "CLICK",
+                "probabilities": {
+                  "CLICK": 0.376562237739563,
+                  "SCROLL_DOWN": 0.11999696493148804,
+                  "WAIT": 0.14662732183933258,
+                  "DONE": 0.2200864404439926,
+                  "BLOCKED": 0.13672712445259094
+                },
+                "confidence": 0.06245660781860352
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "1",
+                "probabilities": {
+                  "1": 0.3462209105491638,
+                  "2": 0.33414289355278015,
+                  "3": 0.31963616609573364
+                },
+                "confidence": 0.0004845857620239258
+              }
+            },
+            "usage": {
+              "input_tokens": 834,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [
+          [
+            ["operation", 1.0],
+            ["click_target", 1.0]
+          ]
+        ]
+      },
+      "questions": 2,
+      "lengths": [416, 416],
+      "p50_ms": 20.0175665,
+      "p95_ms": 21.501752999999997,
+      "questions_per_second": 99.9122445777812,
+      "latencies_ms": [
+        18.612771, 18.64675, 18.694209, 18.729329, 18.945127999999997, 18.952538, 19.075468,
+        19.155227, 19.200546, 19.356345, 19.417715, 19.583215000000003, 19.926883, 19.978082,
+        20.013502, 20.021631000000003, 20.028752, 20.099221, 20.209301, 20.251621,
+        20.452288999999997, 20.607998, 20.675638, 20.692068000000003, 20.934526, 20.947657000000003,
+        21.270933999999997, 21.457493, 21.501752999999997, 22.11999
+      ],
+      "outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "CLICK",
+                "probabilities": {
+                  "CLICK": 0.4113747477531433,
+                  "SCROLL_DOWN": 0.0951392874121666,
+                  "WAIT": 0.12716829776763916,
+                  "DONE": 0.22295865416526792,
+                  "BLOCKED": 0.1433590054512024
+                },
+                "confidence": 0.09003430604934692
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "3",
+                "probabilities": {
+                  "1": 0.35407185554504395,
+                  "2": 0.26240748167037964,
+                  "3": 0.3835206627845764
+                },
+                "confidence": 0.011268854141235352
+              }
+            },
+            "usage": {
+              "input_tokens": 832,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [
+          [
+            ["operation", 1.0],
+            ["click_target", 1.0]
+          ]
+        ]
+      }
+    },
+    {
+      "name": "browser_call5",
+      "first_call_ms": 37.768446999999995,
+      "alternate_outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "CLICK",
+                "probabilities": {
+                  "CLICK": 0.6281795501708984,
+                  "TYPE_TEXT": 0.017005013301968575,
+                  "SCROLL_DOWN": 0.04143471270799637,
+                  "WAIT": 0.06938952207565308,
+                  "DONE": 0.1758108288049698,
+                  "BLOCKED": 0.06818045675754547
+                },
+                "confidence": 0.34862202405929565
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "3",
+                "probabilities": {
+                  "1": 4.4199100759576004e-13,
+                  "2": 1.4127440883804354e-10,
+                  "3": 1.0,
+                  "4": 3.1898796619541855e-14,
+                  "5": 3.734174526472635e-17,
+                  "6": 2.3608026273355502e-14,
+                  "7": 4.8309504318980526e-14,
+                  "8": 1.625944387809164e-13,
+                  "9": 4.68503599630743e-13,
+                  "10": 9.258575622752425e-14,
+                  "11": 1.7234758271141712e-13,
+                  "12": 1.6603860010532854e-14,
+                  "13": 3.783976170596004e-13,
+                  "14": 6.645227987669977e-13,
+                  "15": 2.939794404004798e-13,
+                  "16": 6.278853305341503e-14,
+                  "17": 3.58087794781318e-15,
+                  "18": 7.762038082594069e-13,
+                  "19": 6.1676200069718255e-15,
+                  "20": 2.997439265111507e-13,
+                  "21": 3.2863226639219707e-16,
+                  "22": 4.182671563431311e-15,
+                  "23": 4.2430742372887345e-18,
+                  "24": 2.813483197078406e-16
+                },
+                "confidence": 1.0
+              },
+              "type_text_target": {
+                "type": "choice",
+                "choice": "15",
+                "probabilities": {
+                  "15": 0.4039355218410492,
+                  "16": 0.3322739005088806,
+                  "17": 0.2637906074523926
+                },
+                "confidence": 0.01348930597305298
+              }
+            },
+            "usage": {
+              "input_tokens": 1536,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [
+          [
+            ["operation", 1.0],
+            ["click_target", 1.0],
+            ["type_text_target", 1.0]
+          ]
+        ]
+      },
+      "questions": 3,
+      "lengths": [512, 512, 512],
+      "p50_ms": 37.034566,
+      "p95_ms": 37.925246,
+      "questions_per_second": 81.00540451857867,
+      "latencies_ms": [
+        35.300011999999995, 35.868908, 35.895088, 36.074577, 36.144526000000006, 36.148437,
+        36.527044, 36.675593, 36.779263, 36.822412, 36.974932, 36.993901, 37.001461, 37.017641,
+        37.019161, 37.049971, 37.073291000000005, 37.16231, 37.20151, 37.21049, 37.21898, 37.23582,
+        37.25018, 37.26340999999999, 37.2979, 37.30474, 37.623377, 37.777517, 37.925246, 38.242294
+      ],
+      "outputs": {
+        "json": [
+          {
+            "model": "rl-agent",
+            "answers": {
+              "operation": {
+                "type": "choice",
+                "choice": "CLICK",
+                "probabilities": {
+                  "CLICK": 0.6281795501708984,
+                  "TYPE_TEXT": 0.017005013301968575,
+                  "SCROLL_DOWN": 0.04143471270799637,
+                  "WAIT": 0.06938952207565308,
+                  "DONE": 0.1758108288049698,
+                  "BLOCKED": 0.06818045675754547
+                },
+                "confidence": 0.34862202405929565
+              },
+              "click_target": {
+                "type": "choice",
+                "choice": "3",
+                "probabilities": {
+                  "1": 4.4199100759576004e-13,
+                  "2": 1.4127440883804354e-10,
+                  "3": 1.0,
+                  "4": 3.1898796619541855e-14,
+                  "5": 3.734174526472635e-17,
+                  "6": 2.3608026273355502e-14,
+                  "7": 4.8309504318980526e-14,
+                  "8": 1.625944387809164e-13,
+                  "9": 4.68503599630743e-13,
+                  "10": 9.258575622752425e-14,
+                  "11": 1.7234758271141712e-13,
+                  "12": 1.6603860010532854e-14,
+                  "13": 3.783976170596004e-13,
+                  "14": 6.645227987669977e-13,
+                  "15": 2.939794404004798e-13,
+                  "16": 6.278853305341503e-14,
+                  "17": 3.58087794781318e-15,
+                  "18": 7.762038082594069e-13,
+                  "19": 6.1676200069718255e-15,
+                  "20": 2.997439265111507e-13,
+                  "21": 3.2863226639219707e-16,
+                  "22": 4.182671563431311e-15,
+                  "23": 4.2430742372887345e-18,
+                  "24": 2.813483197078406e-16
+                },
+                "confidence": 1.0
+              },
+              "type_text_target": {
+                "type": "choice",
+                "choice": "15",
+                "probabilities": {
+                  "15": 0.4039355218410492,
+                  "16": 0.3322739005088806,
+                  "17": 0.2637906074523926
+                },
+                "confidence": 0.01348930597305298
+              }
+            },
+            "usage": {
+              "input_tokens": 1536,
+              "output_tokens": 0
+            }
+          }
+        ],
+        "action_probabilities": [
+          [
+            ["operation", 1.0],
+            ["click_target", 1.0],
+            ["type_text_target", 1.0]
+          ]
+        ]
+      }
+    }
+  ],
+  "shape_churn_ms": [264.10289, 264.728546, 262.987887, 263.397925, 265.18404400000003]
+}
