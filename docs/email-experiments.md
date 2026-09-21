@@ -119,3 +119,47 @@ classifier or configuration changes are retained. Validation was not consulted
 because the development comparison already failed. Private results, source and
 header evidence are preserved in
 `~/.local/state/vs1-email/binary-category-100-20260921/`.
+
+## 6–7. Opening-only input and one final decision per email
+
+Two separate experiments with the retained descriptions and the same 100-message
+development sample (61 labeled cases), CUDA BF16, flash attention, batch 16.
+Two passes repeat each condition after backend warmup; baseline and opening
+order are reversed on the second pass. All runs complete without errors.
+
+- Opening-only: keep headers and owner context, but use only the first nonempty
+  body paragraph, capped at 600 Unicode characters. The existing tournament and
+  chunk pooling otherwise stay the same.
+- Email-level final: reuse unchanged baseline chunk decisions. Each chunk
+  nominates its two highest-probability categories; retain up to five categories
+  by their peak chunk probability, with configuration-order ties. For each
+  candidate use the first 240 characters of its strongest supporting chunk,
+  deduplicating shared chunks. Shorten excerpts if the exact token check requires
+  it. One final choice sees the sender, subject, date, owner context and excerpts.
+  Its answer replaces the weighted-average prediction. This is one specific
+  nomination/excerpt policy, not an exhaustive test of email-level aggregation.
+
+| Method                     | Correct / 61 | Mean runtime | Questions |
+| -------------------------- | -----------: | -----------: | --------: |
+| Current classifier         |           36 |        9.93s |       720 |
+| Opening paragraph only     |           35 |        3.21s |       505 |
+| One final choice per email |           35 |       10.61s |       820 |
+
+All 100 predictions per method repeat identically. Opening-only fixes eight
+prior errors but regresses nine; it is approximately
+3.10 times faster but does not improve accuracy.
+It produces 101 chunks rather than 144 because one opening still requires
+splitting under the token budget. The final-choice experiment fixes four and
+regresses five. Its reported time includes measured baseline processing plus
+the extra final decision; baseline outputs are reused rather than inferred
+again for the experiment.
+
+Both prototypes were removed. No production behavior or configuration changes
+are retained. Validation was not consulted after both failed the development
+accuracy criterion. The opening-only speed tradeoff is recorded for a future
+explicit fast-mode decision, not silently adopted.
+
+Tests for Unicode-safe opening limits and bounded multi-chunk nominations
+failed before implementation and passed afterward. Package tests, Clippy and
+formatting passed. Frozen configuration, source, results and timing evidence:
+`~/.local/state/vs1-email/email-context-100-20260921/`.
