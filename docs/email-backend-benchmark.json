@@ -1,0 +1,130 @@
+{
+  "sample_messages": 200,
+  "labeled_messages": 156,
+  "unresolved_messages": 44,
+  "label_source": "assistant-reviewed, frozen before predictions",
+  "seed": 20260921,
+  "runs": [
+    {
+      "backend": "jev",
+      "messages": 200,
+      "chunks": 200,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 142,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.9102564102564102,
+      "metrics": {
+        "calls": 200,
+        "questions": 200,
+        "batch_calls": 13,
+        "call_wall_seconds": 5.45591551,
+        "hosted_request_seconds_sum": 64.90970975799999
+      },
+      "http": {
+        "calls": 200,
+        "attempts": 200,
+        "retries": 0,
+        "successes": 200,
+        "questions": 200
+      },
+      "setup_seconds": 0.066805148,
+      "load_seconds": 0.000300809,
+      "run_seconds": 5.4629239179999995,
+      "total_seconds": 5.539978167,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "process_wall_seconds": 5.60850969600142
+    },
+    {
+      "backend": "laya",
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 87,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5576923076923077,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 24.36397025,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.06154066,
+      "load_seconds": 1.062611771,
+      "run_seconds": 27.483081003,
+      "total_seconds": 28.675132006,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "process_wall_seconds": 28.834227526007453
+    },
+    {
+      "backend": "openjev-bf16",
+      "messages": 200,
+      "chunks": 520,
+      "chunk_abstentions": 318,
+      "abstentions": 134,
+      "correct": 20,
+      "labeled": 156,
+      "labeled_abstentions": 106,
+      "accuracy": 0.1282051282051282,
+      "metrics": {
+        "calls": 520,
+        "questions": 520,
+        "batch_calls": 33,
+        "call_wall_seconds": 3.5874720049999995,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.064178604,
+      "load_seconds": 0.304352439,
+      "run_seconds": 8.06901259,
+      "total_seconds": 8.465655448,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "process_wall_seconds": 8.625876660982613
+    },
+    {
+      "backend": "openjev",
+      "messages": 200,
+      "chunks": 520,
+      "chunk_abstentions": 318,
+      "abstentions": 133,
+      "correct": 20,
+      "labeled": 156,
+      "labeled_abstentions": 105,
+      "accuracy": 0.1282051282051282,
+      "metrics": {
+        "calls": 520,
+        "questions": 520,
+        "batch_calls": 130,
+        "call_wall_seconds": 21.089806081999992,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.066128433,
+      "load_seconds": 0.301009187,
+      "run_seconds": 25.610550084,
+      "total_seconds": 26.026605708,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "process_wall_seconds": 26.163965173996985
+    }
+  ]
+}
