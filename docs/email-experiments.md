@@ -263,3 +263,146 @@ The proposed question set is preserved as `questions.toml`, with the full
 prototype patch, source, raw answers, results and timings under
 `~/.local/state/vs1-email/multi-questions-20260921/`. Only findings are committed;
 unrelated model-compression changes are untouched.
+
+## 10. Checkpoint, retrieval, embedding and larger-model experiments
+
+Four experiments tested whether the remaining errors came from input
+compatibility, missing examples, an unsuitable decision head, or model
+capacity. The committed baseline and current `email.toml` were pinned in a
+separate Jujutsu workspace, excluding concurrent model-compression changes.
+The mailbox remained read-only and all email inference stayed local.
+
+The baseline repeated at 36/61 on development and 30/45 on the existing
+validation labels. Those validation labels have already influenced earlier
+experiments and are not a new holdout. For the two supervised methods, only
+the 61 development labels were training data. Removing validation senders
+seen in training and normalized body-template overlaps left 32 cases, on
+which the baseline scored 23/32. Template overlap uses five-word shingles,
+case folding, digit normalization, and Jaccard similarity >= 0.5. This is a
+conservative automated split, not a guarantee that every related template
+has been identified.
+
+### Checkpoint and input audit: no retained change
+
+Compared all 720 question sequences from the 100-message development run
+against upstream laya's `build_sequence`, pinned at
+`6a5819129eb220570792e417e49723d697efd76f`. Token IDs and option-marker positions
+matched exactly. The typed checkpoint uses its native 1,024-token sequence
+and 256-token header budgets. This checks input serialization and construction;
+it is not a new numerical-forward parity test or a claim about calibration.
+
+[Upstream distinguishes the three checkpoints](https://github.com/NandhaKishorM/laya),
+so the multilingual checkpoint was also tested with the unchanged classifier
+and category descriptions. CUDA BF16 with flash attention, batch size 16:
+
+| Checkpoint      | Correct / 61 | Chunks / 100 messages | Mean runtime |
+| --------------- | -----------: | --------------------: | -----------: |
+| Typed decisions |           36 |                   144 |       10.92s |
+| Multilingual    |           20 |                   141 |        8.49s |
+
+Predictions repeated identically on both passes. Reject the checkpoint switch;
+there is no evidence here of a token-format bug to fix. The English base was
+not tested in this experiment.
+
+### Frozen embeddings plus a small classifier: rejected
+
+Used the frozen
+[paraphrase-multilingual-MiniLM-L12-v2 encoder](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2).
+Subject and cleaned body were split into 120-token chunks. L2-normalized chunk
+vectors were pooled with token-count weights and normalized again. A logistic
+regression classifier used C=1, no class weighting, max_iter=1,000, and seed
+20260921, without tuning on validation labels.
+
+Training used 61 messages, covering only ten of the 17 categories. The small
+and uneven label set is a material limitation. On the 32 validation cases it
+scored **20/32 versus baseline 23/32**. The 658 chunks for all 106 labeled
+messages encoded in 0.67–0.70 seconds on CUDA; fitting and prediction took
+under 0.02 seconds. Loading and tokenization are outside those encoder timings.
+Reject the classifier despite its speed; no trained classifier or production
+integration is retained.
+
+### Retrieved labeled examples: retained as an opt-in experiment
+
+Reused the same frozen embeddings to select the two nearest training messages
+by cosine similarity. Each demonstration supplies its subject, first 160 body
+characters, and category in a separate `labeled_examples` state field. Target
+labels are never supplied to inference. Rules, tournament grouping and
+length-weighted chunk pooling are unchanged. Both chunk fit checks and model
+calls include the examples, so the original body remains fully covered rather
+than being silently truncated to make room.
+
+This scored **25/32 versus 23/32**, identically on both initial passes. Because
+that gain was small and the validation set had already been used, a fresh
+check used sample indices 200–299. Before any predictions for those messages,
+67 clear cases were labeled by the assistant from decoded subject/body evidence;
+ambiguous and owner-dependent cases were excluded. Removing training senders,
+training-template overlaps, and repeated templates within the new validation
+set left 40 labels. These new labels have not been independently confirmed by
+the user. The training set remained the same 61 messages.
+
+The final retained runner used baseline/retrieval/retrieval/baseline order on
+exactly those 40 messages:
+
+| Method             | Correct / 40 | Mean runtime | Chunks | Questions |
+| ------------------ | -----------: | -----------: | -----: | --------: |
+| Current classifier |           27 |        4.69s |     65 |       325 |
+| Retrieved examples |           34 |        7.68s |     90 |       450 |
+
+Both methods repeated identically, with no processing failures. Retrieval
+fixed eight errors and regressed one: +17.5 percentage points, with about
+1.64 times the classification runtime. Added context creates more chunks,
+accounting for part of the cost. Timings exclude model loading and example
+preparation. Earlier initial timings are not used for this ratio because model
+loading for another experiment overlapped part of that run.
+
+The retained example generator reproduced all 40 demonstration pairs exactly
+and checked that every decoded embedding chunk fits the encoder budget.
+Leakage-filter, neighbor-selection and separate-state tests failed before their
+implementations and passed afterward. Email package tests and Clippy passed.
+The small selected sample does not establish whole-mailbox accuracy or
+coverage of all categories.
+
+Keep [the Rust audit](../crates/vs1-email/examples/retrieval_audit.rs) and
+[offline example preparation](../research/email-retrieval/README.md) as a
+reproducible experimental path. The default CLI and active `email.toml` remain
+unchanged; a production integration still needs a maintained labeled example
+bank and runtime embedding support. No Python inference dependency is added
+to the Rust CLI.
+
+### Larger local generative model: rejected in the tested configuration
+
+Tested [Qwen3-4B](https://huggingface.co/Qwen/Qwen3-4B) locally, with the same
+category rules and empty owner context. The prompt asked for exactly one
+category and treated email content as data. It used the official chat template,
+non-thinking mode, greedy decoding, and a 16-token output limit. Inputs had
+separate subject, normalized sender address and cleaned body; unlike laya's
+chunk tournament, this was a whole-message classification pass, capped at
+6,000 body tokens. Three of 106 messages exceeded that cap.
+
+Full BF16 weights failed to fit alongside existing desktop GPU usage before
+any prediction. The completed run used bitsandbytes NF4 weights, BF16 compute,
+and PyTorch SDPA on CUDA. This was not the Candle flash-attention path.
+
+| Evaluation labels   | Baseline | Qwen3-4B NF4 |
+| ------------------- | -------: | -----------: |
+| Development         |    36/61 |        27/61 |
+| Existing validation |    30/45 |        19/45 |
+
+All 106 outputs parsed as valid category names, so these were classification
+errors, not parser failures. Synchronized generation took 31.21 seconds total,
+excluding loading and tokenization. The parser's exact-label and rejection
+tests passed. Reject this particular model/prompt/quantization configuration;
+it does not demonstrate that larger models in general cannot help. No model
+replacement or generative integration is retained.
+
+### Artifacts and decision
+
+Only the retrieval experiment is retained. The classifier, checkpoint switch,
+and generative-model prototypes are removed from the working implementation.
+The full private inputs, frozen labels and split indices, model revisions,
+package versions, raw outputs, rejected source, and token-audit records live
+under `~/.local/state/vs1-email/next-four-20260921/`. Laya checkpoint revision:
+`c5d78730f3493e4fe16d61507ef4b78eef7318cf`; embedding revision:
+`e8f8c211226b894fcb81acc59f3b34ba3efd5f42`; Qwen revision:
+`1cfa9a7208912126459214e8b04321603b3df60c`. Private messages and labels are not
+committed. Concurrent model-compression work is untouched.
