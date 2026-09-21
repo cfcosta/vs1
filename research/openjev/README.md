@@ -11,8 +11,8 @@ contains 143 F32 tensors: a ModernBERT-base encoder (22 layers, width 768,
 and an unused logit-scale parameter. The encoder uses GeGLU, global attention
 every third layer, local window 128 and the original rotary embeddings.
 
-The integration reuses `ModernBert::load` and `ModernBert::forward` without
-kernel changes. OpenJev's GLiClass head differs from Laya's head: project the
+The integration reuses `ModernBert::load`, `ModernBert::forward` and the BF16
+`forward_varlen_packed` path without kernel changes. OpenJev's GLiClass head differs from Laya's head: project the
 CLS embedding and each `<<LABEL>>` embedding with exact GELU, then take their
 dot products. This checkpoint disables feature normalization, so its
 `logit_scale` must not be applied. Each instance owns its tokenizer and heads.
@@ -67,7 +67,7 @@ was unchanged after loading Laya, and three alternating calls per model were
 identical to each model's initial response. This verifies simultaneous residency
 and alternating use; it does not establish concurrent-stream throughput.
 
-## Rejected: BF16 weights plus packed FlashAttention
+## Initial rejection: BF16 weights plus packed FlashAttention
 
 The temporary BF16 implementation converted encoder and projection weights and
 called the existing `forward_varlen_packed` path. It measured 2.71 ms on the
@@ -82,10 +82,88 @@ flip. It still fails our stricter selected-candidate stability gate. This result
 does not isolate weight rounding, attention arithmetic and shape-dependent GEMM
 rounding from each other.
 
-The BF16 implementation was removed. The builder rejects reduced precision
-before downloading a checkpoint. No changes to Laya's precision policy or
+At that point, the BF16 implementation was removed and the builder rejected
+reduced precision before downloading a checkpoint. No changes to Laya's precision policy or
 shared kernels were retained. A future lower-precision attempt needs new
-evidence; these measurements are not permission to silently enable it.
+evidence. The re-evaluation below supersedes that initial decision.
+
+## BF16 re-evaluation: the original gate tested the wrong score output
+
+The rejection conflated the native rubric argmax with the public `score`,
+which is an expected value conditional on sufficient evidence. The problematic
+input's F32 score was **1.857550** on a 0–4 scale. BF16 returned **1.863468**
+alone and **1.879906** in the original mixed batch. The two leading F32 rubric
+probabilities were only **0.198621 versus 0.195799**. Their order changed, but
+the actual batch/singleton score difference was **0.016439**, not a one-level
+change. No choice or abstention outcome changed in those 13 cases.
+
+Experiments were run sequentially:
+
+1. Reproduce the original all-BF16 encoder/head with packed FlashAttention.
+   It reproduced the original probability errors and score-argmax flip.
+2. Keep the encoder in BF16 but load both projection heads in F32. This did
+   not fix the flip or improve the maximum reference probability error
+   (0.00613 versus 0.00605). Reverted. The effect persists before final-head
+   rounding; this test does not isolate the individual encoder operations.
+3. Expand the independent PyTorch F32 oracle to **95 cases**, including
+   cardinalities 2–24, reversed option order, absent evidence, more rubrics and
+   512-token contexts. Duplicate prompts at different batch positions also
+   exercise batch-composition effects. All-BF16 packed attention preserved
+   every choice and abstention outcome in singleton and mixed-batch execution.
+4. Test BF16 without FlashAttention. No choice/abstention changed, but its
+   maximum numeric-answer error was **0.014905**, above the 0.01 gate. This
+   path is not enabled. BF16 now requires CUDA plus `flash-attn`.
+
+The revised validation gates retain exact choice and abstention outcomes.
+For BF16, they allow <0.01 normalized expected-score/noul error, <0.02 absolute
+probability error against the F32 reference, and <0.03 between batch and
+singleton probability vectors. F32 retains its strict 0.0002 probability and
+numeric-answer tolerance and exact native argmax checks. Native score argmax
+differences remain in reports rather than disappearing from the evidence.
+These are engineering tolerances for this suite, not a downstream quality
+benchmark or a guarantee that every near-tied choice stays unchanged.
+
+| 95-case measurement                                      | BF16 packed |
+| -------------------------------------------------------- | ----------: |
+| Choice or abstention changes vs F32 / batch vs singleton |       0 / 0 |
+| Maximum absolute probability error vs F32                |    0.011773 |
+| Maximum absolute batch/singleton probability difference  |    0.022722 |
+| Maximum expected-score error vs F32 (0–4 scale)          |    0.023385 |
+| Maximum normalized expected-score error vs F32           |    0.005847 |
+| Maximum noul error vs F32                                |    0.009585 |
+
+The expanded F32 control retained all 95 native argmaxes and stayed within
+0.000001431 of the reference probabilities. Both F32 and BF16 passed the
+revised executable validation. Regression tests distinguish a harmless score
+argmax flip from an actual choice or abstention change.
+
+BF16 is restored and is the default on CUDA when compiled with `flash-attn`.
+The encoder and heads use BF16; logits and calibration use F32. CPU and plain
+CUDA builds retain F32 defaults. Explicit F32 remains available. The large
+matrix weights use two bytes per element instead of four; total GPU memory also includes
+activations, workspaces and runtime allocations.
+
+To reproduce the extended audit, add `extended` to the Python reference
+command and `bf16` to the Rust parity command. `audit_precision.py` summarizes
+captured JSON in terms of the public answers. `openjev_precision_bench`
+alternates F32/BF16 execution order for 40 pairs per scenario after warm-up,
+excluding loading and tokenization.
+
+Two 40-pair timing runs on the shared RTX 3080 Ti gave:
+
+| Scenario                | First run F32 → BF16 | Repeat F32 → BF16 | Speedup range |
+| ----------------------- | -------------------: | ----------------: | ------------: |
+| 41-token singleton      |       6.01 → 5.34 ms |    5.33 → 3.00 ms |    1.12–1.78× |
+| Mixed 13-question batch |    400.12 → 54.14 ms | 205.11 → 15.07 ms |   7.39–13.61× |
+
+The repeat followed completion of validation/build work; neither run isolates
+the GPU from the desktop. The spread makes a single universal latency claim
+inappropriate. The batch improvement includes packed execution eliminating
+padding and FlashAttention replacing masked dense attention, not just changing
+the weight dtype. Both cases use the same original requests and checkpoint.
+
+Workspace tests, CUDA-feature tests and Clippy pass. CLI smoke verifies the
+CUDA default loads as BF16; alternating Laya/OpenJev GPU execution stays stable.
 
 ## Reproduce
 

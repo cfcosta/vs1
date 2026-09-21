@@ -196,6 +196,8 @@ impl OpenJevBuilder {
         self.device = device;
         self
     }
+    /// Defaults to BF16 on CUDA with FlashAttention, F32 otherwise.
+    /// BF16 is approximate and requires CUDA and the `flash-attn` feature.
     pub fn with_dtype(mut self, dtype: DType) -> Self {
         self.dtype = Some(dtype);
         self
@@ -212,12 +214,19 @@ impl OpenJevBuilder {
 impl TryFrom<OpenJevBuilder> for OpenJev {
     type Error = SystemOneError;
     fn try_from(builder: OpenJevBuilder) -> Result<Self> {
-        // Reduced precision changed a score argmax with batch composition in
-        // validation. Keep the original checkpoint precision until resolved.
-        let dtype = builder.dtype.unwrap_or(DType::F32);
-        if dtype != DType::F32 {
+        let dtype = builder.dtype.unwrap_or_else(|| {
+            if builder.device.is_cuda() && cfg!(feature = "flash-attn") {
+                DType::BF16
+            } else {
+                DType::F32
+            }
+        });
+        if !matches!(dtype, DType::F32 | DType::BF16)
+            || (dtype == DType::BF16
+                && (!builder.device.is_cuda() || !cfg!(feature = "flash-attn")))
+        {
             return Err(config_error(
-                "OpenJev currently requires f32; reduced precision failed batch-stability validation",
+                "OpenJev supports f32, or bf16 on CUDA with the flash-attn feature",
             ));
         }
         if builder.batch_size == 0 || builder.max_len < 2 {
@@ -420,15 +429,35 @@ impl OpenJev {
                 mask[i * len..i * len + x.ids.len()].fill(1);
             }
             let ids = Tensor::from_vec(ids, (chunk.len(), len), &self.device)?;
-            let hidden = self
-                .encoder
-                .forward(
-                    &ids,
-                    &Tensor::from_vec(mask, (chunk.len(), len), &self.device)?,
-                )?
-                .reshape((chunk.len() * len, self.config.hidden_size))?;
+            #[cfg(feature = "flash-attn")]
+            let packed = self.device.is_cuda() && self.dtype == DType::BF16;
+            #[cfg(not(feature = "flash-attn"))]
+            let packed = false;
+            let lens: Vec<_> = chunk.iter().map(|x| x.ids.len()).collect();
+            let hidden = if packed {
+                #[cfg(feature = "flash-attn")]
+                {
+                    self.encoder.forward_varlen_packed(&ids, &lens)?
+                }
+                #[cfg(not(feature = "flash-attn"))]
+                {
+                    unreachable!()
+                }
+            } else {
+                self.encoder
+                    .forward(
+                        &ids,
+                        &Tensor::from_vec(
+                            mask,
+                            (chunk.len(), len),
+                            &self.device,
+                        )?,
+                    )?
+                    .reshape((chunk.len() * len, self.config.hidden_size))?
+            };
+            let mut offset = 0;
             for (i, input) in chunk.iter().enumerate() {
-                let start = i * len;
+                let start = if packed { offset } else { i * len };
                 let marker_ids: Vec<u32> =
                     input.markers.iter().map(|&m| (start + m) as u32).collect();
                 let labels = hidden.index_select(
@@ -453,6 +482,7 @@ impl OpenJev {
                     ));
                 }
                 results.push(prediction(input, logits, &self.calibration));
+                offset += lens[i];
             }
         }
         Ok(results)

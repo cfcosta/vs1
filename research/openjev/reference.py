@@ -1,7 +1,7 @@
 """Offline parity oracle using GLiClass's actual model, not a reimplemented head.
 
 pip install gliclass==0.1.20 transformers==5.17.0 torch safetensors
-python research/openjev/reference.py CHECKPOINT OUTPUT [cpu|cuda]
+python research/openjev/reference.py CHECKPOINT OUTPUT [cpu|cuda] [extended]
 """
 import json
 import sys
@@ -48,6 +48,26 @@ add("Route to department 19.", "choice", "Choose the requested department.",
     {str(i): f"department {i}" for i in range(24)})
 add("Short.", "choice", "Choose.", [f"option {i}" for i in range(7)])
 add("Background information. " * 600, "noul", "The account is suspended.")
+
+if "extended" in sys.argv[4:]:
+    # Cardinality, order, out-of-scope evidence, length and near-boundary rubrics.
+    for count in [2, 3, 4, 6, 8, 10, 16, 24]:
+        options = {str(i): f"department {i}" for i in range(count)}
+        for state in ["Route to department 0.", f"Route to department {count - 1}.",
+                      "No department was specified."]:
+            for reverse in [False, True]:
+                criteria = dict(reversed(list(options.items()))) if reverse else options
+                add(state, "choice", "Choose the requested department.", criteria)
+    for status in ["paid", "unpaid", "overdue", "partially paid", "unknown", "pending"]:
+        for padding in [0, 30, 180]:
+            add(f"The invoice status is {status}. " + "Background information. " * padding,
+                "noul", "The invoice has been paid.")
+    for state in ["Terrible.", "Bad, but usable.", "It is okay.", "Good.", "Excellent.",
+                  "No opinion.", "The package arrived late and damaged.",
+                  "I like the product but dislike the service."]:
+        for levels in [["dissatisfied", "neutral", "satisfied"],
+                       ["very dissatisfied", "dissatisfied", "neutral", "satisfied", "very satisfied"]]:
+            add(state, "score", "How satisfied is the customer?", levels)
 
 records = []
 for request in requests:

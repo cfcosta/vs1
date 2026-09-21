@@ -16,7 +16,7 @@ be passed instead. Custom repository IDs use their `main` revision.
 cargo run --release -p vs1 -- \
   --backend openjev research/openjev/request.json
 
-cargo run --release -p vs1 --features cuda -- \
+cargo run --release -p vs1 --features flash-attn -- \
   --backend openjev --device cuda research/openjev/request.json
 
 # Use an already downloaded checkpoint and inspect the exact model inputs.
@@ -26,9 +26,17 @@ target/release/vs1 --backend openjev --device cuda \
 
 This selector is available in the core `vs1` CLI. `--model` accepts a local
 directory or Hugging Face repository; `--batch-size` controls questions per
-forward pass. No API key or Python runtime is required. F32 is required on all
-devices; the BF16 experiment failed batch-stability validation. Installing the
-`flash-attn` feature does not implicitly lower OpenJev's precision.
+forward pass. No API key or Python runtime is required. CUDA builds with
+`flash-attn` default to BF16 weights and packed FlashAttention. CPU and builds
+without `flash-attn` default to F32. `--dtype f32` selects reference precision;
+explicit `--dtype bf16` requires CUDA and `flash-attn`.
+
+BF16 is approximate: in the 95-case validation it preserved every choice and
+abstention outcome, with maximum expected-score error 0.0234 on a 0–4 scale and
+maximum noul error 0.0096. Full probability vectors differed from F32 by up to
+0.0118 and between singleton/batch execution by up to 0.0228. Native score
+argmaxes can change near ties even when the returned expected score barely
+moves. This is a measured tolerance, not a guarantee for all inputs.
 
 ## Library and multiple resident models
 
@@ -93,5 +101,5 @@ only the default 512-token setting was validated. Reserved marker strings
 `<<LABEL>>` and `<<SEP>>`, duplicate option IDs and reserved abstention IDs are
 rejected. These are explicit errors, with no option dropping or cloud fallback.
 
-Implementation details, parity evidence and the rejected BF16 experiment are
+Implementation details, parity evidence and the BF16 re-evaluation are
 in [the validation report](../research/openjev/README.md).
