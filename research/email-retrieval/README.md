@@ -83,6 +83,11 @@ comparison. Example modes are:
 | `text`    | Example subject and body           | Full examples                           |
 | `labels`  | Example category only              | Full examples                           |
 
+`labels-native` sends the same category-only example context as `labels`, but
+fits target chunks using that smaller context. Unlike `labels`, it is an
+efficiency experiment and intentionally does not share full-example chunk
+boundaries. It leaves the baseline and other ablations unchanged.
+
 Jev is baseline-only: whole cleaned emails, no retrieval or local chunking.
 OpenJev uses F32 CUDA, batch four; laya uses BF16 CUDA, batch 16. The normal
 baseline and matched baseline are both necessary: adding examples otherwise

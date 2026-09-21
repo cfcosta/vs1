@@ -171,7 +171,7 @@ fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     ensure!(
         (4..=6).contains(&args.len()),
-        "ROOT export|laya|jev|openjev|openjev-bf16 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|prepare]"
+        "ROOT export|laya|jev|openjev|openjev-bf16 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]"
     );
     let root = Path::new(&args[1]);
     let backend = args[2].as_str();
@@ -181,8 +181,16 @@ fn main() -> Result<()> {
         .unwrap_or(default_audit(backend));
     let retrieval_mode = args.get(5).map(String::as_str).unwrap_or("none");
     ensure!(
-        ["none", "matched", "full", "text", "labels", "prepare"]
-            .contains(&retrieval_mode),
+        [
+            "none",
+            "matched",
+            "full",
+            "text",
+            "labels",
+            "labels-native",
+            "prepare"
+        ]
+        .contains(&retrieval_mode),
         "unknown retrieval mode"
     );
     ensure!(
@@ -269,11 +277,7 @@ fn main() -> Result<()> {
                 &mailbox,
                 16,
                 &mut |r| {
-                    let mode = if retrieval_mode == "none" {
-                        "none"
-                    } else {
-                        "full"
-                    };
+                    let mode = retrieval_fit_mode(retrieval_mode);
                     vs1_email::request_fits(
                         &model,
                         &retrieval_request(r, &examples, mode)?,
@@ -428,11 +432,7 @@ fn main() -> Result<()> {
                     let r = retrieval_request(
                         &r,
                         &examples,
-                        if retrieval_mode == "none" {
-                            "none"
-                        } else {
-                            "full"
-                        },
+                        retrieval_fit_mode(retrieval_mode),
                     )?;
                     Ok(model
                         .build_input(
@@ -598,6 +598,11 @@ fn retrieval_request(
     examples: &Value,
     mode: &str,
 ) -> Result<SystemOneRequest> {
+    let mode = if mode == "labels-native" {
+        "labels"
+    } else {
+        mode
+    };
     if matches!(mode, "none" | "matched") {
         return Ok(request.clone());
     }
@@ -726,4 +731,30 @@ fn fitting_context_shrinks_text_before_dropping_labels() {
     .unwrap();
     assert_eq!(empty, json!([]));
     assert!(fit_example_text(json!([]), |_| Ok(false)).is_err());
+}
+
+#[test]
+fn native_labels_reserve_only_the_context_sent_to_inference() {
+    let r = SystemOneRequest::new(
+        json!({"email":{"subject":"target","date":"now","body":"all target text"}}),
+    );
+    let examples = json!({"target\nnow":[{"subject":"example","body":"long example text","category":"bills"}]});
+    let native = retrieval_request(&r, &examples, "labels-native").unwrap();
+    let labels = retrieval_request(&r, &examples, "labels").unwrap();
+    assert_eq!(
+        serde_json::to_value(native).unwrap(),
+        serde_json::to_value(labels).unwrap()
+    );
+    assert_eq!(retrieval_fit_mode("labels-native"), "labels");
+    assert_eq!(retrieval_fit_mode("labels"), "full");
+    assert_eq!(retrieval_fit_mode("matched"), "full");
+    assert_eq!(retrieval_fit_mode("none"), "none");
+}
+
+fn retrieval_fit_mode(mode: &str) -> &str {
+    match mode {
+        "none" => "none",
+        "labels-native" => "labels",
+        _ => "full",
+    }
 }
