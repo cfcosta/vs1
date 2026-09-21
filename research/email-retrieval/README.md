@@ -113,3 +113,19 @@ time. Local logical requests and questions are not HTTP calls; hosted statistics
 include attempts and retries. OpenJev call timing excludes input preparation,
 while laya's batch API includes tokenization, so cross-backend call timing has
 different boundaries. End-to-end totals are also recorded.
+
+## Neighbor agreement routing
+
+`policies.py` contains the opt-in research policy from the follow-up experiment.
+Pass the top five neighbors in descending cosine similarity order as
+`(category, similarity)` pairs. `vote()` sums nonnegative similarities by category;
+ties follow the first neighbor. `needs_laya()` decides the route before inference:
+use Laya's unchanged baseline request if the nearest two labels disagree, fewer
+than two neighbors exist, or all vote weights are zero. Otherwise use the vote.
+`disagreement_hybrid()` combines a saved Laya result with that decision for replay.
+
+Routing is separate from adding examples to a Laya prompt. It skips model calls
+for agreement cases and preserves the normal request on disagreement cases.
+The production CLI does not load this policy. See the
+[follow-up report](../../docs/email-retrieval-followup.md) for fresh-sample results,
+diagnostic regressions, bank coverage limits and actual routed call counts.
