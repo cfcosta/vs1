@@ -13,15 +13,9 @@ serde_json = { version = "1", features = ["preserve_order"] }
 toml = "0.8"
 vs1.workspace = true
 candle-core = "0.11.0"
-imap = { version = "2.4.1", default-features = false }
 mailparse = "0.16"
-rustls = { version = "0.23", default-features = false, features = [
-  "std",
-  "ring",
-  "tls12",
-] }
-webpki-roots = "1"
-clap = { version = "4", features = ["derive", "env"] }
+html2text = { version = "0.17", default-features = false }
+clap = { version = "4", features = ["derive"] }
 
 [features]
 default = []
@@ -30,3 +24,6 @@ flash-attn = ["cuda", "vs1/flash-attn"]
 metal = ["vs1/metal", "candle-core/metal"]
 mkl = ["vs1/mkl", "candle-core/mkl"]
 accelerate = ["vs1/accelerate", "candle-core/accelerate"]
+
+[dev-dependencies]
+tempfile = "3"

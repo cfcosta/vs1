@@ -186,10 +186,11 @@ Chrome/Chromium instance through CDP; the package does not bundle a browser.
 
 ## Email categorization
 
-[`vs1-email`](crates/vs1-email/README.md) categorizes an IMAP mailbox with local
+[`vs1-email`](crates/vs1-email/README.md) categorizes a local Maildir mailbox with local
 laya inference and ordered TOML `[[rules]]`. Start with
 [`examples/email-rules.toml`](examples/email-rules.toml), fill in owner context,
-and run `nix run .#vs1-email -- --config examples/email-rules.toml --dry-run`.
-Set `VS1_EMAIL_HOST`, `VS1_EMAIL_USERNAME`, and `VS1_EMAIL_PASSWORD` for IMAP.
+and run `nix run .#vs1-email -- --config email.toml --dry-run --mailbox ~/Mail/account`.
+The selected directory can be a Maildir or a sync root; all descendant Maildir folders are included.
+No host or credentials are needed.
 Dry-run emits JSON proposals without changing messages; execution without
 `--dry-run` returns an explicit not-implemented error.

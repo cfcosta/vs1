@@ -17,10 +17,8 @@ fn real_execution_errors_before_config_network_or_model_loading() {
         vec![
             "--config",
             "/does/not/exist",
-            "--host",
-            "unreachable.invalid",
-            "--username",
-            "test",
+            "--mailbox",
+            "/does/not/exist",
         ],
     ] {
         let out = cli(&args);
@@ -40,12 +38,12 @@ fn help_explains_dry_run_and_model_options() {
     let out = cli(&["--help"]);
     assert!(out.status.success());
     let text = String::from_utf8(out.stdout).unwrap();
+    assert!(text.contains("Maildir"));
+    assert!(!text.contains("--host"));
     for flag in [
         "--dry-run",
         "--config",
-        "--host",
         "--mailbox",
-        "--search",
         "--limit",
         "--model",
         "--subfolder",
@@ -70,4 +68,33 @@ fn dry_run_requires_config_and_rejects_zero_limits() {
         let error = String::from_utf8(out.stderr).unwrap();
         assert!(error.contains("greater than zero"), "{error}");
     }
+}
+
+#[test]
+fn empty_local_maildir_needs_no_credentials_or_model() {
+    let dir = tempfile::tempdir().unwrap();
+    for name in ["cur", "new", "tmp"] {
+        std::fs::create_dir(dir.path().join(name)).unwrap();
+    }
+    let config = dir.path().join("rules.toml");
+    std::fs::write(&config, "[[rules]]\ncategory='a'\nwhat='A'\n[[rules]]\ncategory='other'\nwhat='Other'").unwrap();
+    let out = cli(&[
+        "--dry-run",
+        "--config",
+        config.to_str().unwrap(),
+        "--mailbox",
+        dir.path().to_str().unwrap(),
+        "--model",
+        "/missing-model",
+    ]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let report: serde_json::Value =
+        serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(report["mailbox"], dir.path().to_str().unwrap());
+    assert_eq!(report["classifications"], serde_json::json!([]));
+    assert!(report.get("host").is_none());
 }
