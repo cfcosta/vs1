@@ -54,6 +54,69 @@ fn winner(probs: &Value) -> Option<String> {
     best.filter(|(id, _)| *id != vs1::openjev::ABSTENTION_ID)
         .map(|(id, _)| id.to_owned())
 }
+fn compact_description(category: &str) -> Result<&'static str> {
+    Ok(match category {
+        "capture" => "a periodic financial statement",
+        "bills" => "an unpaid bill requiring payment",
+        "fiscal" => "tax or accounting paperwork",
+        "income" => "money received or an incoming payment",
+        "receipts" => "a purchase receipt or order confirmation",
+        "careers" => "a job application or recruitment interview",
+        "clients" => "client work or project coordination",
+        "papers" => "a signed legal document",
+        "equity" => "shares, stock options or ownership",
+        "household" => "family coordination with a spouse",
+        "identity" => "identity verification or immigration paperwork",
+        "security" => "a login alert, password reset or verification code",
+        "ops" => "a developer infrastructure or repository notification",
+        "health" => "a medical, fitness or veterinary appointment",
+        "travel" => "a travel reservation or itinerary",
+        "bulk" => "a newsletter, advertisement or general announcement",
+        "other" => "unrelated to any listed category",
+        _ => anyhow::bail!("unknown compact-audit category: {category}"),
+    })
+}
+fn audit_budget(mode: &str) -> Result<usize> {
+    match mode {
+        "original" | "compact1024" => Ok(1024),
+        "compact512" | "plain512" => Ok(512),
+        _ => anyhow::bail!("unknown audit mode"),
+    }
+}
+fn default_audit(backend: &str) -> &'static str {
+    if backend.starts_with("openjev") {
+        "compact512"
+    } else {
+        "original"
+    }
+}
+fn audit_request(
+    config: &Config,
+    email: &Email,
+    mode: &str,
+) -> Result<SystemOneRequest> {
+    let mut request = direct(config, email);
+    if mode != "original" {
+        let mut q = serde_json::to_value(&request.questions["category"])?;
+        for (id, value) in q["criteria"].as_object_mut().unwrap() {
+            *value = json!(compact_description(id)?);
+        }
+        request
+            .questions
+            .insert("category".into(), serde_json::from_value(q)?);
+    }
+    if mode == "plain512" {
+        request.state = vs1::State::from(format!(
+            "Subject: {}\nFrom: {}\nDate: {}\nBody:\n{}\nOwner: {}",
+            email.subject,
+            email.from,
+            email.date,
+            email.body,
+            config.owner()
+        ));
+    }
+    Ok(request)
+}
 fn direct(config: &Config, email: &Email) -> SystemOneRequest {
     let grouped = classification_request(config, email);
     let mut criteria = serde_json::Map::new();
@@ -107,11 +170,20 @@ fn write_new(path: &Path, value: &impl serde::Serialize) -> Result<()> {
 fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     ensure!(
-        args.len() == 4,
-        "ROOT export|laya|jev|openjev|openjev-bf16 RUN_NAME"
+        (4..=5).contains(&args.len()),
+        "ROOT export|laya|jev|openjev|openjev-bf16 RUN_NAME [original|compact1024|compact512|plain512]"
     );
     let root = Path::new(&args[1]);
     let backend = args[2].as_str();
+    let audit_mode = args
+        .get(4)
+        .map(String::as_str)
+        .unwrap_or(default_audit(backend));
+    let budget = audit_budget(audit_mode)?;
+    ensure!(
+        audit_mode == "original" || backend.starts_with("openjev"),
+        "audit modes are OpenJev-only"
+    );
     let total = Instant::now();
     let config = Config::parse(&fs::read_to_string(root.join("email.toml"))?)?;
     let mailbox = vs1_email::read_maildir(&root.join("sample"), 200)?;
@@ -241,16 +313,16 @@ fn main() -> Result<()> {
         }
         "openjev" | "openjev-bf16" => {
             let (dtype, batch_size) = openjev_settings(backend);
-            // One extra token makes truncation detectable: only accept <=1024.
+            // One extra token makes truncation detectable.
             let model: vs1::OpenJev =
                 vs1::OpenJev::from("artifacts/openjev/checkpoint")
                     .with_device(candle_core::Device::new_cuda(0)?)
                     .with_dtype(dtype)
-                    .with_max_len(1025)
+                    .with_max_len(budget + 1)
                     .with_batch_size(batch_size)
                     .try_into()?;
             eprintln!(
-                "{} {:?} {:?}; effective budget 1024",
+                "{} {:?} {:?}; effective budget {budget}",
                 model.model_name(),
                 model.device(),
                 model.dtype()
@@ -263,7 +335,7 @@ fn main() -> Result<()> {
                 let mut part = email.clone();
                 let bodies = vs1_email::split_body(&email.body, &mut |body| {
                     part.body = body.into();
-                    let r = direct(&config, &part);
+                    let r = audit_request(&config, &part, audit_mode)?;
                     Ok(model
                         .build_input(
                             &r.state.render(),
@@ -272,20 +344,20 @@ fn main() -> Result<()> {
                         )?
                         .ids
                         .len()
-                        <= 1024)
+                        <= budget)
                 })?;
                 let offset = inputs.len();
                 let mut lengths = Vec::new();
                 for body in &bodies {
                     part.body = (*body).into();
-                    let r = direct(&config, &part);
+                    let r = audit_request(&config, &part, audit_mode)?;
                     let input = model.build_input(
                         &r.state.render(),
                         "category",
                         &r.questions["category"],
                     )?;
                     ensure!(
-                        input.ids.len() <= 1024,
+                        input.ids.len() <= budget,
                         "OpenJev input would truncate"
                     );
                     inputs.push(input);
@@ -319,6 +391,15 @@ fn main() -> Result<()> {
                     );
                 }
             }
+            write_new(
+                &root.join(format!("{}.parity.json", args[3])),
+                &inputs
+                    .iter()
+                    .zip(&outputs)
+                    .take(16)
+                    .map(|(i, p)| json!({"input":i,"prediction":p}))
+                    .collect::<Vec<_>>(),
+            )?;
             chunks = outputs.len();
             chunk_abstentions = outputs.iter().filter(|p| p.abstained).count();
             for (id, offset, lengths) in jobs {
@@ -354,7 +435,7 @@ fn main() -> Result<()> {
         &root.join(format!("{}.results.json", args[3])),
         &json!({"predictions":predictions,"records":records}),
     )?;
-    let summary = json!({"backend":backend,"messages":200,"chunks":chunks,"chunk_abstentions":chunk_abstentions,"abstentions":predicted.iter().filter(|p|p.is_none()).count(),"correct":correct,"labeled":labeled,"labeled_abstentions":labeled_abstentions,"accuracy":correct as f64/labeled as f64,"metrics":metrics,"http":http,"setup_seconds":setup,"load_seconds":load_seconds,"run_seconds":run_seconds,"total_seconds":total.elapsed().as_secs_f64(),"timing":"cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"});
+    let summary = json!({"backend":backend,"audit_mode":audit_mode,"budget":budget,"messages":200,"chunks":chunks,"chunk_abstentions":chunk_abstentions,"abstentions":predicted.iter().filter(|p|p.is_none()).count(),"correct":correct,"labeled":labeled,"labeled_abstentions":labeled_abstentions,"accuracy":correct as f64/labeled as f64,"metrics":metrics,"http":http,"setup_seconds":setup,"load_seconds":load_seconds,"run_seconds":run_seconds,"total_seconds":total.elapsed().as_secs_f64(),"timing":"cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"});
     write_new(&root.join(format!("{}.summary.json", args[3])), &summary)?;
     eprintln!("{summary}");
     Ok(())
@@ -386,4 +467,20 @@ fn precision_is_explicit_for_openjev_comparison() {
         openjev_settings("openjev-bf16"),
         (candle_core::DType::BF16, 16)
     );
+}
+
+#[test]
+fn compact_audit_preserves_category_ids_and_rejects_unknown_rules() {
+    assert_eq!(
+        compact_description("receipts").unwrap(),
+        "a purchase receipt or order confirmation"
+    );
+    assert!(compact_description("unconfigured").is_err());
+    assert_eq!(audit_budget("compact512").unwrap(), 512);
+    assert_eq!(audit_budget("compact1024").unwrap(), 1024);
+    assert!(audit_budget("typo").is_err());
+    assert_eq!(default_audit("openjev"), "compact512");
+    assert_eq!(default_audit("openjev-bf16"), "compact512");
+    assert_eq!(default_audit("laya"), "original");
+    assert_eq!(default_audit("jev"), "original");
 }
