@@ -252,3 +252,9 @@ before changing the pipeline. This note does not start those experiments.
 Continue to freeze labels before predictions, use failing tests before code
 changes, revert regressions, document outcomes and Jujutsu-commit demonstrated
 improvements. No model replacement or weight change is implied by this plan.
+
+The subsequent [question-style experiment](email-experiments.md#16-training-style-categorization-question)
+changed only the instruction to `What is this email primarily about?`. With
+identical chunks and criteria it fell from 87/156 to 78/156, reproduced exactly
+on a second run (three fixes, twelve regressions), and was reverted. Matching
+the training question's surface style alone did not help this email tournament.

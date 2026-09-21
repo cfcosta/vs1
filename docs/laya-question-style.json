@@ -1,0 +1,155 @@
+{
+  "date": "2026-09-21",
+  "messages": 200,
+  "labeled": 156,
+  "unresolved": 44,
+  "labels_sha256": "6cb28a20e0359c312de132aa2318bc2b19e44e08df0d2c5e2acf2858288c3df8",
+  "change": "Only replace all classification instructions with What is this email primarily about?",
+  "device": "CUDA RTX 3080 Ti",
+  "dtype": "BF16",
+  "flash_attention": true,
+  "batch_size": 16,
+  "all_request_states_identical": true,
+  "preliminary_requests_identical_except_instruction": true,
+  "candidate_repeat_predictions_identical": true,
+  "fixed": 3,
+  "regressed": 12,
+  "regressions_by_category": {
+    "security": 2,
+    "bulk": 4,
+    "careers": 1,
+    "fiscal": 1,
+    "ops": 2,
+    "receipts": 2
+  },
+  "predictions_changed": 36,
+  "outcome": "Regressed; production change, test and capture instrumentation reverted",
+  "timing_caveat": "Shared GPU with Dota 2; candidate runs overlapped optional CPU CUDA compilation; timing is not an isolated speed comparison",
+  "runs": {
+    "baseline-1": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 87,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5576923076923077,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 34.59822555100001,
+        "hosted_request_seconds_sum": 0.0,
+        "batch_seconds": [
+          1.352612785, 0.318404327, 0.509271177, 0.13376356, 1.64033411, 0.409565035, 1.245831649,
+          0.319078892, 0.601157531, 0.142205573, 1.3448915320000001, 0.33547613, 0.465904388,
+          0.119839338, 0.977789669, 0.236108206, 0.074794011, 0.026685201, 0.964508073, 0.29607709,
+          0.314590537, 0.101267632, 1.340938971, 0.315248022, 0.791188763, 0.20151076, 1.32470596,
+          0.32617982, 0.737402724, 0.187378559, 1.2722937509999999, 0.327175445, 0.88397926,
+          0.214918164, 1.4054602919999999, 0.34570115, 1.533335304, 0.365009571, 1.079121602,
+          0.266620433, 1.080086396, 0.269416637, 0.405271914, 0.108358761, 1.2723518249999999,
+          0.327114333, 0.93654387, 0.232863932, 1.402550281, 0.339439373, 1.319692626, 0.326954933,
+          0.566252958, 0.140006694, 0.82218443, 0.200811591
+        ]
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.071629999,
+      "load_seconds": 0.439745377,
+      "run_seconds": 37.953853198,
+      "total_seconds": 38.545848361,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"
+    },
+    "candidate-1": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 78,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 33.781667432999996,
+        "hosted_request_seconds_sum": 0.0,
+        "batch_seconds": [
+          1.356541226, 0.312677441, 0.508543388, 0.134543143, 1.574623857, 0.384309487, 1.178194647,
+          0.304944053, 0.553448514, 0.134662692, 1.27322205, 0.318404237, 0.442369609, 0.118634252,
+          0.915123146, 0.240382886, 0.078312269, 0.029443044, 1.23750036, 0.324572082, 0.320877833,
+          0.09595013, 1.329709529, 0.320938162, 0.776237826, 0.194211666, 1.285064809, 0.324278633,
+          0.768333289, 0.19172508, 1.2695040340000001, 0.331157033, 0.872109063, 0.207961228,
+          1.3702162150000001, 0.321945865, 1.474397267, 0.369128889, 0.984707117, 0.246985387,
+          1.004140126, 0.259628416, 0.389530662, 0.105238636, 1.20198983, 0.329111034, 0.900124302,
+          0.205128013, 1.331608026, 0.329313532, 1.26170626, 0.314965603, 0.566565922, 0.137694173,
+          0.774030431, 0.195001029
+        ]
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.071508678,
+      "load_seconds": 0.423344658,
+      "run_seconds": 37.329400776,
+      "total_seconds": 37.918056603,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"
+    },
+    "candidate-2": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 200,
+      "chunks": 352,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 78,
+      "labeled": 156,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5,
+      "metrics": {
+        "calls": 704,
+        "questions": 1760,
+        "batch_calls": 56,
+        "call_wall_seconds": 34.170723757,
+        "hosted_request_seconds_sum": 0.0,
+        "batch_seconds": [
+          1.350573943, 0.308926073, 0.501963412, 0.131677015, 1.650865534, 0.40843167, 1.260799469,
+          0.314269892, 0.582145217, 0.138358588, 1.333040569, 0.321107264, 0.444610684, 0.121089725,
+          0.955659903, 0.232569144, 0.074313519, 0.028964376, 1.224268512, 0.318220199, 0.317685912,
+          0.094915013, 1.341801976, 0.326597862, 0.760799154, 0.195225555, 1.281342656, 0.327604335,
+          0.77191809, 0.186700453, 1.248333962, 0.331489963, 0.87602491, 0.205382877, 1.357583611,
+          0.341196218, 1.473453494, 0.364704494, 1.017360686, 0.258824594, 1.046144634, 0.251629004,
+          0.387459614, 0.105556192, 1.220026637, 0.320105496, 0.891976715, 0.212895084, 1.368349265,
+          0.323379257, 1.282603949, 0.318324315, 0.548882909, 0.140476134, 0.777550502, 0.194563527
+        ]
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.107391992,
+      "load_seconds": 0.415143263,
+      "run_seconds": 38.38147545,
+      "total_seconds": 38.984471269,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"
+    }
+  }
+}
