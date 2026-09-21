@@ -1,0 +1,30 @@
+[
+  {
+    "checkpoint": "distilled-rope",
+    "sha256": "f98acefc5a7a71f1ff64d32e6a0a300891933331046ab9b094cd3a6e8f7bdd9e",
+    "bytes": 1685197072,
+    "retained": false,
+    "reason": "rejected quality screen; released temporary checkpoint storage"
+  },
+  {
+    "checkpoint": "distilled-block26",
+    "sha256": "da635cc61bc53e6fdb97da4dea66f9500f71be7d738f63fd90e7e18a6badcb66",
+    "bytes": 1685197072,
+    "retained": false,
+    "reason": "rejected quality screen; released temporary checkpoint storage"
+  },
+  {
+    "checkpoint": "distilled-rope-critical",
+    "sha256": "2719a8c7a1a1f2daee87938fd438b388b1e5c8fc0a7d8ad68e4892f28197d417",
+    "bytes": 1685197072,
+    "retained": false,
+    "reason": "rejected quality screen; released temporary checkpoint storage"
+  },
+  {
+    "checkpoint": "distilled-conv",
+    "sha256": "478b5de46d678d7257f19716eb5be99b2242932e0bfa7021b6ff5e5f77a869ef",
+    "bytes": 1686060488,
+    "retained": false,
+    "reason": "rejected quality screen; released temporary checkpoint storage"
+  }
+]

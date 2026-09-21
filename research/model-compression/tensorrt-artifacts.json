@@ -1,0 +1,12 @@
+[
+  {
+    "path": "artifacts/model-compression/tensorrt/model.onnx",
+    "bytes": 1686414254,
+    "sha256": "544e805f799e4304fafef20b0555a5095e3af5bd638da1366791c6943876f55b"
+  },
+  {
+    "path": "artifacts/model-compression/tensorrt/engine.plan",
+    "bytes": 844993204,
+    "sha256": "8730fbb7c8c59d9f8593cabc4138e4201b2551a29a56b7126ec3f5de0499c382"
+  }
+]

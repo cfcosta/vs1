@@ -1,0 +1,674 @@
+diff --git a/crates/vs1/src/compression_bench.rs b/crates/vs1/src/compression_bench.rs
+new file mode 100644
+index 0000000000..cfe9ea493d
+--- /dev/null
++++ b/crates/vs1/src/compression_bench.rs
+@@ -0,0 +1,366 @@
++//! Offline compression screen. Candidate and baseline share all unchanged tensors.
++use std::time::Instant;
++
++use serde_json::{Value, json};
++
++use super::*;
++
++fn snapshot(responses: &[SystemOneResponse]) -> Value {
++    json!({"responses": responses, "actions": responses.iter().map(|r|
++        r.answers.values().map(|a| a.action().unwrap().act_probability).collect::<Vec<_>>()
++    ).collect::<Vec<_>>()})
++}
++
++fn corpus() -> Vec<SystemOneRequest> {
++    let states = [
++        "I was charged twice. Please refund the duplicate payment today.",
++        "The invoice is correct. No refund is needed. Thank you for your help.",
++        "I cannot log in after resetting my password. Please help me regain access.",
++        "Please close my account. I have moved to another provider.",
++        "Can we schedule a product demo next week? I am comparing vendors.",
++        "Your order has shipped. The parcel should arrive on Friday.",
++        "This is a security alert: an unknown user accessed your account.",
++        "Here is our monthly newsletter with product news and discounts.",
++        "Please ignore my earlier cancellation request. I want to keep the account.",
++        "The server is down and customers cannot complete payments. Fix it immediately.",
++        "We are reviewing next year's budget. There is no action needed now.",
++        "I might request a refund later, but for now I only need the receipt.",
++    ];
++    let filler = "The team reviewed the schedule and discussed routine administrative details. ";
++    let mut requests = Vec::new();
++    for (i, text) in states.iter().enumerate() {
++        for style in 0..3 {
++            let state = match style {
++                0 => text.to_string(),
++                1 => format!("{} {text}", filler.repeat(20)),
++                _ => format!(
++                    "{text} {} Final instruction: {text}",
++                    filler.repeat(20)
++                ),
++            };
++            requests.push(SystemOneRequest::new(state)
++                .question("refund", Question::noul("Is the sender currently requesting a refund?"))
++                .question("department", Question::choice("Which team should handle this message?", [
++                    ("billing", "payments, invoices, and refunds"),
++                    ("support", "technical issues, access, and account management"),
++                    ("sales", "product demos and purchases"),
++                    ("other", "newsletters and routine updates"),
++                ]))
++                .question("urgency", Question::score("How urgently does this need action?", ["no action needed", "routine", "urgent"]))
++                .question("cancel", Question::noul(format!("Case {i}: Does the sender currently want the account closed?"))));
++        }
++    }
++    for raw in [
++        include_str!("../tests/fixtures/jev/call3_request.json"),
++        include_str!("../tests/fixtures/jev/call5_request.json"),
++    ] {
++        requests.push(serde_json::from_str(raw).unwrap());
++    }
++    requests
++}
++
++fn numbers(value: &Value, out: &mut Vec<f64>) {
++    match value {
++        Value::Number(n) => out.push(n.as_f64().unwrap()),
++        Value::Array(a) => a.iter().for_each(|v| numbers(v, out)),
++        Value::Object(o) => o.values().for_each(|v| numbers(v, out)),
++        _ => (),
++    }
++}
++
++fn quality(a: &[SystemOneResponse], b: &[SystemOneResponse]) -> Value {
++    let mut differences = Vec::<f64>::new();
++    let mut action_differences = Vec::<f64>::new();
++    let mut flips = 0;
++    let mut count = 0;
++    let mut worst = json!(null);
++    let mut max = 0.0;
++    for (ri, (ra, rb)) in a.iter().zip(b).enumerate() {
++        for (id, aa) in &ra.answers {
++            let ab = &rb.answers[id];
++            count += 1;
++            let (mut na, mut nb) = (vec![], vec![]);
++            numbers(&serde_json::to_value(aa).unwrap(), &mut na);
++            numbers(&serde_json::to_value(ab).unwrap(), &mut nb);
++            assert_eq!(na.len(), nb.len());
++            for (a, b) in na.iter().zip(&nb) {
++                assert!(a.is_finite() && b.is_finite());
++                let delta = (a - b).abs();
++                differences.push(delta);
++                if delta > max {
++                    max = delta;
++                    worst = json!({"request":ri,"question":id,"baseline":aa,"candidate":ab});
++                }
++            }
++            let ad = (aa.action().unwrap().act_probability
++                - ab.action().unwrap().act_probability)
++                .abs() as f64;
++            assert!(ad.is_finite());
++            action_differences.push(ad);
++            flips += match (aa, ab) {
++                (Answer::Choice(a), Answer::Choice(b)) => {
++                    usize::from(a.choice != b.choice)
++                }
++                (Answer::Noul(a), Answer::Noul(b)) => {
++                    usize::from((a.noul >= 0.5) != (b.noul >= 0.5))
++                }
++                (Answer::Score(a), Answer::Score(b)) => {
++                    let best = |p: &IndexMap<String, f32>| {
++                        p.iter()
++                            .max_by(|a, b| a.1.total_cmp(b.1))
++                            .unwrap()
++                            .0
++                            .clone()
++                    };
++                    usize::from(
++                        best(&a.probabilities) != best(&b.probabilities),
++                    )
++                }
++                _ => unreachable!(),
++            };
++        }
++    }
++    json!({"answers":count,"decision_flips":flips,"exact":snapshot(a)==snapshot(b),
++        "max_output_abs_error":max,"mean_output_abs_error":differences.iter().sum::<f64>()/differences.len() as f64,
++        "max_action_abs_error":action_differences.iter().copied().fold(0.0,f64::max),"worst":worst})
++}
++
++fn median(v: &mut [f64]) -> f64 {
++    v.sort_by(f64::total_cmp);
++    (v[(v.len() - 1) / 2] + v[v.len() / 2]) / 2.0
++}
++
++#[test]
++#[ignore = "requires CUDA and local checkpoint; run alone"]
++fn compression_screen() -> anyhow::Result<()> {
++    let variant = std::env::var("VS1_COMPRESSION")?;
++    let device = Device::new_cuda(0)?;
++    let mut model: SystemOne = SystemOne::from(crate::DEFAULT_REPO_ID)
++        .with_device(device.clone())
++        .with_dtype(DType::BF16)
++        .try_into()?;
++    let baseline = model.clone();
++    let requests = corpus();
++    let expected = model.system_one_batch(&requests)?;
++    if let Some(kind) = variant.strip_prefix("trained-") {
++        let path = std::env::var("VS1_DISTILLED_CHECKPOINT")?;
++        model = SystemOne::from(&path)
++            .with_device(device.clone())
++            .with_dtype(DType::BF16)
++            .try_into()?;
++        let (kind, ids) = kind.split_once('-').unwrap();
++        let ids: Vec<usize> = if ids == "all" {
++            (0..28).collect()
++        } else {
++            ids.split(',')
++                .map(str::parse)
++                .collect::<std::result::Result<_, _>>()?
++        };
++        model.encoder.experiment_ablate(kind, &ids);
++    } else if let Some(width) = variant.strip_prefix("ffn-") {
++        model.encoder.experiment_prune_ffn(width.parse()?)?;
++    } else if variant == "fp8" {
++        model.encoder.experiment_fp8()?;
++    } else if let Some(bits) = variant.strip_prefix("quant-") {
++        model.encoder.experiment_quantize(bits.parse()?)?;
++    } else if variant == "sparse-2of4" {
++        model.encoder.experiment_sparse()?;
++    } else if let Some((kind, ids)) = variant.split_once('-') {
++        let ids: Vec<usize> = if ids == "all" {
++            (0..28).collect()
++        } else {
++            ids.split(',')
++                .map(str::parse)
++                .collect::<std::result::Result<_, _>>()?
++        };
++        model.encoder.experiment_ablate(kind, &ids);
++    } else {
++        anyhow::bail!("unknown variant {variant}");
++    }
++    let candidate = model.clone();
++    let actual = model.system_one_batch(&requests)?;
++    let quality = quality(&expected, &actual);
++    let paragraph = "The indexing pipeline compares content hashes and updates changed documents. Unchanged files are skipped. ";
++    let request = |i: usize, n: usize| {
++        SystemOneRequest::new(format!("Document {i}. {}", paragraph.repeat(n)))
++            .question(
++                "relevant",
++                Question::noul(
++                    "Does this explain how changed files are selected?",
++                ),
++            )
++    };
++    let workloads = [
++        ("one", vec![request(0, 5)]),
++        ("thirty", (0..30).map(|i| request(i, 5)).collect()),
++        (
++            "mixed_lengths",
++            (0..30).map(|i| request(i, [1, 3, 9, 20][i % 4])).collect(),
++        ),
++        ("browser_call3", vec![requests[36].clone()]),
++        ("browser_call5", vec![requests[37].clone()]),
++    ];
++    let pairs: usize = std::env::var("VS1_COMPRESSION_PAIRS")
++        .unwrap_or("20".into())
++        .parse()?;
++    let mut timings = vec![];
++    for (name, reqs) in workloads
++        .into_iter()
++        .filter(|_| std::env::var_os("VS1_COMPRESSION_QUALITY_ONLY").is_none())
++    {
++        let mut outputs = vec![];
++        for encoder in [&baseline, &candidate] {
++            model = encoder.clone();
++            for _ in 0..5 {
++                model.system_one_batch(&reqs)?;
++            }
++            outputs.push(snapshot(&model.system_one_batch(&reqs)?));
++        }
++        let (mut a, mut b, mut ratios) = (vec![], vec![], vec![]);
++        let mut faster = 0;
++        for i in 0..pairs {
++            let mut pair = [0.0; 2];
++            for side in if i % 2 == 0 { [0, 1] } else { [1, 0] } {
++                model = if side == 0 {
++                    baseline.clone()
++                } else {
++                    candidate.clone()
++                };
++                device.synchronize()?;
++                let start = Instant::now();
++                let response = model.system_one_batch(&reqs)?;
++                device.synchronize()?;
++                pair[side] = start.elapsed().as_secs_f64() * 1000.0;
++                assert_eq!(
++                    snapshot(&response),
++                    outputs[side],
++                    "nondeterministic {name}"
++                );
++            }
++            faster += usize::from(pair[1] < pair[0]);
++            a.push(pair[0]);
++            b.push(pair[1]);
++            ratios.push(pair[1] / pair[0]);
++        }
++        timings.push(json!({"name":name,"baseline_ms":median(&mut a),"candidate_ms":median(&mut b),"paired_change_percent":100.0*(median(&mut ratios)-1.0),"faster_pairs":faster,"pairs":pairs,"baseline_samples_ms":a,"candidate_samples_ms":b}));
++        eprintln!(
++            "{variant} {name}: {}",
++            timings.last().unwrap()["paired_change_percent"]
++        );
++    }
++    model = baseline;
++    anyhow::ensure!(
++        snapshot(&model.system_one_batch(&requests)?) == snapshot(&expected),
++        "restore failed"
++    );
++    let report = json!({"variant":variant,"quality":quality,"timings":timings,"restored_exact":true,
++        "baseline":snapshot(&expected),"candidate":snapshot(&actual),"requests":requests});
++    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
++        .join("../../research/model-compression");
++    std::fs::write(
++        root.join(format!("{variant}.json")),
++        serde_json::to_vec_pretty(&report)?,
++    )?;
++    eprintln!("QUALITY {variant}: {}", report["quality"]);
++    Ok(())
++}
++
++#[test]
++#[ignore = "exports offline distillation data; requires CUDA"]
++fn export_compression_training() -> anyhow::Result<()> {
++    let model: SystemOne = SystemOne::from(crate::DEFAULT_REPO_ID)
++        .with_device(Device::new_cuda(0)?)
++        .with_dtype(DType::BF16)
++        .try_into()?;
++    let mut train = vec![];
++    let topics = [
++        "Please send the updated contract for review.",
++        "The dashboard shows an error when I upload a spreadsheet.",
++        "Could you provide a quote for twenty licenses?",
++        "I paid the balance yesterday, but the receipt has not arrived.",
++        "Thank you for the invitation. I cannot attend the event.",
++        "The shipment is delayed. Please provide a tracking update.",
++        "There is an unexpected charge on my card. Please investigate.",
++        "I would like to change my subscription to the annual plan.",
++        "I want to return this item and receive my money back.",
++        "Please delete my profile and stop renewing my subscription.",
++        "We found a critical outage affecting every customer.",
++        "Our office will be closed next Monday for a holiday.",
++        "This message contains a discount code for a future purchase.",
++        "I have attached the requested report. No response is necessary.",
++        "Please restore the document I accidentally deleted.",
++        "Do not cancel the service. My earlier message was a mistake.",
++    ];
++    for (i, text) in topics.iter().enumerate() {
++        for j in 0..6 {
++            let context = "The project team exchanged notes about documentation, scheduling, and internal processes. ".repeat([0,2,5,10,20,30][j]);
++            let state = if j % 2 == 0 {
++                format!("Ticket {i}-{j}. {text} {context}")
++            } else {
++                format!("Ticket {i}-{j}. {context} {text}")
++            };
++            train.push(
++                SystemOneRequest::new(state)
++                    .question(
++                        "needs_reply",
++                        Question::noul(
++                            "Does this message need a response or action?",
++                        ),
++                    )
++                    .question(
++                        "topic",
++                        Question::choice(
++                            "What is this message about?",
++                            [
++                                (
++                                    "finance",
++                                    "billing, charges, refunds, and receipts",
++                                ),
++                                (
++                                    "technical",
++                                    "technical problems or account changes",
++                                ),
++                                (
++                                    "commercial",
++                                    "quotes, discounts, and purchases",
++                                ),
++                                ("general", "other information and scheduling"),
++                            ],
++                        ),
++                    )
++                    .question(
++                        "priority",
++                        Question::score(
++                            "How urgent is the requested action?",
++                            [
++                                "not urgent",
++                                "normal priority",
++                                "immediate priority",
++                            ],
++                        ),
++                    ),
++            );
++        }
++    }
++    let export = |requests: &[SystemOneRequest]| -> anyhow::Result<Vec<Value>> {
++        let mut rows = vec![];
++        for r in requests {
++            let state = model.encode_state(&r.state)?;
++            for (id, q) in &r.questions {
++                let item = model.build_sequence(&state, id, q)?;
++                let result = model.forward_batch(&[&item])?.remove(0);
++                rows.push(json!({"ids":item.ids,"markers":item.markers,"kind":item.kind.index(),"temperature":model.config.temperature_for(item.kind,item.option_count()),"logits":result.logits,"action":result.act_probability}));
++            }
++        }
++        Ok(rows)
++    };
++    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
++        .join("../../artifacts/model-compression");
++    std::fs::write(
++        root.join("distillation-data.json"),
++        serde_json::to_vec(
++            &json!({"train":export(&train)?,"validation":export(&corpus())?}),
++        )?,
++    )?;
++    Ok(())
++}
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index f4925af4ee..053238eea9 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -87,6 +87,7 @@
+ /// Build one with [`SystemOne::from`], then call
+ /// [`system_one`](Self::system_one) or
+ /// [`system_one_batch`](Self::system_one_batch).
++#[cfg_attr(test, derive(Clone))]
+ pub struct SystemOne {
+     encoder: ModernBert,
+     type_emb: Tensor,
+@@ -646,3 +647,7 @@
+ #[cfg(all(test, feature = "flash-attn"))]
+ #[path = "batch_bench.rs"]
+ pub(crate) mod batch_bench;
++
++#[cfg(all(test, feature = "flash-attn"))]
++#[path = "compression_bench.rs"]
++mod compression_bench;
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index 4d5154d68b..d149452f07 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -292,6 +292,8 @@
+     num_attention_heads: usize,
+     attention_head_size: usize,
+     rotary_emb: Arc<RotaryEmbedding>,
++    #[cfg(test)]
++    experiment_no_rope: bool,
+ }
+ 
+ impl ModernBertAttention {
+@@ -328,6 +330,8 @@
+             num_attention_heads,
+             attention_head_size,
+             rotary_emb,
++            #[cfg(test)]
++            experiment_no_rope: false,
+         })
+     }
+ 
+@@ -442,9 +446,16 @@
+         let v = packed_linear(packed_hidden_states, &self.v, retile)?
+             .reshape(shape)?;
+ 
+-        let (q, k) = self
+-            .rotary_emb
+-            .apply_rotary_emb_packed(&q, &k, positions, valid_lens)?;
++        #[cfg(test)]
++        let apply_rope = !self.experiment_no_rope;
++        #[cfg(not(test))]
++        let apply_rope = true;
++        let (q, k) = if apply_rope {
++            self.rotary_emb
++                .apply_rotary_emb_packed(&q, &k, positions, valid_lens)?
++        } else {
++            (q, k)
++        };
+         let orig_dtype = q.dtype();
+         let flash_dtype = flash_compat_dtype(orig_dtype);
+         let q = q.to_dtype(flash_dtype)?;
+@@ -563,6 +574,10 @@
+     wi_act: Linear,
+     wi_gate: Linear,
+     wo: Linear,
++    #[cfg(test)]
++    experiment_quant: Option<[candle_core::quantized::QMatMul; 3]>,
++    #[cfg(test)]
++    experiment_fp8: Option<[(Tensor, Tensor); 3]>,
+ }
+ 
+ impl ModernBertMLP {
+@@ -577,6 +592,10 @@
+             wi_act,
+             wi_gate,
+             wo,
++            #[cfg(test)]
++            experiment_quant: None,
++            #[cfg(test)]
++            experiment_fp8: None,
+         })
+     }
+ }
+@@ -587,6 +606,31 @@
+         xs: &Tensor,
+         output: impl FnOnce(&Tensor, &Linear) -> Result<Tensor>,
+     ) -> Result<Tensor> {
++        #[cfg(test)]
++        if let Some([act, gate, out]) = &self.experiment_fp8 {
++            let dequant = |(w, scale): &(Tensor, Tensor)| -> Result<Linear> {
++                Ok(Linear::new(
++                    w.to_dtype(DType::F32)?
++                        .broadcast_mul(scale)?
++                        .to_dtype(xs.dtype())?,
++                    None,
++                ))
++            };
++            let a = encoder_linear(xs, &dequant(act)?)?;
++            let g = encoder_linear(xs, &dequant(gate)?)?;
++            return output(
++                &crate::geglu_cuda::forward(&a, &g)?,
++                &dequant(out)?,
++            );
++        }
++        #[cfg(test)]
++        if let Some([act, gate, out]) = &self.experiment_quant {
++            let a = xs.apply(act)?.to_dtype(xs.dtype())?;
++            let g = xs.apply(gate)?.to_dtype(xs.dtype())?;
++            return crate::geglu_cuda::forward(&a, &g)?
++                .apply(out)?
++                .to_dtype(xs.dtype());
++        }
+         #[cfg(feature = "cuda")]
+         if xs.device().is_cuda() && xs.dtype() == DType::BF16 {
+             #[cfg(test)]
+@@ -643,6 +687,8 @@
+     attn_norm: Option<LayerNorm>,
+     mlp_norm: LayerNorm,
+     uses_local_attention: bool,
++    #[cfg(test)]
++    experiment_skip_attention: bool,
+ }
+ 
+ impl ModernBertLayer {
+@@ -672,6 +718,8 @@
+             attn_norm,
+             mlp_norm,
+             uses_local_attention,
++            #[cfg(test)]
++            experiment_skip_attention: false,
+         })
+     }
+ 
+@@ -720,6 +768,14 @@
+         local_window: Option<usize>,
+         retile: &crate::gemm_cuda::Retile,
+     ) -> Result<Tensor> {
++        #[cfg(test)]
++        if self.experiment_skip_attention {
++            return packed_xs
++                + self.mlp.forward_with_output(
++                    &packed_xs.apply(&self.mlp_norm)?,
++                    |xs, w| packed_linear(xs, w, retile),
++                )?;
++        }
+         let mut xs = packed_xs.clone();
+         if let Some(norm) = &self.attn_norm {
+             xs = xs.apply(norm)?;
+@@ -1344,3 +1400,152 @@
+         Ok(xs)
+     }
+ }
++
++// Temporary compression experiments; archived and removed if rejected.
++#[cfg(all(test, feature = "flash-attn"))]
++impl ModernBert {
++    pub(crate) fn experiment_prune_ffn(&mut self, width: usize) -> Result<()> {
++        for layer in &mut self.layers {
++            let mlp = &mut layer.mlp;
++            let a =
++                mlp.wi_act.weight().to_dtype(DType::F32)?.to_vec2::<f32>()?;
++            let g = mlp
++                .wi_gate
++                .weight()
++                .to_dtype(DType::F32)?
++                .to_vec2::<f32>()?;
++            let o = mlp.wo.weight().to_dtype(DType::F32)?.to_vec2::<f32>()?;
++            assert!(width > 0 && width <= a.len());
++            let mut ranked: Vec<(usize, f64)> = (0..a.len())
++                .map(|i| {
++                    let an: f64 =
++                        a[i].iter().map(|v| (*v as f64).powi(2)).sum();
++                    let gn: f64 =
++                        g[i].iter().map(|v| (*v as f64).powi(2)).sum();
++                    let on: f64 =
++                        o.iter().map(|row| (row[i] as f64).powi(2)).sum();
++                    (i, an * gn * on)
++                })
++                .collect();
++            ranked.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(&b.0)));
++            let mut ids: Vec<u32> =
++                ranked[..width].iter().map(|v| v.0 as u32).collect();
++            ids.sort();
++            let ids = Tensor::from_vec(ids, width, mlp.wo.weight().device())?;
++            mlp.wi_act = Linear::new(
++                mlp.wi_act.weight().index_select(&ids, 0)?.contiguous()?,
++                None,
++            );
++            mlp.wi_gate = Linear::new(
++                mlp.wi_gate.weight().index_select(&ids, 0)?.contiguous()?,
++                None,
++            );
++            mlp.wo = Linear::new(
++                mlp.wo.weight().index_select(&ids, 1)?.contiguous()?,
++                None,
++            );
++        }
++        Ok(())
++    }
++}
++
++#[cfg(all(test, feature = "flash-attn"))]
++impl ModernBert {
++    pub(crate) fn experiment_ablate(&mut self, kind: &str, ids: &[usize]) {
++        match kind {
++            "block" => {
++                for &i in ids.iter().rev() {
++                    self.layers.remove(i);
++                }
++            }
++            "attention" => {
++                for &i in ids {
++                    self.layers[i].experiment_skip_attention = true;
++                }
++            }
++            "rope" => {
++                for &i in ids {
++                    self.layers[i].attn.experiment_no_rope = true;
++                }
++            }
++            _ => panic!("unknown ablation"),
++        }
++    }
++}
++
++#[cfg(all(test, feature = "flash-attn"))]
++impl ModernBert {
++    pub(crate) fn experiment_quantize(&mut self, bits: usize) -> Result<()> {
++        use candle_core::quantized::{GgmlDType, QMatMul, QTensor};
++        let dtype = match bits {
++            8 => GgmlDType::Q8_0,
++            4 => GgmlDType::Q4_0,
++            _ => panic!("bits"),
++        };
++        for layer in &mut self.layers {
++            let m = &mut layer.mlp;
++            let quant = |linear: &Linear| -> Result<QMatMul> {
++                let w = linear.weight();
++                let cpu = w.to_device(&Device::Cpu)?.to_dtype(DType::F32)?;
++                Ok(QMatMul::QTensor(Arc::new(QTensor::quantize_onto(
++                    &cpu,
++                    dtype,
++                    w.device(),
++                )?)))
++            };
++            m.experiment_quant =
++                Some([quant(&m.wi_act)?, quant(&m.wi_gate)?, quant(&m.wo)?]);
++        }
++        Ok(())
++    }
++    pub(crate) fn experiment_sparse(&mut self) -> Result<()> {
++        for layer in &mut self.layers {
++            for linear in [
++                &mut layer.mlp.wi_act,
++                &mut layer.mlp.wi_gate,
++                &mut layer.mlp.wo,
++            ] {
++                let w = linear.weight();
++                let mut values =
++                    w.to_dtype(DType::F32)?.flatten_all()?.to_vec1::<f32>()?;
++                assert_eq!(w.dim(1)? % 4, 0);
++                for group in values.chunks_exact_mut(4) {
++                    let mut ids = [0, 1, 2, 3];
++                    ids.sort_by(|&a, &b| {
++                        group[a]
++                            .abs()
++                            .total_cmp(&group[b].abs())
++                            .then(a.cmp(&b))
++                    });
++                    group[ids[0]] = 0.0;
++                    group[ids[1]] = 0.0;
++                }
++                *linear = Linear::new(
++                    Tensor::from_vec(values, w.shape(), w.device())?
++                        .to_dtype(w.dtype())?,
++                    None,
++                );
++            }
++        }
++        Ok(())
++    }
++}
++
++#[cfg(all(test, feature = "flash-attn"))]
++impl ModernBert {
++    pub(crate) fn experiment_fp8(&mut self) -> Result<()> {
++        for layer in &mut self.layers {
++            let m = &mut layer.mlp;
++            let quant = |l: &Linear| -> Result<(Tensor, Tensor)> {
++                let w = l.weight().to_dtype(DType::F32)?;
++                let scale =
++                    (w.abs()?.max_keepdim(1)?.clamp(1e-12f32, f32::MAX)?
++                        / 448.0)?;
++                Ok((w.broadcast_div(&scale)?.to_dtype(DType::F8E4M3)?, scale))
++            };
++            m.experiment_fp8 =
++                Some([quant(&m.wi_act)?, quant(&m.wi_gate)?, quant(&m.wo)?]);
++        }
++        Ok(())
++    }
++}

@@ -1,0 +1,141 @@
+{
+  "distilled-block26": {
+    "variant": "block-26",
+    "seed": 17,
+    "train_examples": 288,
+    "before": {
+      "answers": 149,
+      "decision_flips": 0,
+      "max_probability_error": 0.08254268765449524,
+      "mean_probability_error": 0.010099084520201574,
+      "centered_logit_mse": 0.07430124535722832,
+      "max_action_error": 0.0
+    },
+    "epochs": [
+      {
+        "epoch": 1,
+        "seconds": 38.104119110998,
+        "mean_train_loss": 0.49972461873484364,
+        "validation": {
+          "answers": 149,
+          "decision_flips": 17,
+          "max_probability_error": 0.4176661968231201,
+          "mean_probability_error": 0.0910026956373202,
+          "centered_logit_mse": 3.8951519577695217,
+          "max_action_error": 0.0
+        }
+      }
+    ],
+    "torch": "2.13.0+cu130",
+    "optimizer": "Adafactor",
+    "lr": 0.0001
+  },
+  "distilled-conv": {
+    "variant": "conv-all",
+    "seed": 17,
+    "train_examples": 288,
+    "before": {
+      "answers": 149,
+      "decision_flips": 99,
+      "max_probability_error": 0.9162721633911133,
+      "mean_probability_error": 0.24841135428276434,
+      "centered_logit_mse": 9.20798110679392,
+      "max_action_error": 0.0
+    },
+    "epochs": [
+      {
+        "epoch": 1,
+        "seconds": 38.6038009240001,
+        "mean_train_loss": 1.53858035068212,
+        "validation": {
+          "answers": 149,
+          "decision_flips": 69,
+          "max_probability_error": 0.9949527382850647,
+          "mean_probability_error": 0.23265848707863784,
+          "centered_logit_mse": 8.316357221479384,
+          "max_action_error": 0.0
+        }
+      }
+    ],
+    "torch": "2.13.0+cu130",
+    "optimizer": "Adafactor",
+    "lr": 0.001
+  },
+  "distilled-rope": {
+    "variant": "rope-all",
+    "seed": 17,
+    "train_examples": 288,
+    "before": {
+      "answers": 149,
+      "decision_flips": 75,
+      "max_probability_error": 0.9609853625297546,
+      "mean_probability_error": 0.250054831857403,
+      "centered_logit_mse": 9.18152194185145,
+      "max_action_error": 0.0
+    },
+    "epochs": [
+      {
+        "epoch": 1,
+        "seconds": 34.73892735800473,
+        "mean_train_loss": 2.5012520705737793,
+        "validation": {
+          "answers": 149,
+          "decision_flips": 62,
+          "max_probability_error": 1.0,
+          "mean_probability_error": 0.2294337064408823,
+          "centered_logit_mse": 7.273527379503986,
+          "max_action_error": 0.0
+        }
+      }
+    ],
+    "torch": "2.13.0+cu130",
+    "optimizer": "Adafactor",
+    "lr": 0.001
+  },
+  "distilled-rope-critical": {
+    "variant": "rope-critical",
+    "seed": 17,
+    "train_examples": 288,
+    "before": {
+      "answers": 149,
+      "decision_flips": 26,
+      "max_probability_error": 0.9892587661743164,
+      "mean_probability_error": 0.11200117857018231,
+      "centered_logit_mse": 15.186035923116009,
+      "max_action_error": 0.0
+    },
+    "epochs": [
+      {
+        "epoch": 1,
+        "seconds": 39.683556095988024,
+        "mean_train_loss": 0.7411470297031175,
+        "validation": {
+          "answers": 149,
+          "decision_flips": 28,
+          "max_probability_error": 0.9621704816818237,
+          "mean_probability_error": 0.1124486722929974,
+          "centered_logit_mse": 4.728143302923781,
+          "max_action_error": 0.0
+        }
+      }
+    ],
+    "torch": "2.13.0+cu130",
+    "optimizer": "Adafactor",
+    "lr": 0.0001
+  },
+  "torch-baseline": {
+    "variant": "baseline",
+    "seed": 17,
+    "train_examples": 288,
+    "before": {
+      "answers": 149,
+      "decision_flips": 0,
+      "max_probability_error": 0.06618276238441467,
+      "mean_probability_error": 0.003185627397370973,
+      "centered_logit_mse": 0.008016795389340166,
+      "max_action_error": 0.0
+    },
+    "epochs": [],
+    "torch": "2.13.0+cu130"
+  }
+}

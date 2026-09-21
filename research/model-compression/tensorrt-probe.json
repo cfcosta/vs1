@@ -1,0 +1,9 @@
+{
+  "tensorrt": "10.13.3.9",
+  "tokens": 46,
+  "probabilities": [0.05989931896328926, 0.9401007294654846],
+  "teacher": [0.06169857829809189, 0.9383014440536499],
+  "max_probability_error": 0.0017992854118347168,
+  "action_error": 0.0,
+  "scope": "one fixed-shape example only; no latency or application-quality claim"
+}

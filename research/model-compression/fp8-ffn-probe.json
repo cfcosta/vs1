@@ -1,0 +1,26 @@
+{
+  "scope": "isolated first encoder FFN; real weights and seeded random activations; PyTorch BF16 versus per-row E4M3 storage, explicit F32 dequantization/scaling and BF16 GEMMs",
+  "torch": "2.13.0+cu130",
+  "results": [
+    {
+      "tokens": 129,
+      "cosine": 0.9996073246002197,
+      "timing": "not measured while GPU is shared"
+    },
+    {
+      "tokens": 832,
+      "cosine": 0.9995989799499512,
+      "timing": "not measured while GPU is shared"
+    },
+    {
+      "tokens": 1536,
+      "cosine": 0.999591588973999,
+      "timing": "not measured while GPU is shared"
+    },
+    {
+      "tokens": 3870,
+      "cosine": 0.9996014833450317,
+      "timing": "not measured while GPU is shared"
+    }
+  ]
+}
