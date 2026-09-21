@@ -100,3 +100,7 @@ pub use jev::{JevClient, JevStats};
 
 pub mod backend;
 pub use backend::DecisionModel;
+
+pub mod openjev;
+pub use openjev::{OpenJev, OpenJevBuilder, OpenJevInput, OpenJevPrediction};
+pub use types::AbstentionAnswer;

@@ -3,7 +3,8 @@
 Runs [laya](https://github.com/NandhaKishorM/laya) System One decision
 models on [candle](https://github.com/huggingface/candle), as a Rust
 library and a small `vs1` command. The same build also supports hosted
-Jev through the typed request/response interface.
+Jev through the typed request/response interface, and local
+[OpenJev (Verdict)](docs/openjev.md) through the same ModernBERT encoder.
 
 A System One model answers typed questions about a piece of _state_ in
 a single, non-autoregressive forward pass. Nothing is generated: every
@@ -26,10 +27,15 @@ check the workspace. All crates use the root `Cargo.lock` and `target/` director
 
 ## Caller-selected backend
 
-`SystemOne` remains the local laya API. `JevClient` is included in normal builds; `DecisionModel` wraps either backend and exposes
+`SystemOne` remains the local laya API. `JevClient` is included in normal builds;
+`OpenJev` loads Verdict locally. `DecisionModel` wraps these backends and exposes
 `system_one` and `system_one_batch`. Backend and model selection are explicit:
 there is no automatic cloud fallback, environment-based library selection or
 checkpoint download when constructing a Jev client.
+
+The core CLI also accepts `--backend openjev`. See [OpenJev usage and answer
+semantics](docs/openjev.md) for its explicit abstention result and for keeping
+Laya and OpenJev loaded together.
 
 ```rust
 use vs1::{DecisionModel, JevClient, Question, SystemOneRequest};

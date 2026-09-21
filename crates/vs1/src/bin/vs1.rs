@@ -45,7 +45,9 @@ fn main() -> anyhow::Result<()> {
         match arg.as_str() {
             "--dump-ids" => dump_ids = true,
             "--backend" => {
-                backend = args.next().context("--backend needs laya or jev")?
+                backend = args
+                    .next()
+                    .context("--backend needs laya, openjev or jev")?
             }
             "--model" => {
                 model_id = Some(args.next().context("--model needs a value")?)
@@ -76,7 +78,7 @@ fn main() -> anyhow::Result<()> {
         }
     }
     let path = path.context(
-        "usage: vs1 [--backend laya|jev] [--model MODEL] [--dump-ids] [--device cpu|cuda] request.json",
+        "usage: vs1 [--backend laya|openjev|jev] [--model MODEL] [--dump-ids] [--device cpu|cuda] request.json",
     )?;
     let raw = fs::read_to_string(&path)?;
     let (requests, single): (Vec<SystemOneRequest>, bool) =
@@ -109,6 +111,32 @@ fn main() -> anyhow::Result<()> {
                 bail!("Jev requires building with --features jev")
             }
         }
+        "openjev" => {
+            anyhow::ensure!(
+                subfolder.is_empty(),
+                "OpenJev does not use --subfolder"
+            );
+            let started = Instant::now();
+            let mut builder = vs1::OpenJev::from(
+                model_id.as_deref().unwrap_or(vs1::openjev::DEFAULT_REPO_ID),
+            )
+            .with_device(device(&device_name)?);
+            if let Some(dtype) = dtype {
+                builder = builder.with_dtype(dtype);
+            }
+            if let Some(size) = batch_size {
+                builder = builder.with_batch_size(size);
+            }
+            let model: vs1::OpenJev = builder.try_into()?;
+            eprintln!(
+                "loaded {} on {:?} as {:?} in {:.1?}",
+                model.model_name(),
+                model.device(),
+                model.dtype(),
+                started.elapsed()
+            );
+            model.into()
+        }
         "laya" => {
             let started = Instant::now();
             let mut builder = SystemOne::from(
@@ -132,7 +160,7 @@ fn main() -> anyhow::Result<()> {
             );
             model.into()
         }
-        _ => bail!("--backend must be laya or jev"),
+        _ => bail!("--backend must be laya, openjev or jev"),
     };
 
     let started = Instant::now();
@@ -155,15 +183,31 @@ fn main() -> anyhow::Result<()> {
     for (request, response) in requests.iter().zip(&responses) {
         let mut entry = serde_json::to_value(response)?;
         if dump_ids {
-            let model = model.local().context("--dump-ids is local-only")?;
-            let state = model.encode_state(&request.state)?;
             let mut ids = serde_json::Map::new();
-            for (id, question) in &request.questions {
-                let item = model.build_sequence(&state, id, question)?;
-                ids.insert(
-                    id.clone(),
-                    json!({ "ids": item.ids, "markers": item.markers }),
-                );
+            match &model {
+                DecisionModel::OpenJev(local) => {
+                    let state = request.state.render();
+                    for (id, q) in &request.questions {
+                        ids.insert(
+                            id.clone(),
+                            serde_json::to_value(
+                                local.build_input(&state, id, q)?,
+                            )?,
+                        );
+                    }
+                }
+                _ => {
+                    let local =
+                        model.local().context("--dump-ids is local-only")?;
+                    let state = local.encode_state(&request.state)?;
+                    for (id, q) in &request.questions {
+                        let item = local.build_sequence(&state, id, q)?;
+                        ids.insert(
+                            id.clone(),
+                            json!({"ids":item.ids,"markers":item.markers}),
+                        );
+                    }
+                }
             }
             entry = json!({ "response": entry, "ids": ids });
         }

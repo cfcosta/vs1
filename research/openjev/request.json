@@ -1,0 +1,34 @@
+[
+  {
+    "state": "The customer asks to reset a forgotten password. They are very unhappy. Their invoice is marked PAID.",
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "What should support do?",
+        "criteria": {
+          "reset": "reset the password",
+          "refund": "refund a purchase"
+        }
+      },
+      "satisfaction": {
+        "type": "score",
+        "instructions": "How satisfied is the customer?",
+        "criteria": ["dissatisfied", "neutral", "satisfied"]
+      },
+      "paid": {
+        "type": "noul",
+        "instructions": "The invoice has been paid."
+      }
+    }
+  },
+  {
+    "state": "The sky is blue.",
+    "questions": {
+      "database": {
+        "type": "choice",
+        "instructions": "Which database is down?",
+        "criteria": ["PostgreSQL", "MySQL"]
+      }
+    }
+  }
+]

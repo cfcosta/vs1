@@ -345,7 +345,8 @@ impl Question {
 
 /// The three primitives, with the integer ids the checkpoint uses for
 /// its type embedding and temperature table.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum QuestionKind {
     Choice,
     Score,
@@ -463,6 +464,15 @@ pub struct NoulAnswer {
     pub action: Option<Action>,
 }
 
+/// The model explicitly declined to decide from the available evidence.
+/// Probabilities include the reserved abstention candidate.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AbstentionAnswer {
+    pub question_type: QuestionKind,
+    pub probabilities: IndexMap<String, f32>,
+    pub reason: String,
+}
+
 /// One answer, tagged with its primitive.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
@@ -470,9 +480,18 @@ pub enum Answer {
     Choice(ChoiceAnswer),
     Score(ScoreAnswer),
     Noul(NoulAnswer),
+    Abstain(AbstentionAnswer),
 }
 
 impl Answer {
+    /// Whether the model declined to answer.
+    pub fn abstention(&self) -> Option<&AbstentionAnswer> {
+        match self {
+            Self::Abstain(a) => Some(a),
+            _ => None,
+        }
+    }
+
     /// The `noul` probability, when this is a noul answer.
     pub fn noul(&self) -> Option<f32> {
         match self {
@@ -503,7 +522,7 @@ impl Answer {
         match self {
             Answer::Choice(a) => Some(a.confidence),
             Answer::Score(a) => Some(a.confidence),
-            Answer::Noul(_) => None,
+            Answer::Noul(_) | Answer::Abstain(_) => None,
         }
     }
 
@@ -513,6 +532,7 @@ impl Answer {
             Answer::Choice(a) => a.action,
             Answer::Score(a) => a.action,
             Answer::Noul(a) => a.action,
+            Answer::Abstain(_) => None,
         }
     }
 }
