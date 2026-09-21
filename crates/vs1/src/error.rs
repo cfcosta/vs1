@@ -3,6 +3,11 @@ use thiserror::Error;
 /// Every failure a System One model can report.
 #[derive(Error, Debug)]
 pub enum SystemOneError {
+    /// Hosted transport/protocol failure; deliberately excludes secrets and response bodies.
+    #[error("hosted model error: {0}")]
+    Remote(String),
+    #[error("hosted model returned HTTP {0}")]
+    HttpStatus(u16),
     /// Tensor or device failure from candle.
     #[error("candle error: {0}")]
     Candle(#[from] candle_core::Error),

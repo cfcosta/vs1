@@ -25,8 +25,15 @@ serde_json = { version = "1", features = ["preserve_order"] }
 thiserror = "2"
 tokenizers = { version = "0.23", default-features = false, features = ["onig"] }
 
+reqwest = { version = "0.12", optional = true, default-features = false, features = [
+  "blocking",
+  "json",
+  "rustls-tls",
+] }
+
 [features]
 default = []
+jev = ["dep:reqwest"]
 cuda = ["candle-core/cuda", "candle-nn/cuda"]
 # Packed and windowed flash-attention kernels for the encoder. Needs
 # nvcc and NVIDIA's cutlass at build time; the plain `cuda` feature is
