@@ -1,5 +1,8 @@
 # Email classifier experiments
 
+See [laya learnings](laya-learnings.md) for the training-data evidence, model
+constraints and interpretation of these results.
+
 Experiments use local Maildir copies and dry-run inference only, with the
 `typed-decisions` checkpoint, CUDA BF16, flash attention, and batch size 16.
 Descriptions, chunking and pooling stay fixed except for the factor under test.

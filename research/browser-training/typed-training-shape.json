@@ -1,0 +1,165 @@
+{
+  "source_sha256": "46a58d63edfd86e23229c78afe8b72307bb4ca9fb0e8df180cabb3c67ec9dcd5",
+  "rows": 1200,
+  "workflows": {
+    "agent_trace_observability": {
+      "rows": 300,
+      "state_fields": ["agent", "constraints", "task", "trace_summary"],
+      "questions": {
+        "action": {
+          "type": "choice",
+          "options": ["continue", "human_review", "observe", "stop"]
+        },
+        "needs_review": {
+          "type": "noul",
+          "options": 2
+        },
+        "outcome": {
+          "type": "choice",
+          "options": ["failure", "harmful", "partial", "success"]
+        },
+        "risk": {
+          "type": "score",
+          "options": 4
+        },
+        "urgency": {
+          "type": "score",
+          "options": 4
+        }
+      }
+    },
+    "customer_service": {
+      "rows": 300,
+      "state_fields": ["account", "thread"],
+      "questions": {
+        "action": {
+          "type": "choice",
+          "options": [
+            "answer_directly",
+            "close_no_action",
+            "escalate_to_human",
+            "execute_refund",
+            "request_information"
+          ]
+        },
+        "category": {
+          "type": "choice",
+          "options": ["account", "billing", "delivery", "refund", "technical"]
+        },
+        "churn_risk": {
+          "type": "score",
+          "options": 4
+        },
+        "needs_human": {
+          "type": "noul",
+          "options": 2
+        },
+        "urgency": {
+          "type": "score",
+          "options": 4
+        }
+      }
+    },
+    "invoice_processing": {
+      "rows": 300,
+      "state_fields": ["delivery", "invoice", "payment", "purchase_order", "vendor_history"],
+      "questions": {
+        "discrepancy_severity": {
+          "type": "score",
+          "options": 4
+        },
+        "disposition": {
+          "type": "choice",
+          "options": ["approve", "hold", "manual_review", "reject"]
+        },
+        "duplicate": {
+          "type": "noul",
+          "options": 2
+        },
+        "matches_order": {
+          "type": "noul",
+          "options": 2
+        },
+        "urgency": {
+          "type": "score",
+          "options": 4
+        }
+      }
+    },
+    "security_incidents": {
+      "rows": 300,
+      "state_fields": ["alert", "context", "history", "principal"],
+      "questions": {
+        "credential_compromise": {
+          "type": "noul",
+          "options": 2
+        },
+        "disposition": {
+          "type": "choice",
+          "options": ["close_benign", "contain", "investigate", "monitor"]
+        },
+        "severity": {
+          "type": "score",
+          "options": 5
+        },
+        "true_positive": {
+          "type": "noul",
+          "options": 2
+        },
+        "urgency": {
+          "type": "score",
+          "options": 4
+        }
+      }
+    }
+  },
+  "types": {
+    "choice": 1800,
+    "noul": 1800,
+    "score": 2400
+  },
+  "choice_option_counts": {
+    "4": 1200,
+    "5": 600
+  },
+  "unique_question_schemas": {
+    "agent_trace_observability": 1,
+    "customer_service": 1,
+    "invoice_processing": 1,
+    "security_incidents": 1
+  },
+  "max_probability_sum_error": 1.000000000139778e-6,
+  "state_token_counts": {
+    "agent_trace_observability": {
+      "min": 91,
+      "median": 105.0,
+      "max": 120
+    },
+    "customer_service": {
+      "min": 76,
+      "median": 269.5,
+      "max": 528
+    },
+    "invoice_processing": {
+      "min": 268,
+      "median": 296.5,
+      "max": 348
+    },
+    "security_incidents": {
+      "min": 181,
+      "median": 227.0,
+      "max": 300
+    },
+    "all": {
+      "min": 76,
+      "median": 238.0,
+      "max": 528
+    }
+  },
+  "scope": "Complete pinned all/train file; descriptive inspection, no inference or training.",
+  "dataset_revision": "ea9306458d6e9563628369a3d1e72e362fb381d2",
+  "checkpoint_revision": "c5d78730f3493e4fe16d61507ef4b78eef7318cf",
+  "tokenizer_sha256": "6c8aaa9a542084f2457eab775d4eeb51f92a70c0fd9de28d5edb0ddec3c08d30",
+  "state_renderer": "json.dumps(json.loads(row[state]), ensure_ascii=False); no truncation or padding; add_special_tokens=False; excludes questions/options",
+  "inspected_on": "2026-09-21"
+}

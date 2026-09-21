@@ -81,3 +81,8 @@ No raw dataset samples are committed. Preserve dataset attribution and relevant
 notices in future derived releases. The downloaded typed-decisions data is the
 subset documented in Laya's fine-tuning notebook, not its complete original
 training corpus.
+
+The later [laya learning note](../../docs/laya-learnings.md) connects this data
+to the email experiments. [typed-training-shape.json](typed-training-shape.json)
+records a separate full inspection of all 1,200 training rows, including fixed
+question schemas, option counts and state lengths with the typed tokenizer.
