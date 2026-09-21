@@ -1,0 +1,45 @@
+{
+  "messages": 200,
+  "labeled": 156,
+  "correct": 73,
+  "fixed": 8,
+  "regressed": 22,
+  "chunks": 352,
+  "requests": 704,
+  "questions": 704,
+  "batch_calls": 44,
+  "call_seconds": 7.975770933,
+  "two_process_seconds": 8.82879148,
+  "all_chunks_routed_away_from_reference": 59,
+  "regressions_by_category": {
+    "receipts": 1,
+    "bulk": 10,
+    "careers": 1,
+    "income": 1,
+    "ops": 5,
+    "other": 2,
+    "fiscal": 2
+  },
+  "repeat_identical": true,
+  "repeat_call_seconds": 8.047469379999999,
+  "repeat_two_process_seconds": 8.926434614,
+  "plan": {
+    "groups": {
+      "financial": ["capture", "bills", "fiscal", "income", "receipts"],
+      "professional": ["careers", "clients", "papers", "equity"],
+      "accounts": ["identity", "security", "ops"],
+      "personal": ["household", "health", "travel"],
+      "broadcast_or_other": ["bulk", "other"]
+    },
+    "descriptions": {
+      "financial": "Financial activity: statements, bills, taxes, money received or purchase receipts.",
+      "professional": "Work or formal documents: recruiting, client engagements, executed legal documents or equity ownership.",
+      "accounts": "Account administration: identity bureaucracy, account security or developer infrastructure operations.",
+      "personal": "Personal coordination, family logistics, health care, fitness, pets or travel plans.",
+      "broadcast_or_other": "Informational broadcasts, newsletters, promotions, or messages unrelated to the other purposes."
+    },
+    "baseline": "question-style-baseline-1",
+    "selection": "No reference labels used for routes or leaf selection"
+  },
+  "outcome": "Rejected; experimental transformations never entered production"
+}

@@ -295,3 +295,12 @@ The TDD-tested replay executable is `crates/vs1/examples/native_category_replay.
 it reads JSONL dataset rows and writes predictions separately from references.
 Run with release features `cuda,flash-attn`; arguments are input JSONL and a new
 output JSON path. Aggregate measurements: [laya-native-diagnostics.json](laya-native-diagnostics.json).
+
+The follow-up [semantic-routing experiment](email-experiments.md#17-native-task-diagnostics-and-semantic-routing)
+scored 73/156 against 87/156, reproduced exactly, and was rejected. It reduced
+question count but increased all-chunk exclusion of the reference category from
+42 to 59 messages. The tested hierarchy therefore worsened the measured
+bottleneck. A separate [native category-name control](email-experiments.md#18-native-category-name-control)
+retained 92/100 agreement after descriptive renaming versus 94/100 originally.
+Exact familiar label IDs are not sufficient to explain the large native/email
+gap; new category meanings and input distributions remain separate variables.

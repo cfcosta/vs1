@@ -1,0 +1,20 @@
+{
+  "cases": 100,
+  "original_correct": 94,
+  "alias_correct": 92,
+  "changed": 4,
+  "fixed": 1,
+  "regressed": 3,
+  "aliases": {
+    "account": "account_management",
+    "billing": "payment_problems",
+    "delivery": "order_delivery",
+    "refund": "refund_requests",
+    "technical": "technical_problems"
+  },
+  "call_seconds": 0.744080729,
+  "total_seconds": 1.064203013,
+  "requests": 100,
+  "batch_calls": 7,
+  "control": "Only category IDs changed; original descriptions, question and state preserved; alias mapped back only for evaluation"
+}

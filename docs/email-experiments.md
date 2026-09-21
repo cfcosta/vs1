@@ -778,3 +778,84 @@ Aggregate data: [laya-question-style.json](laya-question-style.json). Private ra
 outputs and effective requests have the `question-style-` prefix under
 `~/.local/state/vs1-email/three-backends-200-20260921/`. Source snapshots,
 executables and hashes are in its `question-style-audit/` directory.
+
+## 17. Native-task diagnostics and semantic routing
+
+Native categorization replay established 294/300 teacher-argmax agreement on the
+training cases and 94/100 on the dataset's separate customer-service test split.
+The same local checkpoint ran unchanged on CUDA BF16 with FlashAttention. See
+[laya-learnings.md](laya-learnings.md#native-categorization-replay-and-email-failure-stages)
+and [native metrics](laya-native-diagnostics.json) for provenance and soft-target
+measurements. This is task-specific agreement, not general email accuracy or
+proof of numerical parity with upstream.
+
+A structural audit of the frozen email baseline's 69 labeled errors found 42
+where every chunk eliminated the reference category, 20 where it survived at
+least once but never won a chunk, and seven where a correct chunk lost during
+pooling. These observations motivated a broad-purpose router, instead of another
+pooling or wording adjustment.
+
+Before inference, froze five routes: financial (capture, bills, fiscal, income,
+receipts); professional (careers, clients, papers, equity); accounts (identity,
+security, ops); personal (household, health, travel); broadcast_or_other (bulk,
+other). Exact route descriptions are in [laya-semantic-routing.json](laya-semantic-routing.json).
+A five-way `What is the primary purpose of this email?` question selected one
+route. A second question used the selected leaf categories with the original
+category descriptions, exclusions and original classification instruction.
+Reference labels were used only after both stages for evaluation.
+
+All 352 states came directly from the prior captured preliminary requests; no
+rechunking, changed owner context or metadata. Their order, subjects and body
+character counts were checked against the baseline report. Every native replay
+request fit without state truncation. Character-weighted pooling was unchanged;
+the analysis implementation reproduced all 200 baseline predictions from their
+saved chunk probabilities before scoring the candidate. A failing transformation
+test preceded implementation; both tests then passed, checking preservation of
+state and leaf criteria, exhaustive unique category coverage and unknown-route
+rejection.
+
+| Pipeline            | Correct /156 | Fixes | Regressions | Questions | Requests | Batch calls |
+| ------------------- | -----------: | ----: | ----------: | --------: | -------: | ----------: |
+| Existing tournament |   87 (55.8%) |     — |           — |     1,760 |      704 |          56 |
+| Semantic routing    |   73 (46.8%) |     8 |          22 |       704 |      704 |          44 |
+
+The router excluded the reference category from every chunk for 59 labeled
+messages, versus 42 for the tournament. Regressions included ten bulk, five ops,
+two fiscal, two other, and one each receipts, careers and income. Repeating
+both stages reproduced all response objects exactly, hence all 200 predictions.
+This rejects this grouping and hard-routing implementation, not all possible
+hierarchies.
+
+Two separate Rust processes replayed broad and leaf questions: inference wall
+was 7.976s (repeat 8.047s), and the sum of process-internal total timers was
+8.829s (repeat 8.926s). These totals include two model loads but exclude Python
+preparation, inter-process delay and final pooling/scoring; they are not an
+end-to-end CLI measurement. GPU load varied and the existing baseline was run
+under different contention. Fewer questions are established; a production speedup
+is not. Batch size 16, four Rayon threads, CUDA BF16 and FlashAttention throughout.
+
+The candidate existed only as private offline research transformations, never as
+a production code/config change, and was rejected. Raw inputs, outputs, the
+frozen plan, scripts and repeats are in
+`~/.local/state/vs1-email/three-backends-200-20260921/semantic-route-audit/`.
+
+## 18. Native category-name control
+
+On the same 100 native test cases, renamed the five choice IDs to descriptive
+aliases while preserving their order, all descriptions, instructions and states.
+For example, `account` became `account_management` and `billing` became
+`payment_problems`. Alias mapping was reversed only for scoring. No weights,
+examples or teacher labels were supplied to inference.
+
+Agreement fell from 94/100 to 92/100: four predictions changed, with one fix and
+three regressions. Inference used 100 requests, seven batches and 0.744s; total
+inside the Rust replay process was recorded in the aggregate artifact. This
+single control suggests native performance does not collapse without exact
+training label names. It does not establish robustness to arbitrary labels,
+new category semantics, Portuguese text or email input structure. No production
+change follows from this result.
+
+Aggregate data: [laya-native-label-control.json](laya-native-label-control.json).
+Raw replay files are under `artifacts/browser-training/samples/`, with the
+`native-category-alias` prefix. Unlike a new untouched benchmark, this is a
+paired diagnostic on the already inspected test split.
