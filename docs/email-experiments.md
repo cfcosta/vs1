@@ -84,3 +84,38 @@ tournament structure, category order, and chunk pooling remain unchanged.
 Private reproducibility artifacts (frozen configurations, labels, per-chunk
 results, timing records, runner source, and rejected patches) are stored in
 `~/.local/state/vs1-email/four-experiments-20260921/`.
+
+## 5. Binary category matching
+
+Test all 17 categories independently using laya's `noul` primitive, with explicit
+yes/no definitions and exclusions. Keep the five highest match probabilities,
+then make one five-way final choice. Final choices follow configuration order;
+chunking and length-weighted pooling are unchanged. This uses the improved
+descriptions from experiment 3.
+
+Two runs per method, reversing execution order on the second pass, used CUDA
+BF16 with flash attention and batch size 16. Both methods processed the same
+100 messages and 144 chunks.
+
+| Method                            | Correct / 61 | Mean runtime | Questions |
+| --------------------------------- | -----------: | -----------: | --------: |
+| Current tournament                |           36 |        9.70s |       720 |
+| Binary matching plus final choice |           34 |       28.38s |      2592 |
+
+Runtime increased 2.93 times. Both runs produced identical
+classifications for each method. Binary matching corrected six prior errors
+but regressed eight previously correct labels. The correct category was absent
+from every chunk's final shortlist for eight messages, down from 17, but better
+shortlist coverage did not improve final accuracy.
+
+Actual binary headers used 63–89 tokens including special tokens, below the
+256-token header budget. All requests passed the body-capacity checks. Tests
+for binary question construction, exclusions, ranking, ties and probability
+bounds failed before implementation and passed afterward; package tests and
+Clippy passed.
+
+Decision: reject and remove the experimental implementation. No production
+classifier or configuration changes are retained. Validation was not consulted
+because the development comparison already failed. Private results, source and
+header evidence are preserved in
+`~/.local/state/vs1-email/binary-category-100-20260921/`.
