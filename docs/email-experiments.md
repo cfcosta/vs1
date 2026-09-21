@@ -983,3 +983,131 @@ Aggregate data: [laya-pooling.json](laya-pooling.json). Reproducible private scr
 predictions and hashes are under `pooling-audit/` in the frozen 200-message
 artifact directory. This is the same reused, assistant-reviewed reference set;
 fresh independently reviewed evaluation remains outstanding.
+
+## 21. Fresh 300-message retrieval ablations across three backends
+
+Laya improved from 134/257 to 154/257 with two retrieved labeled examples.
+Labels alone reached 151/257 with less classifier time and higher macro F1.
+OpenJev gained only four correct answers in its best variant, while classifier
+wall time nearly tripled. Hosted Jev remained ahead at 217/257; it was run only
+as a baseline, without optimization or retrieval.
+
+### Frozen evaluation protocol
+
+Selected 300 emails from `~/Mail/me@cfcosta.com`, seed 20260921300, from a
+23,641-message population. Excluded all hashes in the old 200-message evaluation,
+training-bank senders, and five-word-shingle template matches at Jaccard >=0.5
+against the bank and within the selected test set. This heuristic reduces overlap;
+it does not prove semantic independence. Raw hashes and the selection manifest
+remain private. Mailbox contents were not modified.
+
+The old 200-message evaluation supplied 156 reviewed bank examples. The earlier
+61-example bank was no longer available, so this is a new experiment, not a
+replication of its 40-message result. The assistant reviewed the new sample
+before model inference and froze 257 category references plus 43 unresolved
+cases. These are assistant judgments, not independently confirmed ground truth.
+All runs process the same 300 messages; accuracy excludes unresolved references.
+Target references never enter retrieval, fitting or inference.
+
+The bank covers 11 categories but lacks bills, capture and papers. Those missing
+categories account for 33 scored messages. The test set has 103 bulk messages
+and no scored clients, equity, household, health or income messages. Reported
+macro F1 averages the 12 categories represented in the scored test set.
+
+Pinned multilingual MiniLM embeddings select two nearest bank emails. Input
+embeddings cover the full cleaned subject/body in token-bounded chunks; the
+retrieved context contains subject, the first 160 body characters, and category.
+The nearest example label agrees with 108/257 references; either of the two
+agrees with 151/257. No embedding/model weights were changed.
+
+Full examples initially exceeded OpenJev's 512-token context for some messages,
+even without a target body. Tokenizer-only fitting shortened example text for
+226 messages, from 125,127 to 98,775 total characters. All 600 examples and their
+labels survived. Both local backends use these same fitted examples, with no
+prediction-guided selection. The matched control reserves their space but omits
+them during inference. Exact target chunk-state arrays were verified identical
+across matched/full/text/labels within each backend.
+
+### Results and costs
+
+| Backend / context       | Correct /257 | Accuracy | Macro F1 | Chunks | Logical calls | Questions | Call wall s | Total s |
+| ----------------------- | -----------: | -------: | -------: | -----: | ------------: | --------: | ----------: | ------: |
+| Jev baseline            |          217 |    84.4% |     .682 |    300 |           300 |       300 |        7.61 |    7.73 |
+| Laya baseline           |          134 |    52.1% |     .403 |    550 |         1,100 |     2,750 |       33.10 |   38.19 |
+| Laya matched control    |          135 |    52.5% |     .399 |    679 |         1,358 |     3,395 |       35.89 |   42.45 |
+| Laya text + labels      |          154 |    59.9% |     .410 |    679 |         1,358 |     3,395 |       44.65 |   51.33 |
+| Laya text only          |          146 |    56.8% |     .377 |    679 |         1,358 |     3,395 |       44.21 |   50.88 |
+| Laya labels only        |          151 |    58.8% |     .424 |    679 |         1,358 |     3,395 |       38.43 |   45.06 |
+| OpenJev baseline        |           97 |    37.7% |     .316 |  1,262 |         1,262 |     1,262 |       18.46 |   24.47 |
+| OpenJev matched control |           97 |    37.7% |     .295 |  3,322 |         3,322 |     3,322 |       34.27 |   50.20 |
+| OpenJev text + labels   |          100 |    38.9% |     .306 |  3,322 |         3,322 |     3,322 |       52.52 |   69.04 |
+| OpenJev text only       |          101 |    39.3% |     .314 |  3,322 |         3,322 |     3,322 |       51.32 |   68.23 |
+| OpenJev labels only     |           94 |    36.6% |     .293 |  3,322 |         3,322 |     3,322 |       35.64 |   52.36 |
+
+Totals include classifier setup, model loading, inference and result serialization.
+They exclude shared retrieval preparation: **17.31 seconds**, plus approximately
+0.6 seconds of tokenizer-only context fitting. A repeated preparation selected
+identical neighbors. End-to-end retrieval use must add these costs; the matched
+control is a diagnostic, not a deployable zero-preparation baseline.
+
+Logical local calls are requests, not individual GPU launches. Laya used 90
+batches naturally and 100 with reserved example space; OpenJev used 316 and 831.
+Hosted Jev used concurrency 16, 300 HTTP attempts, 300 successes and zero retries.
+Its summed individual request latencies were 92.71 seconds, overlapping within
+7.61 seconds of call wall time. Laya's call timer includes tokenization;
+OpenJev's excludes input preparation, making total time the better comparison.
+The GPU was shared with another user workload, so timings are observational.
+
+Laya used BF16 CUDA with FlashAttention enabled, batch 16. OpenJev used F32 CUDA,
+batch four, with the existing compact 512-token request. The binary was built
+with `cuda,flash-attn`; this does not mean OpenJev used FlashAttention. Hosted
+Jev was pinned to `jev-1.13.0`. Category definitions, pooling, and the retained
+Laya runner-up tournament stayed fixed. Backend-specific established request
+formats differ; this compares the working pipelines rather than identical prompts.
+
+### Interpretation and disposition
+
+Against its natural baseline, Laya full examples fixed 34 errors and introduced
+14; against matched chunks, they fixed 32 and introduced 13. Labels alone fixed
+25 and introduced eight against the natural baseline. Full examples versus
+labels alone fixed 17 and introduced 14: example text adds only three net correct
+answers and is not uniformly beneficial.
+
+The bank coverage tradeoff is material. On bank-supported categories, full
+examples improved 124/224 to 149/224. On unsupported categories they reduced
+10/33 to 5/33; bills alone fell from 9/27 to 4/27. Labels-only has the highest
+local macro F1 and lower cost, but this sample does not justify a blanket
+production default change. Completing the example bank from independent data
+is better motivated than adding more examples from this now-inspected test set.
+
+OpenJev text-only fixed 30 errors but introduced 26 against its natural baseline.
+Its large increase in chunks, lower macro F1 and small net accuracy gain do not
+justify adopting retrieval by default. Labels-only was worse and remains an
+experimental control only.
+
+Retain the opt-in research harness and documented Laya improvement. No retrieval
+path or failed candidate was enabled in the production classifier. Tests were
+written and observed failing before implementing context ablations and fitting;
+all six benchmark example tests passed, as did its Clippy check and the three
+retrieval preparation tests.
+
+Aggregate results: [email-retrieval-300.json](email-retrieval-300.json).
+Private inputs, frozen references, raw predictions, model/input hashes and
+reproduction scripts live under
+`~/.local/state/vs1-email/retrieval-300-20260921/`. No email text, subjects, senders,
+source paths or per-message predictions are included in the aggregate report.
+
+Fresh classifier repeats reproduced all 300 predictions exactly for Laya full,
+Laya labels-only and OpenJev text-only. Their repeated total times were 52.67,
+45.43 and 67.23 seconds respectively. This establishes repeatability at the fixed
+batch settings; it does not establish accuracy on another sample or invariance
+to batch-size changes.
+
+An instrumented retrieval repeat measured one encoder API call containing 3,007
+embedding sequences in 94 forward batches for the 156 bank and 300 target
+messages. Encoding took 1.99 seconds; complete preparation took 18.24 seconds,
+and selected neighbors were again identical. These embedding calls/chunks are
+additional to the classifier table. Preparation includes imports, model loading,
+leakage checks, tokenization, pooling, retrieval and serialization. The tokenizer's
+raw long-input warning precedes explicit chunking; each encoded chunk is checked
+against the model token ceiling before inference.

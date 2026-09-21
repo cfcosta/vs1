@@ -1,0 +1,1564 @@
+{
+  "messages": 300,
+  "labeled": 257,
+  "unresolved": 43,
+  "runs": {
+    "jev-baseline": {
+      "backend": "jev",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 300,
+      "retrieval_mode": "none",
+      "chunks": 300,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 217,
+      "labeled": 257,
+      "labeled_abstentions": 0,
+      "accuracy": 0.8443579766536965,
+      "metrics": {
+        "calls": 300,
+        "questions": 300,
+        "batch_calls": 19,
+        "call_wall_seconds": 7.612491962,
+        "hosted_request_seconds_sum": 92.712473523
+      },
+      "http": {
+        "calls": 300,
+        "attempts": 300,
+        "retries": 0,
+        "successes": 300,
+        "questions": 300
+      },
+      "setup_seconds": 0.09307671,
+      "load_seconds": 0.000275739,
+      "run_seconds": 7.623925189,
+      "total_seconds": 7.72833771,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.6822670526813744,
+      "per_category": {
+        "bills": {
+          "correct": 25,
+          "support": 27,
+          "f1": 0.8928571428571429
+        },
+        "bulk": {
+          "correct": 87,
+          "support": 103,
+          "f1": 0.8656716417910447
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 28,
+          "support": 28,
+          "f1": 0.9180327868852459
+        },
+        "fiscal": {
+          "correct": 4,
+          "support": 4,
+          "f1": 1.0
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 11,
+          "support": 16,
+          "f1": 0.7857142857142857
+        },
+        "other": {
+          "correct": 5,
+          "support": 17,
+          "f1": 0.4166666666666667
+        },
+        "papers": {
+          "correct": 3,
+          "support": 3,
+          "f1": 0.6
+        },
+        "receipts": {
+          "correct": 23,
+          "support": 23,
+          "f1": 0.8518518518518519
+        },
+        "security": {
+          "correct": 24,
+          "support": 25,
+          "f1": 0.9230769230769231
+        },
+        "travel": {
+          "correct": 7,
+          "support": 7,
+          "f1": 0.9333333333333333
+        }
+      },
+      "supported_correct": 189,
+      "supported_count": 224,
+      "unsupported_correct": 28,
+      "unsupported_count": 33
+    },
+    "laya-baseline": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 300,
+      "retrieval_mode": "none",
+      "chunks": 550,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 134,
+      "labeled": 257,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5214007782101168,
+      "metrics": {
+        "calls": 1100,
+        "questions": 2750,
+        "batch_calls": 90,
+        "call_wall_seconds": 33.095508153000004,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.095333786,
+      "load_seconds": 0.285582922,
+      "run_seconds": 37.738303147,
+      "total_seconds": 38.19350438,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.4027422268342365,
+      "per_category": {
+        "bills": {
+          "correct": 9,
+          "support": 27,
+          "f1": 0.5
+        },
+        "bulk": {
+          "correct": 60,
+          "support": 103,
+          "f1": 0.6122448979591837
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 24,
+          "support": 28,
+          "f1": 0.8135593220338984
+        },
+        "fiscal": {
+          "correct": 2,
+          "support": 4,
+          "f1": 0.5
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 2,
+          "support": 16,
+          "f1": 0.2222222222222222
+        },
+        "other": {
+          "correct": 0,
+          "support": 17,
+          "f1": 0.0
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.4
+        },
+        "receipts": {
+          "correct": 11,
+          "support": 23,
+          "f1": 0.6285714285714286
+        },
+        "security": {
+          "correct": 21,
+          "support": 25,
+          "f1": 0.711864406779661
+        },
+        "travel": {
+          "correct": 4,
+          "support": 7,
+          "f1": 0.4444444444444444
+        }
+      },
+      "supported_correct": 124,
+      "supported_count": 224,
+      "unsupported_correct": 10,
+      "unsupported_count": 33
+    },
+    "laya-full-repeat": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 300,
+      "retrieval_mode": "full",
+      "chunks": 679,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 154,
+      "labeled": 257,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5992217898832685,
+      "metrics": {
+        "calls": 1358,
+        "questions": 3395,
+        "batch_calls": 100,
+        "call_wall_seconds": 45.984438595000015,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.091322063,
+      "load_seconds": 0.293553806,
+      "run_seconds": 52.194717948,
+      "total_seconds": 52.669577574,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.4096472306290266,
+      "per_category": {
+        "bills": {
+          "correct": 4,
+          "support": 27,
+          "f1": 0.25806451612903225
+        },
+        "bulk": {
+          "correct": 73,
+          "support": 103,
+          "f1": 0.7019230769230769
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 26,
+          "support": 28,
+          "f1": 0.8524590163934426
+        },
+        "fiscal": {
+          "correct": 2,
+          "support": 4,
+          "f1": 0.5
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 6,
+          "support": 16,
+          "f1": 0.48
+        },
+        "other": {
+          "correct": 0,
+          "support": 17,
+          "f1": 0.0
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.4
+        },
+        "receipts": {
+          "correct": 17,
+          "support": 23,
+          "f1": 0.7391304347826086
+        },
+        "security": {
+          "correct": 21,
+          "support": 25,
+          "f1": 0.6363636363636364
+        },
+        "travel": {
+          "correct": 4,
+          "support": 7,
+          "f1": 0.34782608695652173
+        }
+      },
+      "supported_correct": 149,
+      "supported_count": 224,
+      "unsupported_correct": 5,
+      "unsupported_count": 33
+    },
+    "laya-full": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 300,
+      "retrieval_mode": "full",
+      "chunks": 679,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 154,
+      "labeled": 257,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5992217898832685,
+      "metrics": {
+        "calls": 1358,
+        "questions": 3395,
+        "batch_calls": 100,
+        "call_wall_seconds": 44.64692720499999,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.092247992,
+      "load_seconds": 0.290039936,
+      "run_seconds": 50.866534074,
+      "total_seconds": 51.333245736,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.4096472306290266,
+      "per_category": {
+        "bills": {
+          "correct": 4,
+          "support": 27,
+          "f1": 0.25806451612903225
+        },
+        "bulk": {
+          "correct": 73,
+          "support": 103,
+          "f1": 0.7019230769230769
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 26,
+          "support": 28,
+          "f1": 0.8524590163934426
+        },
+        "fiscal": {
+          "correct": 2,
+          "support": 4,
+          "f1": 0.5
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 6,
+          "support": 16,
+          "f1": 0.48
+        },
+        "other": {
+          "correct": 0,
+          "support": 17,
+          "f1": 0.0
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.4
+        },
+        "receipts": {
+          "correct": 17,
+          "support": 23,
+          "f1": 0.7391304347826086
+        },
+        "security": {
+          "correct": 21,
+          "support": 25,
+          "f1": 0.6363636363636364
+        },
+        "travel": {
+          "correct": 4,
+          "support": 7,
+          "f1": 0.34782608695652173
+        }
+      },
+      "supported_correct": 149,
+      "supported_count": 224,
+      "unsupported_correct": 5,
+      "unsupported_count": 33
+    },
+    "laya-labels-repeat": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 300,
+      "retrieval_mode": "labels",
+      "chunks": 679,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 151,
+      "labeled": 257,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5875486381322957,
+      "metrics": {
+        "calls": 1358,
+        "questions": 3395,
+        "batch_calls": 100,
+        "call_wall_seconds": 38.701582078,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.093169649,
+      "load_seconds": 0.289587011,
+      "run_seconds": 44.964670129,
+      "total_seconds": 45.430263265,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.42377768136240007,
+      "per_category": {
+        "bills": {
+          "correct": 7,
+          "support": 27,
+          "f1": 0.4117647058823529
+        },
+        "bulk": {
+          "correct": 70,
+          "support": 103,
+          "f1": 0.6862745098039216
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 24,
+          "support": 28,
+          "f1": 0.8
+        },
+        "fiscal": {
+          "correct": 3,
+          "support": 4,
+          "f1": 0.6666666666666666
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 5,
+          "support": 16,
+          "f1": 0.4
+        },
+        "other": {
+          "correct": 0,
+          "support": 17,
+          "f1": 0.0
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.4
+        },
+        "receipts": {
+          "correct": 15,
+          "support": 23,
+          "f1": 0.6521739130434783
+        },
+        "security": {
+          "correct": 22,
+          "support": 25,
+          "f1": 0.6875
+        },
+        "travel": {
+          "correct": 4,
+          "support": 7,
+          "f1": 0.38095238095238093
+        }
+      },
+      "supported_correct": 143,
+      "supported_count": 224,
+      "unsupported_correct": 8,
+      "unsupported_count": 33
+    },
+    "laya-labels": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 300,
+      "retrieval_mode": "labels",
+      "chunks": 679,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 151,
+      "labeled": 257,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5875486381322957,
+      "metrics": {
+        "calls": 1358,
+        "questions": 3395,
+        "batch_calls": 100,
+        "call_wall_seconds": 38.430367182999994,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.087411712,
+      "load_seconds": 0.275191798,
+      "run_seconds": 44.623997484,
+      "total_seconds": 45.063306117,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.42377768136240007,
+      "per_category": {
+        "bills": {
+          "correct": 7,
+          "support": 27,
+          "f1": 0.4117647058823529
+        },
+        "bulk": {
+          "correct": 70,
+          "support": 103,
+          "f1": 0.6862745098039216
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 24,
+          "support": 28,
+          "f1": 0.8
+        },
+        "fiscal": {
+          "correct": 3,
+          "support": 4,
+          "f1": 0.6666666666666666
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 5,
+          "support": 16,
+          "f1": 0.4
+        },
+        "other": {
+          "correct": 0,
+          "support": 17,
+          "f1": 0.0
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.4
+        },
+        "receipts": {
+          "correct": 15,
+          "support": 23,
+          "f1": 0.6521739130434783
+        },
+        "security": {
+          "correct": 22,
+          "support": 25,
+          "f1": 0.6875
+        },
+        "travel": {
+          "correct": 4,
+          "support": 7,
+          "f1": 0.38095238095238093
+        }
+      },
+      "supported_correct": 143,
+      "supported_count": 224,
+      "unsupported_correct": 8,
+      "unsupported_count": 33
+    },
+    "laya-matched": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 300,
+      "retrieval_mode": "matched",
+      "chunks": 679,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 135,
+      "labeled": 257,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5252918287937743,
+      "metrics": {
+        "calls": 1358,
+        "questions": 3395,
+        "batch_calls": 100,
+        "call_wall_seconds": 35.88654231099999,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.092868354,
+      "load_seconds": 0.268104704,
+      "run_seconds": 42.004694327,
+      "total_seconds": 42.45012849,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.39870218664405627,
+      "per_category": {
+        "bills": {
+          "correct": 9,
+          "support": 27,
+          "f1": 0.5
+        },
+        "bulk": {
+          "correct": 63,
+          "support": 103,
+          "f1": 0.6268656716417911
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 22,
+          "support": 28,
+          "f1": 0.7857142857142857
+        },
+        "fiscal": {
+          "correct": 2,
+          "support": 4,
+          "f1": 0.5
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 2,
+          "support": 16,
+          "f1": 0.2222222222222222
+        },
+        "other": {
+          "correct": 0,
+          "support": 17,
+          "f1": 0.0
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.4
+        },
+        "receipts": {
+          "correct": 11,
+          "support": 23,
+          "f1": 0.6285714285714286
+        },
+        "security": {
+          "correct": 21,
+          "support": 25,
+          "f1": 0.7
+        },
+        "travel": {
+          "correct": 4,
+          "support": 7,
+          "f1": 0.42105263157894735
+        }
+      },
+      "supported_correct": 125,
+      "supported_count": 224,
+      "unsupported_correct": 10,
+      "unsupported_count": 33
+    },
+    "laya-text": {
+      "backend": "laya",
+      "audit_mode": "original",
+      "budget": 1024,
+      "messages": 300,
+      "retrieval_mode": "text",
+      "chunks": 679,
+      "chunk_abstentions": 0,
+      "abstentions": 0,
+      "correct": 146,
+      "labeled": 257,
+      "labeled_abstentions": 0,
+      "accuracy": 0.5680933852140078,
+      "metrics": {
+        "calls": 1358,
+        "questions": 3395,
+        "batch_calls": 100,
+        "call_wall_seconds": 44.20747597799999,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.092779321,
+      "load_seconds": 0.279969314,
+      "run_seconds": 50.429465502,
+      "total_seconds": 50.88186395,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.3771544785133429,
+      "per_category": {
+        "bills": {
+          "correct": 7,
+          "support": 27,
+          "f1": 0.4117647058823529
+        },
+        "bulk": {
+          "correct": 71,
+          "support": 103,
+          "f1": 0.6635514018691588
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 26,
+          "support": 28,
+          "f1": 0.8387096774193549
+        },
+        "fiscal": {
+          "correct": 0,
+          "support": 4,
+          "f1": 0.0
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 4,
+          "support": 16,
+          "f1": 0.38095238095238093
+        },
+        "other": {
+          "correct": 1,
+          "support": 17,
+          "f1": 0.1
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.4
+        },
+        "receipts": {
+          "correct": 12,
+          "support": 23,
+          "f1": 0.6857142857142857
+        },
+        "security": {
+          "correct": 20,
+          "support": 25,
+          "f1": 0.6451612903225806
+        },
+        "travel": {
+          "correct": 4,
+          "support": 7,
+          "f1": 0.4
+        }
+      },
+      "supported_correct": 138,
+      "supported_count": 224,
+      "unsupported_correct": 8,
+      "unsupported_count": 33
+    },
+    "openjev-baseline": {
+      "backend": "openjev",
+      "audit_mode": "compact512",
+      "budget": 512,
+      "messages": 300,
+      "retrieval_mode": "none",
+      "chunks": 1262,
+      "chunk_abstentions": 488,
+      "abstentions": 97,
+      "correct": 97,
+      "labeled": 257,
+      "labeled_abstentions": 75,
+      "accuracy": 0.377431906614786,
+      "metrics": {
+        "calls": 1262,
+        "questions": 1262,
+        "batch_calls": 316,
+        "call_wall_seconds": 18.45868788899999,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.089122155,
+      "load_seconds": 0.24861383,
+      "run_seconds": 24.088661313,
+      "total_seconds": 24.465717928,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.31565283734397076,
+      "per_category": {
+        "bills": {
+          "correct": 10,
+          "support": 27,
+          "f1": 0.5263157894736842
+        },
+        "bulk": {
+          "correct": 39,
+          "support": 103,
+          "f1": 0.5
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 17,
+          "support": 28,
+          "f1": 0.7083333333333334
+        },
+        "fiscal": {
+          "correct": 0,
+          "support": 4,
+          "f1": 0.0
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 3,
+          "support": 16,
+          "f1": 0.25
+        },
+        "other": {
+          "correct": 2,
+          "support": 17,
+          "f1": 0.15384615384615385
+        },
+        "papers": {
+          "correct": 2,
+          "support": 3,
+          "f1": 0.12903225806451613
+        },
+        "receipts": {
+          "correct": 16,
+          "support": 23,
+          "f1": 0.7111111111111111
+        },
+        "security": {
+          "correct": 4,
+          "support": 25,
+          "f1": 0.27586206896551724
+        },
+        "travel": {
+          "correct": 4,
+          "support": 7,
+          "f1": 0.5333333333333333
+        }
+      },
+      "supported_correct": 85,
+      "supported_count": 224,
+      "unsupported_correct": 12,
+      "unsupported_count": 33
+    },
+    "openjev-full": {
+      "backend": "openjev",
+      "audit_mode": "compact512",
+      "budget": 512,
+      "messages": 300,
+      "retrieval_mode": "full",
+      "chunks": 3322,
+      "chunk_abstentions": 586,
+      "abstentions": 57,
+      "correct": 100,
+      "labeled": 257,
+      "labeled_abstentions": 47,
+      "accuracy": 0.38910505836575876,
+      "metrics": {
+        "calls": 3322,
+        "questions": 3322,
+        "batch_calls": 831,
+        "call_wall_seconds": 52.519427229000044,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.094313304,
+      "load_seconds": 0.251212883,
+      "run_seconds": 68.622102425,
+      "total_seconds": 69.042875573,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.30588642090000423,
+      "per_category": {
+        "bills": {
+          "correct": 8,
+          "support": 27,
+          "f1": 0.45714285714285713
+        },
+        "bulk": {
+          "correct": 31,
+          "support": 103,
+          "f1": 0.4460431654676259
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 20,
+          "support": 28,
+          "f1": 0.7407407407407407
+        },
+        "fiscal": {
+          "correct": 0,
+          "support": 4,
+          "f1": 0.0
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 5,
+          "support": 16,
+          "f1": 0.3225806451612903
+        },
+        "other": {
+          "correct": 2,
+          "support": 17,
+          "f1": 0.125
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.2
+        },
+        "receipts": {
+          "correct": 20,
+          "support": 23,
+          "f1": 0.5194805194805194
+        },
+        "security": {
+          "correct": 10,
+          "support": 25,
+          "f1": 0.5263157894736842
+        },
+        "travel": {
+          "correct": 3,
+          "support": 7,
+          "f1": 0.3333333333333333
+        }
+      },
+      "supported_correct": 91,
+      "supported_count": 224,
+      "unsupported_correct": 9,
+      "unsupported_count": 33
+    },
+    "openjev-labels": {
+      "backend": "openjev",
+      "audit_mode": "compact512",
+      "budget": 512,
+      "messages": 300,
+      "retrieval_mode": "labels",
+      "chunks": 3322,
+      "chunk_abstentions": 761,
+      "abstentions": 61,
+      "correct": 94,
+      "labeled": 257,
+      "labeled_abstentions": 49,
+      "accuracy": 0.3657587548638132,
+      "metrics": {
+        "calls": 3322,
+        "questions": 3322,
+        "batch_calls": 831,
+        "call_wall_seconds": 35.64228243599999,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.103872789,
+      "load_seconds": 0.276722597,
+      "run_seconds": 51.915068376,
+      "total_seconds": 52.363530135,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.293218647107966,
+      "per_category": {
+        "bills": {
+          "correct": 11,
+          "support": 27,
+          "f1": 0.55
+        },
+        "bulk": {
+          "correct": 33,
+          "support": 103,
+          "f1": 0.4489795918367347
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 17,
+          "support": 28,
+          "f1": 0.6938775510204082
+        },
+        "fiscal": {
+          "correct": 0,
+          "support": 4,
+          "f1": 0.0
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 1,
+          "support": 16,
+          "f1": 0.1
+        },
+        "other": {
+          "correct": 5,
+          "support": 17,
+          "f1": 0.20833333333333334
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.08333333333333333
+        },
+        "receipts": {
+          "correct": 18,
+          "support": 23,
+          "f1": 0.631578947368421
+        },
+        "security": {
+          "correct": 3,
+          "support": 25,
+          "f1": 0.21428571428571427
+        },
+        "travel": {
+          "correct": 5,
+          "support": 7,
+          "f1": 0.5882352941176471
+        }
+      },
+      "supported_correct": 82,
+      "supported_count": 224,
+      "unsupported_correct": 12,
+      "unsupported_count": 33
+    },
+    "openjev-matched": {
+      "backend": "openjev",
+      "audit_mode": "compact512",
+      "budget": 512,
+      "messages": 300,
+      "retrieval_mode": "matched",
+      "chunks": 3322,
+      "chunk_abstentions": 802,
+      "abstentions": 81,
+      "correct": 97,
+      "labeled": 257,
+      "labeled_abstentions": 63,
+      "accuracy": 0.377431906614786,
+      "metrics": {
+        "calls": 3322,
+        "questions": 3322,
+        "batch_calls": 831,
+        "call_wall_seconds": 34.272851582999984,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.087393437,
+      "load_seconds": 0.241675989,
+      "run_seconds": 49.806447699,
+      "total_seconds": 50.198858725,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.29477462743333893,
+      "per_category": {
+        "bills": {
+          "correct": 10,
+          "support": 27,
+          "f1": 0.5128205128205128
+        },
+        "bulk": {
+          "correct": 40,
+          "support": 103,
+          "f1": 0.5228758169934641
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 17,
+          "support": 28,
+          "f1": 0.6938775510204082
+        },
+        "fiscal": {
+          "correct": 0,
+          "support": 4,
+          "f1": 0.0
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 1,
+          "support": 16,
+          "f1": 0.10526315789473684
+        },
+        "other": {
+          "correct": 4,
+          "support": 17,
+          "f1": 0.1951219512195122
+        },
+        "papers": {
+          "correct": 2,
+          "support": 3,
+          "f1": 0.10810810810810811
+        },
+        "receipts": {
+          "correct": 17,
+          "support": 23,
+          "f1": 0.723404255319149
+        },
+        "security": {
+          "correct": 3,
+          "support": 25,
+          "f1": 0.21428571428571427
+        },
+        "travel": {
+          "correct": 3,
+          "support": 7,
+          "f1": 0.46153846153846156
+        }
+      },
+      "supported_correct": 85,
+      "supported_count": 224,
+      "unsupported_correct": 12,
+      "unsupported_count": 33
+    },
+    "openjev-text-repeat": {
+      "backend": "openjev",
+      "audit_mode": "compact512",
+      "budget": 512,
+      "messages": 300,
+      "retrieval_mode": "text",
+      "chunks": 3322,
+      "chunk_abstentions": 1118,
+      "abstentions": 95,
+      "correct": 101,
+      "labeled": 257,
+      "labeled_abstentions": 77,
+      "accuracy": 0.39299610894941633,
+      "metrics": {
+        "calls": 3322,
+        "questions": 3322,
+        "batch_calls": 831,
+        "call_wall_seconds": 50.51448681500004,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.095022347,
+      "load_seconds": 0.261498944,
+      "run_seconds": 66.810615416,
+      "total_seconds": 67.234249331,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.3136451240331527,
+      "per_category": {
+        "bills": {
+          "correct": 11,
+          "support": 27,
+          "f1": 0.5641025641025641
+        },
+        "bulk": {
+          "correct": 34,
+          "support": 103,
+          "f1": 0.4657534246575342
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 19,
+          "support": 28,
+          "f1": 0.7169811320754716
+        },
+        "fiscal": {
+          "correct": 0,
+          "support": 4,
+          "f1": 0.0
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 5,
+          "support": 16,
+          "f1": 0.3125
+        },
+        "other": {
+          "correct": 0,
+          "support": 17,
+          "f1": 0.0
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.15384615384615385
+        },
+        "receipts": {
+          "correct": 19,
+          "support": 23,
+          "f1": 0.6909090909090909
+        },
+        "security": {
+          "correct": 10,
+          "support": 25,
+          "f1": 0.5263157894736842
+        },
+        "travel": {
+          "correct": 2,
+          "support": 7,
+          "f1": 0.3333333333333333
+        }
+      },
+      "supported_correct": 89,
+      "supported_count": 224,
+      "unsupported_correct": 12,
+      "unsupported_count": 33
+    },
+    "openjev-text": {
+      "backend": "openjev",
+      "audit_mode": "compact512",
+      "budget": 512,
+      "messages": 300,
+      "retrieval_mode": "text",
+      "chunks": 3322,
+      "chunk_abstentions": 1118,
+      "abstentions": 95,
+      "correct": 101,
+      "labeled": 257,
+      "labeled_abstentions": 77,
+      "accuracy": 0.39299610894941633,
+      "metrics": {
+        "calls": 3322,
+        "questions": 3322,
+        "batch_calls": 831,
+        "call_wall_seconds": 51.317984845000026,
+        "hosted_request_seconds_sum": 0.0
+      },
+      "http": {
+        "calls": 0,
+        "attempts": 0,
+        "retries": 0,
+        "successes": 0
+      },
+      "setup_seconds": 0.097985287,
+      "load_seconds": 0.269188967,
+      "run_seconds": 67.790521473,
+      "total_seconds": 68.230236207,
+      "timing": "cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only",
+      "macro_f1": 0.3136451240331527,
+      "per_category": {
+        "bills": {
+          "correct": 11,
+          "support": 27,
+          "f1": 0.5641025641025641
+        },
+        "bulk": {
+          "correct": 34,
+          "support": 103,
+          "f1": 0.4657534246575342
+        },
+        "capture": {
+          "correct": 0,
+          "support": 3,
+          "f1": 0.0
+        },
+        "careers": {
+          "correct": 19,
+          "support": 28,
+          "f1": 0.7169811320754716
+        },
+        "fiscal": {
+          "correct": 0,
+          "support": 4,
+          "f1": 0.0
+        },
+        "identity": {
+          "correct": 0,
+          "support": 1,
+          "f1": 0.0
+        },
+        "ops": {
+          "correct": 5,
+          "support": 16,
+          "f1": 0.3125
+        },
+        "other": {
+          "correct": 0,
+          "support": 17,
+          "f1": 0.0
+        },
+        "papers": {
+          "correct": 1,
+          "support": 3,
+          "f1": 0.15384615384615385
+        },
+        "receipts": {
+          "correct": 19,
+          "support": 23,
+          "f1": 0.6909090909090909
+        },
+        "security": {
+          "correct": 10,
+          "support": 25,
+          "f1": 0.5263157894736842
+        },
+        "travel": {
+          "correct": 2,
+          "support": 7,
+          "f1": 0.3333333333333333
+        }
+      },
+      "supported_correct": 89,
+      "supported_count": 224,
+      "unsupported_correct": 12,
+      "unsupported_count": 33
+    }
+  },
+  "pairs": {
+    "laya-matched vs laya-baseline": {
+      "fixed": 5,
+      "regressed": 4,
+      "all_prediction_changes": 28
+    },
+    "laya-full vs laya-baseline": {
+      "fixed": 34,
+      "regressed": 14,
+      "all_prediction_changes": 118
+    },
+    "laya-full vs laya-matched": {
+      "fixed": 32,
+      "regressed": 13,
+      "all_prediction_changes": 114
+    },
+    "laya-text vs laya-baseline": {
+      "fixed": 21,
+      "regressed": 9,
+      "all_prediction_changes": 78
+    },
+    "laya-text vs laya-matched": {
+      "fixed": 22,
+      "regressed": 11,
+      "all_prediction_changes": 81
+    },
+    "laya-labels vs laya-baseline": {
+      "fixed": 25,
+      "regressed": 8,
+      "all_prediction_changes": 80
+    },
+    "laya-labels vs laya-matched": {
+      "fixed": 25,
+      "regressed": 9,
+      "all_prediction_changes": 77
+    },
+    "openjev-matched vs openjev-baseline": {
+      "fixed": 9,
+      "regressed": 9,
+      "all_prediction_changes": 74
+    },
+    "openjev-full vs openjev-baseline": {
+      "fixed": 32,
+      "regressed": 29,
+      "all_prediction_changes": 157
+    },
+    "openjev-full vs openjev-matched": {
+      "fixed": 32,
+      "regressed": 29,
+      "all_prediction_changes": 167
+    },
+    "openjev-text vs openjev-baseline": {
+      "fixed": 30,
+      "regressed": 26,
+      "all_prediction_changes": 134
+    },
+    "openjev-text vs openjev-matched": {
+      "fixed": 31,
+      "regressed": 27,
+      "all_prediction_changes": 145
+    },
+    "openjev-labels vs openjev-baseline": {
+      "fixed": 12,
+      "regressed": 15,
+      "all_prediction_changes": 97
+    },
+    "openjev-labels vs openjev-matched": {
+      "fixed": 6,
+      "regressed": 9,
+      "all_prediction_changes": 61
+    }
+  },
+  "matched_chunk_states_identical": {
+    "laya": {
+      "full": true,
+      "text": true,
+      "labels": true
+    },
+    "openjev": {
+      "full": true,
+      "text": true,
+      "labels": true
+    }
+  },
+  "retrieval": {
+    "seconds": 17.313239543989766,
+    "includes": "imports, model load, leakage check, embedding all 156 bank + 300 target messages, neighbor selection and example serialization",
+    "model": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+    "repeat_identical": true,
+    "packages": {
+      "torch": "2.10.0",
+      "sentence-transformers": "5.7.0",
+      "transformers": "4.57.6",
+      "numpy": "2.5.3"
+    }
+  },
+  "retrieval_coverage": {
+    "labeled": 257,
+    "supported_categories_labeled": 224,
+    "unsupported_categories_labeled": 33,
+    "nearest_label_correct": 108,
+    "either_neighbor_matches": 151,
+    "bank_distribution": {
+      "other": 20,
+      "receipts": 25,
+      "ops": 20,
+      "security": 10,
+      "careers": 14,
+      "identity": 4,
+      "bulk": 43,
+      "income": 10,
+      "health": 1,
+      "fiscal": 6,
+      "travel": 3
+    }
+  },
+  "context_fit": {
+    "modified_messages": 226,
+    "example_counts": {
+      "2": 300
+    },
+    "text_chars_before": 125127,
+    "text_chars_after": 98775,
+    "reserve": "Up to 64 OpenJev tokens for target body; if less space, half remaining metadata capacity",
+    "rule": "Repeatedly halve longest example string; drop last example only after all strings empty; no model predictions or target references"
+  },
+  "labels_sha256": "bc551386168d894b5f706a3bac00bcd686e5ab40ee328e48ca15e96874947e3a",
+  "seed": 20260921300,
+  "reference_source": "assistant review frozen before predictions; not independent gold",
+  "model_hashes": {
+    "artifacts/openjev/checkpoint/config.json": "303f8eef1009cfdcb0cfba3e653247e625f16a4501e2351bad1a633f1f644695",
+    "artifacts/openjev/checkpoint/model.safetensors": "d252823994d47a7933217fc86449493299643af6a0c0d83d6bd5a7666d3253ef",
+    "artifacts/openjev/checkpoint/calibrator.json": "af2a876993148efa0726b6ccf710fe2303897d20c0ce8c7c9036eb50f64d23de",
+    "artifacts/openjev/checkpoint/tokenizer.json": "8bb449eb0c037aae44115b65905bb339b8f3f74eb37067c19127feb3c0755723",
+    "artifacts/openjev/checkpoint/tokenizer_config.json": "fb54f027372062b2ca52282efb04d178a8b57167a00cd8f4e816515823a2c016",
+    "laya_revision": "c5d78730f3493e4fe16d61507ef4b78eef7318cf"
+  },
+  "frozen_hashes": {
+    "training.json": "bad6bd545b75541ddc010bcd455909a2d9734ed18da36687d600f63ef99f0e05",
+    "targets.json": "42a3fb992308bee8691036b65e8618576bc818bf6de9a651507b2266a6d59d87",
+    "labels.json": "bc551386168d894b5f706a3bac00bcd686e5ab40ee328e48ca15e96874947e3a",
+    "examples-original.json": "e547984bb2ad40240d481f8b42b77331f342d400a989a601591c60ee70a3a509",
+    "examples.json": "c1f276125b85c5a970ab86ca218a90651c55522744db6a2eca91694a7c73e7fc",
+    "email.toml": "b9cb82a536d12137ebdcfb6c2ba21b44c5ad604c2649733c9ec205b7d58e26d3",
+    "manifest.json": "d04710c4ea0a6750d583cc97395cb62d7b1b2be9789f15786dac03677ed4d184",
+    "plan.json": "629c95d625635c00301805fba1703dcd5fa9ea1ef9f2c383c191e2458b583951"
+  },
+  "retriever_metrics": {
+    "embedding_api_calls": 1,
+    "embedding_forward_batches": 94,
+    "embedding_sequences": 3007,
+    "encode_wall_seconds": 1.9949834260041825,
+    "total_preparation_seconds": 18.243481707002502,
+    "neighbors_identical": true
+  },
+  "retriever": {
+    "name": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42"
+  },
+  "repeat_predictions_identical": {
+    "laya-full": true,
+    "laya-labels": true,
+    "openjev-text": true
+  },
+  "timing_caveats": [
+    "Classifier totals exclude shared retrieval preparation and context fitting.",
+    "GPU shared with other user workload.",
+    "OpenJev call timing excludes input preparation; laya includes tokenization."
+  ]
+}
