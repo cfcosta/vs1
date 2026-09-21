@@ -3766,9 +3766,11 @@ name = "vs1-email"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "candle-core",
  "serde",
  "serde_json",
  "toml",
+ "vs1",
 ]
 
 [[package]]
