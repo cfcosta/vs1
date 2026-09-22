@@ -142,3 +142,55 @@ Final implementation timings, 30 AB/BA pairs per run:
 The final repeat is `02-batch-final-repeat.json`. Release FlashAttention unit
 tests (50 passed), all-target release Clippy with warnings denied, and the
 CPU-only build check passed. Canonical `nix fmt` passed.
+
+## 4. Exact prepared-batch result cache
+
+Accepted as the opt-in builder setting `.with_result_cache_capacity(32)`; the
+default capacity is zero. The cache has an additional 4 MiB retained-payload
+budget (allocator/deque bookkeeping is extra), evicts least-recently-used
+entries, and stores only host token/marker metadata, raw logits and action
+probabilities. It does not retain GPU tensors or complete responses.
+
+A key contains the **whole ordered batch**, token IDs, marker positions, question
+kinds and Candle's three CUDA reduction flags. Equality compares actual vectors,
+not a hash alone. Cache scope is one immutable model/configuration, shared by its
+two workers if enabled. Inference runs outside the cache mutex; errors are never
+cached. Answer labels, question IDs and usage are assembled for the current
+request. Option labels are themselves part of tokenization and changing them
+changes the key; changing only a question ID can reuse the raw output safely.
+
+The saved local corpus contains 44 sessions and 610 requests. 288 requests are
+invalid under the local model's input contract; those errors remain identical.
+The remaining 322 prepared batches yield 130 exact reuse hits (40.4%) with a
+32-entry, 4 MiB cache cleared at each session boundary. This corpus includes
+failed/repetitive browser loops and hosted-model requests. It is **not** evidence
+of a 40% hit rate in successful production browser tasks.
+
+Each replay run uses five AB/BA pairs, compares every response/action/error, and
+sums synchronized call latency, including tokenization and invalid calls.
+Snapshot comparisons and session-boundary cache clearing are outside timing.
+The first run reduced paired aggregate latency by **35.66%**, from roughly
+9.8–10.4 seconds to 6.4–6.6 seconds per replay. `04-cache-replay-first.json`
+contains all five pairs; `04-replay-audit.json` contains per-session counts.
+
+Unique-input miss controls use 40 AB/BA pairs and assert zero cache hits. The
+first run's changes were +0.44% (one), -0.05% (eight), +0.05% (browser call 5).
+The repeat adds explicit warmup before timing to exclude initial kernel loading.
+These small differences are overhead/noise, not a cache benefit on unique inputs.
+
+Validation covers key order/content/markers/type/precision, LRU eviction and
+oversized-entry rejection; exact renamed-label/question-ID responses and usage;
+shape/batch revisits; and the combination with parallel batch workers.
+The raw corpus stays in ignored artifacts. `collect_replays.py` reconstructs it
+from saved `artifacts/**/trace.json` decisions without modifying their requests.
+It preserves request order within each session; session enumeration follows the
+local filesystem. The `audit_exact_replay_keys`, `paired_cache_replay`,
+`paired_cache_misses`, and `cache_preserves_labels_and_batch_context` tests are
+opt-in and must run alone with one test thread.
+
+The independent repeat reduced paired replay latency by **34.64%**.
+Each of its five candidate replays recorded exactly 130 cache hits.
+Repeat miss-control changes: 1 +0.13%, 8 -0.03%, browser_call5 +0.39%.
+Reports are `04-cache-{replay,misses}-repeat.json`. Release FlashAttention
+tests passed (52 passed), as did all-target release Clippy with warnings denied,
+CPU-only tests (46 passed), and canonical `nix fmt`.

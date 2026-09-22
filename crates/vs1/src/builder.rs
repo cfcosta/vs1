@@ -47,6 +47,7 @@ pub struct SystemOneBuilder {
     batch_size: Option<usize>,
     max_len: Option<usize>,
     head_max_len: Option<usize>,
+    result_cache_capacity: usize,
     #[cfg(feature = "flash-attn")]
     parallel_cuda_batches: bool,
 }
@@ -62,6 +63,7 @@ impl SystemOneBuilder {
             batch_size: None,
             max_len: None,
             head_max_len: None,
+            result_cache_capacity: 0,
             #[cfg(feature = "flash-attn")]
             parallel_cuda_batches: false,
         }
@@ -110,6 +112,19 @@ impl SystemOneBuilder {
     #[cfg(feature = "flash-attn")]
     pub fn with_parallel_cuda_batches(mut self, enabled: bool) -> Self {
         self.parallel_cuda_batches = enabled;
+        self
+    }
+
+    /// Caches exact raw outputs for up to `capacity` complete prepared batches.
+    ///
+    /// Disabled by default (zero). Entries also have a combined 4 MiB payload
+    /// budget, excluding allocator bookkeeping. Least-recently-used entries
+    /// are evicted. Keys include every token, marker, question kind, batch order
+    /// and CUDA reduction mode; labels and usage are reconstructed per request.
+    /// Model weights and configuration stay local to this cache. Useful when
+    /// the same prepared batch recurs; distinct batches still run inference.
+    pub fn with_result_cache_capacity(mut self, capacity: usize) -> Self {
+        self.result_cache_capacity = capacity;
         self
     }
 
@@ -193,7 +208,7 @@ impl TryFrom<SystemOneBuilder> for SystemOne {
         } else {
             model
         };
-        Ok(model)
+        Ok(model.with_result_cache(builder.result_cache_capacity))
     }
 }
 

@@ -100,6 +100,8 @@ pub struct SystemOne {
     device: Device,
     dtype: DType,
     batch_size: usize,
+    result_cache:
+        Option<std::sync::Arc<std::sync::Mutex<prepared_cache::PreparedCache>>>,
     #[cfg(feature = "flash-attn")]
     batch_worker: Option<BatchWorker>,
 }
@@ -211,6 +213,7 @@ impl SystemOne {
             device: device.clone(),
             dtype,
             batch_size,
+            result_cache: None,
             #[cfg(feature = "flash-attn")]
             batch_worker: None,
         })
@@ -229,6 +232,20 @@ impl SystemOne {
             lock: std::sync::Mutex::new(()),
         });
         Ok(self)
+    }
+
+    pub(crate) fn with_result_cache(mut self, capacity: usize) -> Self {
+        if capacity != 0 {
+            let cache = std::sync::Arc::new(std::sync::Mutex::new(
+                prepared_cache::PreparedCache::new(capacity),
+            ));
+            #[cfg(feature = "flash-attn")]
+            if let Some(worker) = self.batch_worker.as_mut() {
+                worker.model.result_cache = Some(cache.clone());
+            }
+            self.result_cache = Some(cache);
+        }
+        self
     }
 
     /// The checkpoint's calibration and length settings.
@@ -441,6 +458,36 @@ impl SystemOne {
     }
 
     fn forward_batch(&self, items: &[&EncodedItem]) -> Result<Vec<ItemOutput>> {
+        #[cfg(test)]
+        if REFERENCE_CACHE.load(std::sync::atomic::Ordering::Relaxed) {
+            return self.forward_batch_uncached(items);
+        }
+        let Some(cache) = &self.result_cache else {
+            return self.forward_batch_uncached(items);
+        };
+        let modes = prepared_cache::precision_modes();
+        if let Some(outputs) = cache
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(items, modes)
+        {
+            return Ok(outputs);
+        }
+        // Do not hold the cache lock during inference. Errors are never cached.
+        let outputs = self.forward_batch_uncached(items)?;
+        if modes == prepared_cache::precision_modes() {
+            cache
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .insert(items, &outputs, modes);
+        }
+        Ok(outputs)
+    }
+
+    fn forward_batch_uncached(
+        &self,
+        items: &[&EncodedItem],
+    ) -> Result<Vec<ItemOutput>> {
         let collated = collate(items, self.special.pad);
         let logits = self.marker_logits(&collated)?;
         let (pooled, logits_rows) = logits;
@@ -709,3 +756,12 @@ pub(crate) mod batch_bench;
 #[cfg(all(test, feature = "flash-attn"))]
 #[path = "followup_bench.rs"]
 mod followup_bench;
+
+#[path = "prepared_cache.rs"]
+mod prepared_cache;
+#[cfg(test)]
+static REFERENCE_CACHE: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+#[cfg(all(test, feature = "flash-attn"))]
+#[path = "cache_bench.rs"]
+mod cache_bench;

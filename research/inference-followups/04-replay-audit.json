@@ -1,0 +1,354 @@
+[
+  {
+    "session": 0,
+    "requests": 4,
+    "batches": 2,
+    "hits": 0,
+    "invalid_requests": 2,
+    "retained_key_bytes": 4044
+  },
+  {
+    "session": 1,
+    "requests": 2,
+    "batches": 2,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 6252
+  },
+  {
+    "session": 2,
+    "requests": 1,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 1,
+    "retained_key_bytes": 0
+  },
+  {
+    "session": 3,
+    "requests": 1,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 6520
+  },
+  {
+    "session": 4,
+    "requests": 21,
+    "batches": 13,
+    "hits": 1,
+    "invalid_requests": 8,
+    "retained_key_bytes": 70488
+  },
+  {
+    "session": 5,
+    "requests": 1,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 3048
+  },
+  {
+    "session": 6,
+    "requests": 7,
+    "batches": 6,
+    "hits": 2,
+    "invalid_requests": 1,
+    "retained_key_bytes": 21500
+  },
+  {
+    "session": 7,
+    "requests": 120,
+    "batches": 115,
+    "hits": 68,
+    "invalid_requests": 5,
+    "retained_key_bytes": 197376
+  },
+  {
+    "session": 8,
+    "requests": 9,
+    "batches": 7,
+    "hits": 3,
+    "invalid_requests": 2,
+    "retained_key_bytes": 21488
+  },
+  {
+    "session": 9,
+    "requests": 1,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 6520
+  },
+  {
+    "session": 10,
+    "requests": 7,
+    "batches": 7,
+    "hits": 5,
+    "invalid_requests": 0,
+    "retained_key_bytes": 13384
+  },
+  {
+    "session": 11,
+    "requests": 80,
+    "batches": 26,
+    "hits": 15,
+    "invalid_requests": 54,
+    "retained_key_bytes": 46696
+  },
+  {
+    "session": 12,
+    "requests": 85,
+    "batches": 29,
+    "hits": 9,
+    "invalid_requests": 56,
+    "retained_key_bytes": 127888
+  },
+  {
+    "session": 13,
+    "requests": 78,
+    "batches": 25,
+    "hits": 4,
+    "invalid_requests": 53,
+    "retained_key_bytes": 133912
+  },
+  {
+    "session": 14,
+    "requests": 48,
+    "batches": 25,
+    "hits": 12,
+    "invalid_requests": 23,
+    "retained_key_bytes": 75864
+  },
+  {
+    "session": 15,
+    "requests": 12,
+    "batches": 9,
+    "hits": 2,
+    "invalid_requests": 3,
+    "retained_key_bytes": 34752
+  },
+  {
+    "session": 16,
+    "requests": 6,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 5,
+    "retained_key_bytes": 4224
+  },
+  {
+    "session": 17,
+    "requests": 1,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 1,
+    "retained_key_bytes": 0
+  },
+  {
+    "session": 18,
+    "requests": 5,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 4,
+    "retained_key_bytes": 3196
+  },
+  {
+    "session": 19,
+    "requests": 1,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 6520
+  },
+  {
+    "session": 20,
+    "requests": 2,
+    "batches": 2,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 6252
+  },
+  {
+    "session": 21,
+    "requests": 3,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 2,
+    "retained_key_bytes": 752
+  },
+  {
+    "session": 22,
+    "requests": 22,
+    "batches": 14,
+    "hits": 3,
+    "invalid_requests": 8,
+    "retained_key_bytes": 63784
+  },
+  {
+    "session": 23,
+    "requests": 1,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 3048
+  },
+  {
+    "session": 24,
+    "requests": 1,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 1,
+    "retained_key_bytes": 0
+  },
+  {
+    "session": 25,
+    "requests": 5,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 5,
+    "retained_key_bytes": 0
+  },
+  {
+    "session": 26,
+    "requests": 5,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 4,
+    "retained_key_bytes": 4224
+  },
+  {
+    "session": 27,
+    "requests": 1,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 6520
+  },
+  {
+    "session": 28,
+    "requests": 2,
+    "batches": 2,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 8472
+  },
+  {
+    "session": 29,
+    "requests": 2,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 2,
+    "retained_key_bytes": 0
+  },
+  {
+    "session": 30,
+    "requests": 4,
+    "batches": 4,
+    "hits": 2,
+    "invalid_requests": 0,
+    "retained_key_bytes": 7844
+  },
+  {
+    "session": 31,
+    "requests": 1,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 4248
+  },
+  {
+    "session": 32,
+    "requests": 21,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 21,
+    "retained_key_bytes": 0
+  },
+  {
+    "session": 33,
+    "requests": 5,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 5,
+    "retained_key_bytes": 0
+  },
+  {
+    "session": 34,
+    "requests": 4,
+    "batches": 3,
+    "hits": 0,
+    "invalid_requests": 1,
+    "retained_key_bytes": 13288
+  },
+  {
+    "session": 35,
+    "requests": 3,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 2,
+    "retained_key_bytes": 4368
+  },
+  {
+    "session": 36,
+    "requests": 5,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 5,
+    "retained_key_bytes": 0
+  },
+  {
+    "session": 37,
+    "requests": 2,
+    "batches": 2,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 8472
+  },
+  {
+    "session": 38,
+    "requests": 21,
+    "batches": 15,
+    "hits": 4,
+    "invalid_requests": 6,
+    "retained_key_bytes": 66016
+  },
+  {
+    "session": 39,
+    "requests": 6,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 5,
+    "retained_key_bytes": 4224
+  },
+  {
+    "session": 40,
+    "requests": 1,
+    "batches": 1,
+    "hits": 0,
+    "invalid_requests": 0,
+    "retained_key_bytes": 6520
+  },
+  {
+    "session": 41,
+    "requests": 1,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 1,
+    "retained_key_bytes": 0
+  },
+  {
+    "session": 42,
+    "requests": 1,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 1,
+    "retained_key_bytes": 0
+  },
+  {
+    "session": 43,
+    "requests": 1,
+    "batches": 0,
+    "hits": 0,
+    "invalid_requests": 1,
+    "retained_key_bytes": 0
+  }
+]
