@@ -1,0 +1,78 @@
+{
+  "note": "Standalone runs: validation evidence only; acceptance requires adjacent paired timings.",
+  "baseline_revision": "efdfdf9913fcd32045f8027d1e51968b0ebbd5e8",
+  "dtype": "BF16",
+  "flash_attn": true,
+  "cases": [
+    {
+      "name": "one",
+      "lengths": [129],
+      "baseline_p50_ms": 6.6661719999999995,
+      "candidate_p50_ms": 6.852095,
+      "baseline_p95_ms": 7.479727,
+      "candidate_p95_ms": 6.86795,
+      "outputs_exact": true,
+      "alternates_exact": true
+    },
+    {
+      "name": "five",
+      "lengths": [122, 113, 116, 123, 123],
+      "baseline_p50_ms": 15.769176000000002,
+      "candidate_p50_ms": 14.082238,
+      "baseline_p95_ms": 16.642706,
+      "candidate_p95_ms": 14.189247,
+      "outputs_exact": true,
+      "alternates_exact": true
+    },
+    {
+      "name": "thirty",
+      "lengths": [
+        129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129,
+        129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129, 129
+      ],
+      "baseline_p50_ms": 89.27486049999999,
+      "candidate_p50_ms": 79.875105,
+      "baseline_p95_ms": 91.068915,
+      "candidate_p95_ms": 80.05662299999999,
+      "outputs_exact": true,
+      "alternates_exact": true
+    },
+    {
+      "name": "mixed_lengths",
+      "lengths": [
+        57, 93, 201, 399, 57, 93, 201, 399, 57, 93, 201, 399, 57, 93, 201, 399, 57, 93, 201, 399,
+        57, 93, 201, 399, 57, 93, 201, 399, 57, 93
+      ],
+      "baseline_p50_ms": 110.4440405,
+      "candidate_p50_ms": 99.0531585,
+      "baseline_p95_ms": 112.654212,
+      "candidate_p95_ms": 99.336731,
+      "outputs_exact": true,
+      "alternates_exact": true
+    },
+    {
+      "name": "browser_call3",
+      "lengths": [416, 416],
+      "baseline_p50_ms": 21.376284,
+      "candidate_p50_ms": 18.500152,
+      "baseline_p95_ms": 22.516523,
+      "candidate_p95_ms": 18.530562,
+      "outputs_exact": true,
+      "alternates_exact": true
+    },
+    {
+      "name": "browser_call5",
+      "lengths": [512, 512, 512],
+      "baseline_p50_ms": 39.80911450000001,
+      "candidate_p50_ms": 34.0600515,
+      "baseline_p95_ms": 41.120927,
+      "candidate_p95_ms": 34.36437,
+      "outputs_exact": true,
+      "alternates_exact": true
+    }
+  ],
+  "baseline_shape_churn_ms": [288.240748, 287.465372, 279.437938, 281.912373, 279.550307],
+  "candidate_shape_churn_ms": [
+    253.483043, 253.07911500000003, 254.669637, 253.347174, 254.10925899999998
+  ]
+}

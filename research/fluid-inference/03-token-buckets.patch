@@ -1,0 +1,42 @@
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index f4925af4ee..e8bf29acdc 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -382,6 +382,37 @@
+     }
+ 
+     fn forward_batch(&self, items: &[&EncodedItem]) -> Result<Vec<ItemOutput>> {
++        #[cfg(feature = "flash-attn")]
++        if self.device.is_cuda()
++            && std::env::var_os("VS1_EXPERIMENT_BUCKETS").is_some()
++        {
++            let total: usize = items.iter().map(|item| item.ids.len()).sum();
++            if let Some(bucket) =
++                [128usize, 256, 512, 1024].into_iter().find(|&n| n >= total)
++            {
++                if bucket > total {
++                    // A separate dummy sequence gives fixed projection row counts
++                    // without exposing padding as attention keys to real tokens.
++                    let dummy = EncodedItem {
++                        ids: vec![self.special.pad; bucket - total],
++                        markers: vec![0],
++                        kind: QuestionKind::Noul,
++                    };
++                    let mut padded = items.to_vec();
++                    padded.push(&dummy);
++                    let mut output = self.forward_batch_eager(&padded)?;
++                    output.truncate(items.len());
++                    return Ok(output);
++                }
++            }
++        }
++        self.forward_batch_eager(items)
++    }
++
++    fn forward_batch_eager(
++        &self,
++        items: &[&EncodedItem],
++    ) -> Result<Vec<ItemOutput>> {
+         let collated = collate(items, self.special.pad);
+         let logits = self.marker_logits(&collated)?;
+         let (pooled, logits_rows) = logits;

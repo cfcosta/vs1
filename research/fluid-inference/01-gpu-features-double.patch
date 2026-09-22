@@ -1,0 +1,280 @@
+diff --git a/crates/vs1/src/action_cuda.rs b/crates/vs1/src/action_cuda.rs
+new file mode 100644
+index 0000000000..bf8e87a21a
+--- /dev/null
++++ b/crates/vs1/src/action_cuda.rs
+@@ -0,0 +1,161 @@
++//! Experimental fused confidence features, one CUDA thread per question.
++use candle_core::{CpuStorage, CustomOp2, Layout, Result, Shape, Tensor};
++struct Features;
++impl CustomOp2 for Features {
++    fn name(&self) -> &'static str {
++        "action_features"
++    }
++    fn cpu_fwd(
++        &self,
++        _: &CpuStorage,
++        _: &Layout,
++        _: &CpuStorage,
++        _: &Layout,
++    ) -> Result<(CpuStorage, Shape)> {
++        candle_core::bail!("CUDA only")
++    }
++    fn cuda_fwd(
++        &self,
++        logits: &candle_core::CudaStorage,
++        ll: &Layout,
++        counts: &candle_core::CudaStorage,
++        cl: &Layout,
++    ) -> Result<(candle_core::CudaStorage, Shape)> {
++        use candle_core::{
++            backend::BackendStorage,
++            cuda_backend::{
++                WrapErr,
++                cudarc::{
++                    driver::{LaunchConfig, PushKernelArg},
++                    nvrtc,
++                },
++            },
++        };
++        static PTX: std::sync::OnceLock<String> = std::sync::OnceLock::new();
++        let ptx = PTX.get_or_init(|| {
++            nvrtc::compile_ptx_with_opts(
++                include_str!("action_features.cu"),
++                nvrtc::CompileOptions {
++                    fmad: Some(false),
++                    ..Default::default()
++                },
++            )
++            .expect("compile action features")
++            .to_src()
++        });
++        let (batch, width) = ll.shape().dims2()?;
++        let dev = logits.device();
++        let func = dev.get_or_load_custom_func(
++            "features",
++            "vs1_action_features",
++            ptx,
++        )?;
++        let l = logits.as_cuda_slice::<f32>()?.slice(ll.start_offset()..);
++        let c = counts.as_cuda_slice::<u32>()?.slice(cl.start_offset()..);
++        let mut out = unsafe { dev.alloc::<f32>(batch * 4)? };
++        let mut b = func.builder();
++        let batch_i = batch as i32;
++        let width_i = width as i32;
++        b.arg(&l).arg(&c).arg(&mut out).arg(&batch_i).arg(&width_i);
++        unsafe { b.launch(LaunchConfig::for_num_elems(batch as u32)) }.w()?;
++        Ok((
++            candle_core::CudaStorage::wrap_cuda_slice(out, dev.clone()),
++            (batch, 4).into(),
++        ))
++    }
++}
++pub fn features(logits: &Tensor, counts: &[usize]) -> Result<Tensor> {
++    let counts = Tensor::from_vec(
++        counts.iter().map(|&x| x as u32).collect::<Vec<_>>(),
++        counts.len(),
++        logits.device(),
++    )?;
++    logits.apply_op2_no_bwd(&counts, &Features)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    #[ignore = "requires CUDA"]
++    fn confidence_features_match_host_exactly() {
++        let device = candle_core::Device::new_cuda(0).unwrap();
++        let width = 17;
++        let counts: Vec<_> = (0..64).map(|i| 2 + i % 16).collect();
++        let data: Vec<f32> = (0..64 * width)
++            .map(|i| ((i * 31 % 107) as f32 - 53.0) / 13.0)
++            .collect();
++        let input =
++            Tensor::from_vec(data.clone(), (64, width), &device).unwrap();
++        let actual =
++            features(&input, &counts).unwrap().to_vec2::<f32>().unwrap();
++        let mut mismatches = 0;
++        let mut max_difference = 0f32;
++        for ((row, &count), actual) in
++            data.chunks(width).zip(&counts).zip(actual)
++        {
++            let expected = crate::head::action_features(row, count);
++            for (a, e) in actual.iter().zip(expected) {
++                mismatches += usize::from(a.to_bits() != e.to_bits());
++                max_difference = max_difference.max((a - e).abs());
++            }
++        }
++        assert_eq!(
++            mismatches, 0,
++            "maximum absolute feature drift {max_difference}"
++        );
++    }
++    #[test]
++    #[ignore = "requires CUDA"]
++    fn confidence_features_broad_parity() {
++        let device = candle_core::Device::new_cuda(0).unwrap();
++        let mut seed = 713u32;
++        let mut report = vec![];
++        let mut total_mismatches = 0;
++        for width in [2usize, 3, 5, 17, 32, 128, 255] {
++            let batch = 512;
++            let counts: Vec<_> =
++                (0..batch).map(|i| 2 + i % (width - 1)).collect();
++            let data: Vec<f32> = (0..batch * width)
++                .map(|i| {
++                    seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
++                    let x = (seed >> 8) as f32 / 16777216.0;
++                    (x - 0.5)
++                        * [0.01, 1.0, 10.0, 100.0, 1000.0][(i / width) % 5]
++                })
++                .collect();
++            let input = Tensor::from_vec(data.clone(), (batch, width), &device)
++                .unwrap();
++            let actual =
++                features(&input, &counts).unwrap().to_vec2::<f32>().unwrap();
++            let mut mismatches = 0;
++            let mut max_difference = 0f32;
++            let mut first = None;
++            for (row_index, ((row, &count), actual)) in
++                data.chunks(width).zip(&counts).zip(actual).enumerate()
++            {
++                let expected = crate::head::action_features(row, count);
++                for (column, (&a, e)) in actual.iter().zip(expected).enumerate()
++                {
++                    if a.to_bits() != e.to_bits() {
++                        mismatches += 1;
++                        if first.is_none() {
++                            first = Some(
++                                serde_json::json!({"row":row_index,"column":column,"host":e,"gpu":a,"count":count,"logits":row}),
++                            );
++                        }
++                    }
++                    max_difference = max_difference.max((a - e).abs());
++                }
++            }
++            total_mismatches += mismatches;
++            report.push(serde_json::json!({"width":width,"rows":batch,"features":batch*4,"mismatches":mismatches,"max_absolute_error":max_difference,"first_difference":first}));
++        }
++        std::fs::write(
++            "../../research/fluid-inference/01-feature-parity.json",
++            serde_json::to_vec_pretty(&report).unwrap(),
++        )
++        .unwrap();
++        assert_eq!(total_mismatches, 0);
++    }
++}
+diff --git a/crates/vs1/src/action_features.cu b/crates/vs1/src/action_features.cu
+new file mode 100644
+index 0000000000..075cb5c775
+--- /dev/null
++++ b/crates/vs1/src/action_features.cu
+@@ -0,0 +1,23 @@
++static __device__ float host_exp(float x) { return (float)exp((double)x); }
++static __device__ float host_log(float x) { return (float)log((double)x); }
++extern "C" __global__ void features(const float *logits, const unsigned *counts, float *out, int batch, int width) {
++    int row = blockIdx.x * blockDim.x + threadIdx.x;
++    if (row >= batch) return;
++    const float *z = logits + row * width;
++    int count = counts[row];
++    float maximum = -1.0f/0.0f;
++    for (int j=0; j<width; ++j) maximum = fmaxf(maximum, j<count ? z[j] : -1e4f);
++    float sum = 0;
++    for (int j=0; j<width; ++j) sum += host_exp((j<count ? z[j] : -1e4f) - maximum);
++    float top1 = 0, top2 = 0, entropy = 0;
++    for (int j=0; j<width; ++j) {
++        float p = host_exp((j<count ? z[j] : -1e4f) - maximum) / sum;
++        entropy += p * host_log(fmaxf(p, 1e-9f));
++        if (p > top1) { top2 = top1; top1 = p; } else if (p > top2) top2 = p;
++    }
++    float k = count > 2 ? count : 2;
++    out[row*4] = top1;
++    out[row*4+1] = top1-top2;
++    out[row*4+2] = -entropy/host_log(k);
++    out[row*4+3] = k/255.0f;
++}
+diff --git a/crates/vs1/src/lib.rs b/crates/vs1/src/lib.rs
+index 6a24f27225..3169cb6e35 100644
+--- a/crates/vs1/src/lib.rs
++++ b/crates/vs1/src/lib.rs
+@@ -104,3 +104,6 @@
+ pub mod openjev;
+ pub use openjev::{OpenJev, OpenJevBuilder, OpenJevInput, OpenJevPrediction};
+ pub use types::AbstentionAnswer;
++
++#[cfg(feature = "cuda")]
++mod action_cuda;
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index f4925af4ee..39e671607a 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -384,7 +384,28 @@
+     fn forward_batch(&self, items: &[&EncodedItem]) -> Result<Vec<ItemOutput>> {
+         let collated = collate(items, self.special.pad);
+         let logits = self.marker_logits(&collated)?;
+-        let (pooled, logits_rows) = logits;
++        let (pooled, logits_tensor) = logits;
++        #[cfg(feature = "cuda")]
++        if self.device.is_cuda() {
++            let features = crate::action_cuda::features(
++                &logits_tensor,
++                &collated.option_counts,
++            )?;
++            let act = self.act_head.forward(&pooled, &features)?;
++            // Queue all GPU work before the first host readback.
++            let logits_rows = logits_tensor.to_vec2::<f32>()?;
++            let act = act.to_vec2::<f32>()?;
++            return Ok(logits_rows
++                .into_iter()
++                .zip(&collated.option_counts)
++                .zip(act)
++                .map(|((row, &k), act_row)| ItemOutput {
++                    logits: row[..k].to_vec(),
++                    act_probability: act_row[0],
++                })
++                .collect());
++        }
++        let logits_rows = logits_tensor.to_vec2::<f32>()?;
+         let features: Vec<f32> = logits_rows
+             .iter()
+             .zip(&collated.option_counts)
+@@ -419,7 +440,7 @@
+     fn marker_logits_packed(
+         &self,
+         collated: &Collated,
+-    ) -> Result<(Tensor, Vec<Vec<f32>>)> {
++    ) -> Result<(Tensor, Tensor)> {
+         let shape = (collated.batch, collated.seq_len);
+         let input_ids =
+             Tensor::from_slice(&collated.input_ids, shape, &self.device)?;
+@@ -469,7 +490,7 @@
+             collated.max_markers,
+             hidden_size,
+         ))?;
+-        let logits = self.scorer.forward(&marked)?.to_vec2::<f32>()?;
++        let logits = self.scorer.forward(&marked)?;
+         let cls_index =
+             Tensor::from_vec(offsets, collated.batch, &self.device)?;
+         let pooled = hidden
+@@ -483,10 +504,7 @@
+     /// state `(batch, hidden)` and the raw marker logits per item
+     /// (`max_markers` wide, slots past each item's option count are
+     /// meaningless).
+-    fn marker_logits(
+-        &self,
+-        collated: &Collated,
+-    ) -> Result<(Tensor, Vec<Vec<f32>>)> {
++    fn marker_logits(&self, collated: &Collated) -> Result<(Tensor, Tensor)> {
+         #[cfg(feature = "flash-attn")]
+         if self.device.is_cuda() {
+             return self.marker_logits_packed(collated);
+@@ -518,7 +536,7 @@
+         .expand((collated.batch, collated.max_markers, hidden_size))?
+         .contiguous()?;
+         let marked = hidden.gather(&marker_pos, 1)?;
+-        let logits = self.scorer.forward(&marked)?.to_vec2::<f32>()?;
++        let logits = self.scorer.forward(&marked)?;
+         let pooled =
+             hidden.i((.., 0, ..))?.to_dtype(DType::F32)?.contiguous()?;
+         Ok((pooled, logits))

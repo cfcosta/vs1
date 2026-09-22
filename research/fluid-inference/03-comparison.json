@@ -1,0 +1,137 @@
+[
+  {
+    "name": "one",
+    "baseline_p50_ms": 7.884128500000001,
+    "candidate_p50_ms": 7.359332,
+    "p50_change_percent": -6.656366648514178,
+    "baseline_p95_ms": 8.344711,
+    "candidate_p95_ms": 8.263682,
+    "baseline_questions_per_second": 126.83710063832672,
+    "candidate_questions_per_second": 135.88189797660982,
+    "differing_outputs": 2,
+    "first_differences": [
+      {
+        "path": "/json/0/answers/relevant/noul",
+        "before": 0.733471691608429,
+        "after": 0.7346251606941223
+      },
+      {
+        "path": "/alternate/json/0/answers/relevant/noul",
+        "before": 0.5660808682441711,
+        "after": 0.5534629821777344
+      }
+    ]
+  },
+  {
+    "name": "five",
+    "baseline_p50_ms": 15.671773,
+    "candidate_p50_ms": 23.3062025,
+    "p50_change_percent": 48.71452323869163,
+    "baseline_p95_ms": 16.86588,
+    "candidate_p95_ms": 24.800044,
+    "baseline_questions_per_second": 319.0449478817745,
+    "candidate_questions_per_second": 214.5351650488749,
+    "differing_outputs": 24,
+    "first_differences": [
+      {
+        "path": "/json/0/answers/relevance/noul",
+        "before": 0.9575358629226683,
+        "after": 0.9572144150733948
+      },
+      {
+        "path": "/json/0/answers/topic/probabilities/index",
+        "before": 0.9606446027755736,
+        "after": 0.96147620677948
+      },
+      {
+        "path": "/json/0/answers/topic/probabilities/travel",
+        "before": 0.019852356985211372,
+        "after": 0.019347378984093663
+      },
+      {
+        "path": "/json/0/answers/topic/probabilities/food",
+        "before": 0.01950300857424736,
+        "after": 0.019176391884684563
+      },
+      {
+        "path": "/json/0/answers/topic/confidence",
+        "before": 0.8241713047027588,
+        "after": 0.8271217346191406
+      }
+    ]
+  },
+  {
+    "name": "thirty",
+    "baseline_p50_ms": 88.79433699999998,
+    "candidate_p50_ms": 79.88849450000001,
+    "p50_change_percent": -10.029741536332414,
+    "baseline_p95_ms": 91.194252,
+    "candidate_p95_ms": 82.961251,
+    "baseline_questions_per_second": 337.8593839830124,
+    "candidate_questions_per_second": 375.5234115721131,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "mixed_lengths",
+    "baseline_p50_ms": 102.697615,
+    "candidate_p50_ms": 100.954695,
+    "p50_change_percent": -1.6971377572887136,
+    "baseline_p95_ms": 116.887611,
+    "candidate_p95_ms": 102.678865,
+    "baseline_questions_per_second": 292.11973423141325,
+    "candidate_questions_per_second": 297.1629997000139,
+    "differing_outputs": 0,
+    "first_differences": []
+  },
+  {
+    "name": "browser_call3",
+    "baseline_p50_ms": 20.2305855,
+    "candidate_p50_ms": 26.763072,
+    "p50_change_percent": 32.290150475378,
+    "baseline_p95_ms": 21.047926,
+    "candidate_p95_ms": 31.024157,
+    "baseline_questions_per_second": 98.8602134130028,
+    "candidate_questions_per_second": 74.72983669438247,
+    "differing_outputs": 20,
+    "first_differences": [
+      {
+        "path": "/json/0/answers/operation/probabilities/CLICK",
+        "before": 0.4113747477531433,
+        "after": 0.40535619854927063
+      },
+      {
+        "path": "/json/0/answers/operation/probabilities/SCROLL_DOWN",
+        "before": 0.0951392874121666,
+        "after": 0.1038808673620224
+      },
+      {
+        "path": "/json/0/answers/operation/probabilities/WAIT",
+        "before": 0.12716829776763916,
+        "after": 0.13114033639431
+      },
+      {
+        "path": "/json/0/answers/operation/probabilities/DONE",
+        "before": 0.22295865416526792,
+        "after": 0.21583060920238495
+      },
+      {
+        "path": "/json/0/answers/operation/probabilities/BLOCKED",
+        "before": 0.1433590054512024,
+        "after": 0.14379197359085083
+      }
+    ]
+  },
+  {
+    "name": "browser_call5",
+    "baseline_p50_ms": 37.34823,
+    "candidate_p50_ms": 38.711292,
+    "p50_change_percent": 3.649602671933838,
+    "baseline_p95_ms": 38.113086,
+    "candidate_p95_ms": 39.647186,
+    "baseline_questions_per_second": 80.32509171117346,
+    "candidate_questions_per_second": 77.496767609823,
+    "differing_outputs": 0,
+    "first_differences": []
+  }
+]

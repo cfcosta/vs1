@@ -1,0 +1,226 @@
+diff --git a/crates/vs1/src/action_graph.rs b/crates/vs1/src/action_graph.rs
+new file mode 100644
+index 0000000000..1a6ccf356e
+--- /dev/null
++++ b/crates/vs1/src/action_graph.rs
+@@ -0,0 +1,110 @@
++//! Experimental bounded CUDA graph cache for the F32 action head only.
++use candle_core::{
++    DType,
++    Result,
++    Tensor,
++    cuda_backend::{
++        WrapErr,
++        cudarc::driver::{CudaGraph, sys},
++    },
++};
++
++use crate::head::ActionHead;
++
++#[derive(Default)]
++pub(crate) struct Cache {
++    entries: Vec<Entry>,
++    seen: Vec<(usize, usize)>,
++}
++struct Entry {
++    // Drop the executable before the tensors it references.
++    graph: CudaGraph,
++    input: Tensor,
++    indices: Tensor,
++    output: Tensor,
++    batch: usize,
++}
++// SAFETY: callers exclusively access the cache under the model mutex, including
++// replay and output readback. Each call binds its owning CUDA context.
++unsafe impl Send for Cache {}
++impl Drop for Cache {
++    fn drop(&mut self) {
++        for entry in &self.entries {
++            let _ = entry.input.device().synchronize();
++        }
++    }
++}
++
++#[cfg(test)]
++pub(crate) static REFERENCE: std::sync::atomic::AtomicBool =
++    std::sync::atomic::AtomicBool::new(false);
++
++impl Cache {
++    pub(crate) fn run(
++        &mut self,
++        head: &ActionHead,
++        pooled: &Tensor,
++        features: &Tensor,
++    ) -> Result<Vec<Vec<f32>>> {
++        let dev = pooled.device().as_cuda_device()?;
++        let stream = dev.cuda_stream();
++        stream.context().bind_to_thread().w()?;
++        let (batch, _) = pooled.dims2()?;
++        let hit = self.entries.iter().position(|entry| entry.batch == batch);
++        if hit.is_none() {
++            if self.entries.len() >= 8 {
++                return head.forward(pooled, features)?.to_vec2();
++            }
++            if let Some((_, count)) =
++                self.seen.iter_mut().find(|(b, _)| *b == batch)
++            {
++                *count += 1;
++                if *count < 3 {
++                    return head.forward(pooled, features)?.to_vec2();
++                }
++            } else {
++                if self.seen.len() >= 32 {
++                    self.seen.remove(0);
++                }
++                self.seen.push((batch, 1));
++                return head.forward(pooled, features)?.to_vec2();
++            }
++            let values = Tensor::cat(&[pooled, features], 1)?;
++            let width = values.dim(1)?;
++            let input = values.flatten_all()?.copy()?;
++            let indices = Tensor::arange(
++                0u32,
++                input.elem_count() as u32,
++                pooled.device(),
++            )?;
++            let shaped = input.reshape((batch, width))?;
++            let _cache_guard = dev.enable_cuda_graph_htod_cache();
++            head.forward_input(&shaped)?;
++            pooled.device().synchronize()?;
++            stream.begin_capture(sys::CUstreamCaptureMode::CU_STREAM_CAPTURE_MODE_THREAD_LOCAL).w()?;
++            let output = head.forward_input(&shaped);
++            let graph = stream.end_capture(sys::CUgraphInstantiate_flags::CUDA_GRAPH_INSTANTIATE_FLAG_AUTO_FREE_ON_LAUNCH).w()?;
++            let output = output?;
++            let graph = graph.ok_or_else(|| {
++                candle_core::Error::Msg("empty action graph".into())
++            })?;
++            graph.launch().w()?;
++            self.entries.push(Entry {
++                graph,
++                input,
++                indices,
++                output,
++                batch,
++            });
++        } else {
++            let entry = &self.entries[hit.unwrap()];
++            let values = Tensor::cat(&[pooled, features], 1)?.flatten_all()?;
++            entry.input.scatter_set(&entry.indices, &values, 0)?;
++            entry.graph.launch().w()?;
++        }
++        self.entries[hit.unwrap_or(self.entries.len() - 1)]
++            .output
++            .to_dtype(DType::F32)?
++            .to_vec2()
++    }
++}
+diff --git a/crates/vs1/src/geglu_bench.rs b/crates/vs1/src/geglu_bench.rs
+index 4296a386a2..1608b1903b 100644
+--- a/crates/vs1/src/geglu_bench.rs
++++ b/crates/vs1/src/geglu_bench.rs
+@@ -139,3 +139,9 @@
+ fn paired_deferred() -> anyhow::Result<()> {
+     run_paired(&crate::modernbert::REFERENCE_DEFERRED)
+ }
++
++#[test]
++#[ignore = "requires CUDA and checkpoint; run alone"]
++fn paired_action_graph() -> anyhow::Result<()> {
++    run_paired(&crate::action_graph::REFERENCE)
++}
+diff --git a/crates/vs1/src/head.rs b/crates/vs1/src/head.rs
+index c20638ad10..4225373173 100644
+--- a/crates/vs1/src/head.rs
++++ b/crates/vs1/src/head.rs
+@@ -229,6 +229,10 @@
+         features: &Tensor,
+     ) -> Result<Tensor> {
+         let xs = Tensor::cat(&[pooled, features], 1)?;
++        self.forward_input(&xs)
++    }
++
++    pub(crate) fn forward_input(&self, xs: &Tensor) -> Result<Tensor> {
+         let logits = xs.apply(&self.dense)?.gelu_erf()?.apply(&self.out)?;
+         softmax_last_dim(&logits)
+     }
+diff --git a/crates/vs1/src/lib.rs b/crates/vs1/src/lib.rs
+index 6a24f27225..398c5cc138 100644
+--- a/crates/vs1/src/lib.rs
++++ b/crates/vs1/src/lib.rs
+@@ -104,3 +104,6 @@
+ pub mod openjev;
+ pub use openjev::{OpenJev, OpenJevBuilder, OpenJevInput, OpenJevPrediction};
+ pub use types::AbstentionAnswer;
++
++#[cfg(feature = "cuda")]
++mod action_graph;
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index f4925af4ee..089eb6e2f2 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -100,6 +100,8 @@
+     device: Device,
+     dtype: DType,
+     batch_size: usize,
++    #[cfg(feature = "cuda")]
++    action_graph: std::sync::Mutex<crate::action_graph::Cache>,
+ }
+ 
+ impl SystemOne {
+@@ -199,6 +201,10 @@
+             device: device.clone(),
+             dtype,
+             batch_size,
++            #[cfg(feature = "cuda")]
++            action_graph: std::sync::Mutex::new(
++                crate::action_graph::Cache::default(),
++            ),
+         })
+     }
+ 
+@@ -395,10 +401,7 @@
+             (collated.batch, crate::head::ACTION_FEATURES),
+             &self.device,
+         )?;
+-        let act = self
+-            .act_head
+-            .forward(&pooled, &features)?
+-            .to_vec2::<f32>()?;
++        let act = self.action_readback(&pooled, &features)?;
+         Ok(logits_rows
+             .into_iter()
+             .zip(&collated.option_counts)
+@@ -410,6 +413,33 @@
+             .collect())
+     }
+ 
++    fn action_readback(
++        &self,
++        pooled: &Tensor,
++        features: &Tensor,
++    ) -> Result<Vec<Vec<f32>>> {
++        #[cfg(feature = "cuda")]
++        if self.device.is_cuda()
++            && std::env::var_os("VS1_EXPERIMENT_ACTION_GRAPH").is_some()
++        {
++            #[cfg(test)]
++            if crate::action_graph::REFERENCE
++                .load(std::sync::atomic::Ordering::Relaxed)
++            {
++                return Ok(self
++                    .act_head
++                    .forward(pooled, features)?
++                    .to_vec2()?);
++            }
++            return Ok(self
++                .action_graph
++                .lock()
++                .map_err(|e| candle_core::Error::Msg(e.to_string()))?
++                .run(&self.act_head, pooled, features)?);
++        }
++        Ok(self.act_head.forward(pooled, features)?.to_vec2()?)
++    }
++
+     /// [`Self::marker_logits`] on packed tokens: the encoder, the type
+     /// embedding, the head, and the marker gather all run over
+     /// `(total_tokens, hidden)` with no padding anywhere, and each
