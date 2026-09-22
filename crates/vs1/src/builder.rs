@@ -47,6 +47,8 @@ pub struct SystemOneBuilder {
     batch_size: Option<usize>,
     max_len: Option<usize>,
     head_max_len: Option<usize>,
+    #[cfg(feature = "flash-attn")]
+    parallel_cuda_batches: bool,
 }
 
 impl SystemOneBuilder {
@@ -60,6 +62,8 @@ impl SystemOneBuilder {
             batch_size: None,
             max_len: None,
             head_max_len: None,
+            #[cfg(feature = "flash-attn")]
+            parallel_cuda_batches: false,
         }
     }
 
@@ -97,6 +101,18 @@ impl SystemOneBuilder {
         self
     }
 
+    /// Runs pairs of existing batches on two CUDA streams with separate models.
+    ///
+    /// Off by default. Requires CUDA BF16 and loads a second copy of the weights;
+    /// useful for calls exceeding one batch when additional VRAM is available.
+    /// Batch membership and result order are preserved. Calls on this model
+    /// serialize access to its two workers.
+    #[cfg(feature = "flash-attn")]
+    pub fn with_parallel_cuda_batches(mut self, enabled: bool) -> Self {
+        self.parallel_cuda_batches = enabled;
+        self
+    }
+
     /// Overrides the checkpoint's `max_len`.
     pub fn with_max_len(mut self, max_len: usize) -> Self {
         self.max_len = Some(max_len);
@@ -123,13 +139,46 @@ impl TryFrom<SystemOneBuilder> for SystemOne {
 
     fn try_from(builder: SystemOneBuilder) -> Result<Self> {
         let device = builder.device.clone().unwrap_or(Device::Cpu);
+        #[cfg(feature = "flash-attn")]
+        let device = if builder.parallel_cuda_batches {
+            if !device.is_cuda()
+                || builder.dtype.is_some_and(|d| d != DType::BF16)
+            {
+                return Err(SystemOneError::Config(
+                    "parallel CUDA batches require CUDA BF16".into(),
+                ));
+            }
+            Device::Cuda(candle_core::CudaDevice::new_with_stream(
+                device.as_cuda_device()?.cuda_stream().context().ordinal(),
+            )?)
+        } else {
+            device
+        };
         let local = PathBuf::from(&builder.repo_id);
         let assets = if local.is_dir() {
             load_local_assets(&local, builder.subfolder.as_deref())?
         } else {
             load_hub_assets(&builder.repo_id, builder.subfolder.as_deref())?
         };
-        SystemOne::new(
+        #[cfg(feature = "flash-attn")]
+        let worker = if builder.parallel_cuda_batches {
+            let stream_device =
+                Device::Cuda(candle_core::CudaDevice::new_with_stream(
+                    device.as_cuda_device()?.cuda_stream().context().ordinal(),
+                )?);
+            Some(SystemOne::new(
+                assets.clone(),
+                builder.model_name.clone(),
+                &stream_device,
+                builder.dtype,
+                builder.batch_size,
+                builder.max_len,
+                builder.head_max_len,
+            )?)
+        } else {
+            None
+        };
+        let model = SystemOne::new(
             assets,
             builder.model_name,
             &device,
@@ -137,7 +186,14 @@ impl TryFrom<SystemOneBuilder> for SystemOne {
             builder.batch_size,
             builder.max_len,
             builder.head_max_len,
-        )
+        )?;
+        #[cfg(feature = "flash-attn")]
+        let model = if let Some(worker) = worker {
+            model.with_batch_worker(worker)?
+        } else {
+            model
+        };
+        Ok(model)
     }
 }
 

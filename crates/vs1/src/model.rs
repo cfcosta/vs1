@@ -59,7 +59,7 @@ static PREP_POOL: std::sync::OnceLock<Option<rayon::ThreadPool>> =
     std::sync::OnceLock::new();
 
 /// The files a checkpoint consists of, already read from disk.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CheckpointAssets {
     /// `rl_agent_config.json`.
     pub agent_config: Vec<u8>,
@@ -100,7 +100,19 @@ pub struct SystemOne {
     device: Device,
     dtype: DType,
     batch_size: usize,
+    #[cfg(feature = "flash-attn")]
+    batch_worker: Option<BatchWorker>,
 }
+
+#[cfg(feature = "flash-attn")]
+struct BatchWorker {
+    model: Box<SystemOne>,
+    pool: rayon::ThreadPool,
+    lock: std::sync::Mutex<()>,
+}
+#[cfg(all(test, feature = "flash-attn"))]
+static REFERENCE_BATCHES: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
 
 impl SystemOne {
     /// Starts configuring a model from a Hub repo id or a local
@@ -199,7 +211,24 @@ impl SystemOne {
             device: device.clone(),
             dtype,
             batch_size,
+            #[cfg(feature = "flash-attn")]
+            batch_worker: None,
         })
+    }
+
+    #[cfg(feature = "flash-attn")]
+    pub(crate) fn with_batch_worker(mut self, worker: Self) -> Result<Self> {
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(2)
+            .thread_name(|i| format!("vs1-batch-{i}"))
+            .build()
+            .map_err(|e| SystemOneError::Config(e.to_string()))?;
+        self.batch_worker = Some(BatchWorker {
+            model: Box::new(worker),
+            pool,
+            lock: std::sync::Mutex::new(()),
+        });
+        Ok(self)
     }
 
     /// The checkpoint's calibration and length settings.
@@ -278,12 +307,42 @@ impl SystemOne {
         order.sort_by_key(|&i| std::cmp::Reverse(items[i].2.ids.len()));
 
         let mut outputs: Vec<Option<ItemOutput>> = vec![None; items.len()];
-        for chunk in order.chunks(self.batch_size) {
-            let batch: Vec<&EncodedItem> =
-                chunk.iter().map(|&i| &items[i].2).collect();
-            let results = self.forward_batch(&batch)?;
-            for (&i, output) in chunk.iter().zip(results) {
-                outputs[i] = Some(output);
+        #[cfg(feature = "flash-attn")]
+        let worker = self.batch_worker.as_ref();
+        #[cfg(all(test, feature = "flash-attn"))]
+        let worker = worker.filter(|_| {
+            !REFERENCE_BATCHES.load(std::sync::atomic::Ordering::Relaxed)
+        });
+        #[cfg(feature = "flash-attn")]
+        let _guard = self
+            .batch_worker
+            .as_ref()
+            .map(|w| w.lock.lock().unwrap_or_else(|e| e.into_inner()));
+        let chunks: Vec<_> = order.chunks(self.batch_size).collect();
+        let forward = |model: &Self, indices: &[usize]| {
+            let batch: Vec<_> = indices.iter().map(|&i| &items[i].2).collect();
+            model.forward_batch(&batch)
+        };
+        for pair in chunks.chunks(2) {
+            #[cfg(feature = "flash-attn")]
+            if let Some(worker) = worker.filter(|_| pair.len() == 2) {
+                let (a, b) = worker.pool.install(|| {
+                    rayon::join(
+                        || forward(self, pair[0]),
+                        || forward(&worker.model, pair[1]),
+                    )
+                });
+                for (indices, results) in pair.iter().zip([a?, b?]) {
+                    for (&i, output) in indices.iter().zip(results) {
+                        outputs[i] = Some(output);
+                    }
+                }
+                continue;
+            }
+            for chunk in pair {
+                for (&i, output) in chunk.iter().zip(forward(self, chunk)?) {
+                    outputs[i] = Some(output);
+                }
             }
         }
 
@@ -646,3 +705,7 @@ mod tests {
 #[cfg(all(test, feature = "flash-attn"))]
 #[path = "batch_bench.rs"]
 pub(crate) mod batch_bench;
+
+#[cfg(all(test, feature = "flash-attn"))]
+#[path = "followup_bench.rs"]
+mod followup_bench;

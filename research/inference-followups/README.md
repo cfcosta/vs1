@@ -97,3 +97,48 @@ nix develop -c bash -c '
 `paired_projection_large` exercises the expanded nine-workload timing corpus.
 The archived exploratory patch applies to the starting revision above and uses
 `VS1_EXPERIMENT_PROJECTIONS=both|qkv|ffn` with `paired_projection_streams`.
+
+## 2. Concurrent whole batches
+
+Accepted as an opt-in builder setting, `.with_parallel_cuda_batches(true)`
+with `flash-attn`, CUDA and BF16. It loads two independent model copies on two
+non-default CUDA streams and reuses a two-thread Rayon pool. It preserves the
+existing stable length sort, batch size and batch membership. A mutex serializes
+concurrent callers of this model; paired batches run concurrently inside a call.
+Single or final unpaired batches keep the ordinary path. Defaults are unchanged.
+
+This costs another full checkpoint in GPU memory plus concurrent activation
+buffers and workspaces. Loading and warmup are excluded from the warm latency
+comparison. It is inappropriate when memory is constrained or calls fit in one
+batch. The evidence is for the measured GPU/checkpoint, not a portable speedup
+claim.
+
+Two exploratory runs of 30 adjacent AB/BA pairs found 6.1–8.2% improvements for
+64/128 uniform questions, 5.7–7.8% for shared-state 128 questions and 2.6–4.0%
+for mixed-length 128 questions. The 32-question single-batch control was within
+0.3% noise. Reports: `02-batch-streams-{first,repeat}.json`.
+
+The final public builder implementation was checked against the original default
+CUDA model on all nine workloads plus 0, 31, 33, 63, 65 and 97 questions,
+including partial batches, original response order, action probabilities and
+usage. Invalid-input errors match. Four concurrent callers also return exact
+outputs. Paired timings additionally check changed-content and original-content
+revisits. All checks passed.
+
+Final implementation timings, 30 AB/BA pairs per run:
+
+| Workload  | First paired change | Repeat |
+| --------- | ------------------: | -----: |
+| 32        |              +0.37% | +0.43% |
+| 64        |              -7.32% | -7.35% |
+| 128       |              -7.86% | -7.73% |
+| mixed128  |              -1.67% | -3.82% |
+| shared128 |              -8.10% | -8.01% |
+
+`02-batch-final.json` retains samples and exactness results. Run the opt-in
+`batch_workers_preserve_default_outputs` and `paired_batch_streams` tests in
+`model::followup_bench` with one test thread and no other GPU workload.
+
+The final repeat is `02-batch-final-repeat.json`. Release FlashAttention unit
+tests (50 passed), all-target release Clippy with warnings denied, and the
+CPU-only build check passed. Canonical `nix fmt` passed.
