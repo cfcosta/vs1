@@ -104,3 +104,6 @@ pub use backend::DecisionModel;
 pub mod openjev;
 pub use openjev::{OpenJev, OpenJevBuilder, OpenJevInput, OpenJevPrediction};
 pub use types::AbstentionAnswer;
+
+#[cfg(feature = "flash-attn")]
+mod parallel_cuda;

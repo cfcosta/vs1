@@ -435,12 +435,29 @@ impl ModernBertAttention {
             self.num_attention_heads,
             self.attention_head_size,
         );
-        let q = packed_linear(packed_hidden_states, &self.q, retile)?
-            .reshape(shape)?;
-        let k = packed_linear(packed_hidden_states, &self.k, retile)?
-            .reshape(shape)?;
-        let v = packed_linear(packed_hidden_states, &self.v, retile)?
-            .reshape(shape)?;
+        let (q, k, v) =
+            if crate::parallel_cuda::enabled("qkv", packed_hidden_states) {
+                // Leave the accepted short-row retile specialization intact.
+                let mut result = crate::parallel_cuda::project(
+                    packed_hidden_states,
+                    &[&self.q, &self.k, &self.v],
+                )?
+                .into_iter();
+                (
+                    result.next().unwrap().reshape(shape)?,
+                    result.next().unwrap().reshape(shape)?,
+                    result.next().unwrap().reshape(shape)?,
+                )
+            } else {
+                (
+                    packed_linear(packed_hidden_states, &self.q, retile)?
+                        .reshape(shape)?,
+                    packed_linear(packed_hidden_states, &self.k, retile)?
+                        .reshape(shape)?,
+                    packed_linear(packed_hidden_states, &self.v, retile)?
+                        .reshape(shape)?,
+                )
+            };
 
         let (q, k) = self
             .rotary_emb
@@ -596,6 +613,17 @@ impl ModernBertMLP {
                 let act = xs.apply(&self.wi_act)?.gelu_erf()?;
                 let gate = xs.apply(&self.wi_gate)?;
                 return output(&(act * gate)?, &self.wo);
+            }
+            #[cfg(feature = "flash-attn")]
+            if crate::parallel_cuda::enabled("ffn", xs) {
+                let pair = crate::parallel_cuda::project(
+                    xs,
+                    &[&self.wi_act, &self.wi_gate],
+                )?;
+                return output(
+                    &crate::geglu_cuda::forward(&pair[0], &pair[1])?,
+                    &self.wo,
+                );
             }
             let act = encoder_linear(xs, &self.wi_act)?;
             let gate = encoder_linear(xs, &self.wi_gate)?;

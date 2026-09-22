@@ -1,0 +1,9 @@
+{
+  "kernel_records": 3970,
+  "streams": 4,
+  "max_concurrent_kernel_streams": 3,
+  "kernel_union_ms": 341.710873,
+  "multiple_streams_active_ms": 40.898304,
+  "overlap_fraction_of_kernel_union": 0.11968686755835246,
+  "note": "Kernel timestamp overlap, not occupancy or throughput-counter evidence; ten warmed browser_call5 calls."
+}

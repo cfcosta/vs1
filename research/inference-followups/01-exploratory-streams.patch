@@ -1,0 +1,264 @@
+diff --git a/crates/vs1/src/geglu_bench.rs b/crates/vs1/src/geglu_bench.rs
+index 4296a386a2..de7b931639 100644
+--- a/crates/vs1/src/geglu_bench.rs
++++ b/crates/vs1/src/geglu_bench.rs
+@@ -139,3 +139,9 @@
+ fn paired_deferred() -> anyhow::Result<()> {
+     run_paired(&crate::modernbert::REFERENCE_DEFERRED)
+ }
++
++#[test]
++#[ignore = "requires CUDA and isolated benchmark execution"]
++fn paired_projection_streams() -> anyhow::Result<()> {
++    run_paired(&crate::parallel_cuda::REFERENCE)
++}
+diff --git a/crates/vs1/src/lib.rs b/crates/vs1/src/lib.rs
+index 6a24f27225..a32f4ca8b9 100644
+--- a/crates/vs1/src/lib.rs
++++ b/crates/vs1/src/lib.rs
+@@ -104,3 +104,6 @@
+ pub mod openjev;
+ pub use openjev::{OpenJev, OpenJevBuilder, OpenJevInput, OpenJevPrediction};
+ pub use types::AbstentionAnswer;
++
++#[cfg(feature = "flash-attn")]
++mod parallel_cuda;
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index cb6480819f..66c6a03db2 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -435,12 +435,31 @@
+             self.num_attention_heads,
+             self.attention_head_size,
+         );
+-        let q = packed_linear(packed_hidden_states, &self.q, retile)?
+-            .reshape(shape)?;
+-        let k = packed_linear(packed_hidden_states, &self.k, retile)?
+-            .reshape(shape)?;
+-        let v = packed_linear(packed_hidden_states, &self.v, retile)?
+-            .reshape(shape)?;
++        let (q, k, v) =
++            if crate::parallel_cuda::enabled("qkv", packed_hidden_states)
++                && !(129..=136).contains(&total_tokens)
++            {
++                // Leave the accepted short-row retile specialization intact.
++                let mut result = crate::parallel_cuda::project(
++                    packed_hidden_states,
++                    &[&self.q, &self.k, &self.v],
++                )?
++                .into_iter();
++                (
++                    result.next().unwrap().reshape(shape)?,
++                    result.next().unwrap().reshape(shape)?,
++                    result.next().unwrap().reshape(shape)?,
++                )
++            } else {
++                (
++                    packed_linear(packed_hidden_states, &self.q, retile)?
++                        .reshape(shape)?,
++                    packed_linear(packed_hidden_states, &self.k, retile)?
++                        .reshape(shape)?,
++                    packed_linear(packed_hidden_states, &self.v, retile)?
++                        .reshape(shape)?,
++                )
++            };
+ 
+         let (q, k) = self
+             .rotary_emb
+@@ -597,6 +616,17 @@
+                 let gate = xs.apply(&self.wi_gate)?;
+                 return output(&(act * gate)?, &self.wo);
+             }
++            #[cfg(feature = "flash-attn")]
++            if crate::parallel_cuda::enabled("ffn", xs) {
++                let pair = crate::parallel_cuda::project(
++                    xs,
++                    &[&self.wi_act, &self.wi_gate],
++                )?;
++                return output(
++                    &crate::geglu_cuda::forward(&pair[0], &pair[1])?,
++                    &self.wo,
++                );
++            }
+             let act = encoder_linear(xs, &self.wi_act)?;
+             let gate = encoder_linear(xs, &self.wi_gate)?;
+             return output(&crate::geglu_cuda::forward(&act, &gate)?, &self.wo);
+diff --git a/crates/vs1/src/parallel_cuda.rs b/crates/vs1/src/parallel_cuda.rs
+new file mode 100644
+index 0000000000..e1a15d0504
+--- /dev/null
++++ b/crates/vs1/src/parallel_cuda.rs
+@@ -0,0 +1,173 @@
++//! Experimental independent projection streams; never changes GEMM dimensions.
++use std::{cell::RefCell, sync::Arc};
++
++use candle_core::{
++    CpuStorage,
++    CudaStorage,
++    CustomOp2,
++    DType,
++    Layout,
++    Result,
++    Shape,
++    Tensor,
++    backend::BackendStorage,
++    cuda_backend::{
++        CudaStorageSlice,
++        WrapErr,
++        cudarc::{
++            cublas::{CudaBlas, result, sys},
++            driver::{CudaStream, DevicePtr, DevicePtrMut},
++        },
++    },
++};
++use candle_nn::Linear;
++
++struct Lane {
++    blas: CudaBlas,
++    stream: Arc<CudaStream>,
++}
++struct Pool {
++    context: usize,
++    lanes: Vec<Lane>,
++}
++impl Drop for Pool {
++    fn drop(&mut self) {
++        for lane in &self.lanes {
++            let _ = lane.stream.synchronize();
++        }
++    }
++}
++thread_local! { static POOL: RefCell<Option<Pool>> = const { RefCell::new(None) }; }
++#[cfg(test)]
++pub(crate) static REFERENCE: std::sync::atomic::AtomicBool =
++    std::sync::atomic::AtomicBool::new(false);
++
++pub(crate) fn enabled(kind: &str, xs: &Tensor) -> bool {
++    #[cfg(test)]
++    if REFERENCE.load(std::sync::atomic::Ordering::Relaxed) {
++        return false;
++    }
++    if !xs.device().is_cuda()
++        || xs.dtype() != DType::BF16
++        || xs.rank() != 2
++        || !xs.is_contiguous()
++    {
++        return false;
++    }
++    static MODE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
++    let mode = MODE.get_or_init(|| {
++        std::env::var("VS1_EXPERIMENT_PROJECTIONS").unwrap_or_default()
++    });
++    mode == "both" || mode == kind
++}
++struct Projection<'a>(&'a Lane);
++impl CustomOp2 for Projection<'_> {
++    fn name(&self) -> &'static str {
++        "vs1_parallel_projection"
++    }
++    fn cpu_fwd(
++        &self,
++        _: &CpuStorage,
++        _: &Layout,
++        _: &CpuStorage,
++        _: &Layout,
++    ) -> Result<(CpuStorage, Shape)> {
++        candle_core::bail!("CUDA only")
++    }
++    fn cuda_fwd(
++        &self,
++        x: &CudaStorage,
++        xl: &Layout,
++        w: &CudaStorage,
++        wl: &Layout,
++    ) -> Result<(CudaStorage, Shape)> {
++        let (m, k) = xl.shape().dims2()?;
++        let (n, wk) = wl.shape().dims2()?;
++        if wk != k || !xl.is_contiguous() || !wl.is_contiguous() {
++            candle_core::bail!("projection layout")
++        }
++        let (CudaStorageSlice::BF16(xb), CudaStorageSlice::BF16(wb)) =
++            (&x.slice, &w.slice)
++        else {
++            candle_core::bail!("BF16 only")
++        };
++        let stream = &self.0.stream;
++        let xv = xb.slice(xl.start_offset()..xl.start_offset() + m * k);
++        let wv = wb.slice(wl.start_offset()..wl.start_offset() + n * k);
++        let mut output = unsafe { stream.alloc(m * n).w()? };
++        let (xp, xguard) = xv.device_ptr(stream);
++        let (wp, wguard) = wv.device_ptr(stream);
++        let (yp, yguard) = output.device_ptr_mut(stream);
++        let alpha = 1f32;
++        let beta = 0f32;
++        // Same call, strides, precision and algorithm selector as Candle's BF16
++        // matrix product. Separate handles/streams permit independent launches.
++        unsafe {
++            result::gemm_strided_batched_ex(
++                *self.0.blas.handle(),
++                sys::cublasOperation_t::CUBLAS_OP_T,
++                sys::cublasOperation_t::CUBLAS_OP_N,
++                n as i32,
++                m as i32,
++                k as i32,
++                (&alpha as *const f32).cast(),
++                wp as *const _,
++                sys::cudaDataType_t::CUDA_R_16BF,
++                k as i32,
++                (n * k) as i64,
++                xp as *const _,
++                sys::cudaDataType_t::CUDA_R_16BF,
++                k as i32,
++                (m * k) as i64,
++                (&beta as *const f32).cast(),
++                yp as *mut _,
++                sys::cudaDataType_t::CUDA_R_16BF,
++                n as i32,
++                (m * n) as i64,
++                1,
++                sys::cublasComputeType_t::CUBLAS_COMPUTE_32F,
++                sys::cublasGemmAlgo_t::CUBLAS_GEMM_DEFAULT_TENSOR_OP,
++            )
++            .w()?;
++        }
++        drop((xguard, wguard, yguard));
++        Ok((
++            CudaStorage {
++                slice: CudaStorageSlice::BF16(output),
++                device: x.device().clone(),
++            },
++            (m, n).into(),
++        ))
++    }
++}
++pub(crate) fn project(xs: &Tensor, weights: &[&Linear]) -> Result<Vec<Tensor>> {
++    let main = xs.device().as_cuda_device()?.cuda_stream();
++    main.context().bind_to_thread().w()?;
++    let context = main.context().cu_ctx() as usize;
++    POOL.with(|pool| {
++        let mut pool = pool.borrow_mut();
++        if pool.as_ref().is_none_or(|p| p.context != context) {
++            let mut lanes = Vec::new();
++            for _ in 0..3 {
++                let stream = main.context().new_stream().w()?;
++                let blas = CudaBlas::new(stream.clone()).w()?;
++                lanes.push(Lane { blas, stream });
++            }
++            *pool = Some(Pool { context, lanes });
++        }
++        let pool = pool.as_ref().unwrap();
++        let mut outputs = Vec::new();
++        for (linear, lane) in weights.iter().zip(&pool.lanes) {
++            if linear.bias().is_some() {
++                candle_core::bail!("bias unsupported")
++            }
++            lane.stream.join(&main).w()?;
++            outputs
++                .push(xs.apply_op2_no_bwd(linear.weight(), &Projection(lane))?);
++        }
++        for lane in pool.lanes.iter().take(weights.len()) {
++            main.join(&lane.stream).w()?;
++        }
++        Ok(outputs)
++    })
++}

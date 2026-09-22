@@ -139,3 +139,33 @@ fn run_paired_many(references: &[&'static AtomicBool]) -> anyhow::Result<()> {
 fn paired_deferred() -> anyhow::Result<()> {
     run_paired(&crate::modernbert::REFERENCE_DEFERRED)
 }
+
+#[test]
+#[ignore = "requires CUDA and isolated benchmark execution"]
+fn paired_projection_streams() -> anyhow::Result<()> {
+    run_paired(&crate::parallel_cuda::REFERENCE)
+}
+
+#[test]
+#[ignore = "requires CUDA and isolated benchmark execution"]
+fn paired_projection_large() -> anyhow::Result<()> {
+    crate::model::batch_bench::run_paired_cases(
+        &crate::parallel_cuda::REFERENCE,
+        crate::model::batch_bench::cases(),
+    )
+}
+
+#[test]
+#[ignore = "requires CUDA and isolated benchmark execution"]
+fn paired_projection_acceptance() -> anyhow::Result<()> {
+    crate::model::batch_bench::run_paired_cases(
+        &crate::parallel_cuda::REFERENCE,
+        crate::model::batch_bench::cases()
+            .into_iter()
+            .filter(|(name, _)| {
+                ["1", "8", "32", "browser_call3", "browser_call5"]
+                    .contains(&name.as_str())
+            })
+            .collect(),
+    )
+}
