@@ -1,0 +1,20 @@
+[
+  {
+    "name": "64",
+    "baseline_p50_ms": 170.0869715,
+    "candidate_p50_ms": 167.00113749999997,
+    "paired_change_percent": -1.5419682399618329,
+    "faster_pairs": 29,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "shared128",
+    "baseline_p50_ms": 335.569206,
+    "candidate_p50_ms": 327.591861,
+    "paired_change_percent": -2.145081214129474,
+    "faster_pairs": 33,
+    "pairs": 40,
+    "outputs_exact": true
+  }
+]

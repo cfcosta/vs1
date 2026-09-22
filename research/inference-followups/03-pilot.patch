@@ -1,0 +1,315 @@
+diff --git a/crates/vs1/src/fused_gemm_probe.rs b/crates/vs1/src/fused_gemm_probe.rs
+new file mode 100644
+index 0000000000..ef3f3148c8
+--- /dev/null
++++ b/crates/vs1/src/fused_gemm_probe.rs
+@@ -0,0 +1,282 @@
++//! Offline exactness screen for a rounded CUTLASS GeGLU epilogue.
++use std::{
++    cell::{Cell, RefCell},
++    ffi::{CString, c_void},
++    sync::OnceLock,
++};
++
++use candle_core::{
++    CpuStorage,
++    CudaStorage,
++    CustomOp3,
++    DType,
++    Layout,
++    Result,
++    Shape,
++    Tensor,
++    backend::BackendStorage,
++    cuda_backend::{
++        CudaStorageSlice,
++        WrapErr,
++        cudarc::driver::{DevicePtr, DevicePtrMut},
++    },
++};
++use candle_nn::Linear;
++use serde_json::{Value, json};
++thread_local! {
++    static ARMED:Cell<bool>=const {Cell::new(false)};
++    static REPORT:RefCell<Vec<Value>>=const {RefCell::new(Vec::new())};
++}
++type Kernel = unsafe extern "C" fn(
++    *const c_void,
++    *const c_void,
++    *const c_void,
++    *mut c_void,
++    i32,
++    i32,
++    i32,
++    *mut c_void,
++    i32,
++) -> i32;
++unsafe extern "C" {
++    fn dlopen(path: *const std::ffi::c_char, flags: i32) -> *mut c_void;
++    fn dlsym(handle: *mut c_void, name: *const std::ffi::c_char)
++    -> *mut c_void;
++}
++fn kernel() -> Kernel {
++    static KERNEL: OnceLock<Kernel> = OnceLock::new();
++    *KERNEL.get_or_init(|| unsafe {
++        let path = CString::new(
++            std::env::var("VS1_CUTLASS_LIB").expect("VS1_CUTLASS_LIB required"),
++        )
++        .unwrap();
++        let library = dlopen(path.as_ptr(), 2);
++        assert!(!library.is_null(), "load CUTLASS pilot library");
++        let address = dlsym(library, c"vs1_cutlass_geglu".as_ptr());
++        assert!(!address.is_null());
++        // Library intentionally remains loaded for the process lifetime.
++        std::mem::transmute::<*mut c_void, Kernel>(address)
++    })
++}
++struct Pilot(bool);
++impl CustomOp3 for Pilot {
++    fn name(&self) -> &'static str {
++        "vs1_cutlass_geglu_pilot"
++    }
++    fn cpu_fwd(
++        &self,
++        _: &CpuStorage,
++        _: &Layout,
++        _: &CpuStorage,
++        _: &Layout,
++        _: &CpuStorage,
++        _: &Layout,
++    ) -> Result<(CpuStorage, Shape)> {
++        candle_core::bail!("CUDA only")
++    }
++    fn cuda_fwd(
++        &self,
++        x: &CudaStorage,
++        xl: &Layout,
++        w: &CudaStorage,
++        wl: &Layout,
++        g: &CudaStorage,
++        gl: &Layout,
++    ) -> Result<(CudaStorage, Shape)> {
++        let (m, k) = xl.shape().dims2()?;
++        let (n, wk) = wl.shape().dims2()?;
++        if wk != k
++            || gl.dims() != [m, n]
++            || !xl.is_contiguous()
++            || !wl.is_contiguous()
++            || !gl.is_contiguous()
++        {
++            candle_core::bail!("invalid pilot layouts")
++        }
++        let (
++            CudaStorageSlice::BF16(xb),
++            CudaStorageSlice::BF16(wb),
++            CudaStorageSlice::BF16(gb),
++        ) = (&x.slice, &w.slice, &g.slice)
++        else {
++            candle_core::bail!("BF16 only")
++        };
++        let dev = x.device();
++        let stream = dev.cuda_stream();
++        let xv = xb.slice(xl.start_offset()..xl.start_offset() + m * k);
++        let wv = wb.slice(wl.start_offset()..wl.start_offset() + n * k);
++        let gv = gb.slice(gl.start_offset()..gl.start_offset() + m * n);
++        let mut out = unsafe { dev.alloc(m * n)? };
++        let (xp, xguard) = xv.device_ptr(&stream);
++        let (wp, wguard) = wv.device_ptr(&stream);
++        let (gp, gguard) = gv.device_ptr(&stream);
++        let (yp, yguard) = out.device_ptr_mut(&stream);
++        stream.context().bind_to_thread().w()?;
++        let status = unsafe {
++            kernel()(
++                xp as *const _,
++                wp as *const _,
++                gp as *const _,
++                yp as *mut _,
++                m as i32,
++                n as i32,
++                k as i32,
++                stream.cu_stream().cast(),
++                i32::from(self.0),
++            )
++        };
++        if status != 0 {
++            candle_core::bail!("CUTLASS status {status}")
++        }
++        drop((xguard, wguard, gguard, yguard));
++        Ok((
++            CudaStorage {
++                slice: CudaStorageSlice::BF16(out),
++                device: dev.clone(),
++            },
++            (m, n).into(),
++        ))
++    }
++}
++fn compare(a: &Tensor, b: &Tensor) -> Result<Value> {
++    let a = a.flatten_all()?.to_dtype(DType::F32)?.to_vec1::<f32>()?;
++    let b = b.flatten_all()?.to_dtype(DType::F32)?.to_vec1::<f32>()?;
++    let differences = a
++        .iter()
++        .zip(&b)
++        .filter(|(a, b)| a.to_bits() != b.to_bits())
++        .count();
++    let max = a
++        .iter()
++        .zip(&b)
++        .map(|(a, b)| (a - b).abs())
++        .fold(0f32, f32::max);
++    Ok(
++        json!({"values":a.len(),"differing_values":differences,"max_absolute_error":max}),
++    )
++}
++pub(super) fn probe(xs: &Tensor, act: &Linear, gate: &Linear) -> Result<()> {
++    if !ARMED.with(|a| a.replace(false)) {
++        return Ok(());
++    }
++    let a = xs.apply(act)?;
++    let g = xs.apply(gate)?;
++    let plain = xs.apply_op3_no_bwd(act.weight(), &g, &Pilot(false))?;
++    let fused = xs.apply_op3_no_bwd(act.weight(), &g, &Pilot(true))?;
++    let expected = crate::geglu_cuda::forward(&a, &g)?;
++    let control = crate::geglu_cuda::forward(&plain, &g)?;
++    let row = json!({"rows":xs.dim(0)?,"input_width":xs.dim(1)?,"output_width":act.weight().dim(0)?,
++        "gemm_vs_candle":compare(&plain,&a)?,"fused_vs_candle":compare(&fused,&expected)?,"epilogue_rounding_control":compare(&fused,&control)?});
++    REPORT.with(|r| r.borrow_mut().push(row));
++    Ok(())
++}
++#[test]
++#[ignore = "requires compiled CUTLASS pilot, CUDA and checkpoint"]
++fn cutlass_epilogue_exactness() -> anyhow::Result<()> {
++    let model: crate::SystemOne =
++        crate::SystemOne::from(crate::DEFAULT_REPO_ID)
++            .with_device(candle_core::Device::new_cuda(0)?)
++            .with_dtype(DType::BF16)
++            .try_into()?;
++    for (name, requests) in crate::model::batch_bench::cases() {
++        if !["1", "8", "32", "browser_call5"].contains(&name.as_str()) {
++            continue;
++        }
++        ARMED.with(|a| a.set(true));
++        model.system_one_batch(&requests)?;
++    }
++    let rows = REPORT.with(|r| r.borrow().clone());
++    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
++        .join("../../research/inference-followups/03-epilogue-exactness.json");
++    std::fs::write(path, serde_json::to_vec_pretty(&rows)?)?;
++    eprintln!("EPILOGUE_REPORT={}", serde_json::to_string(&rows)?);
++    assert_eq!(rows.len(), 4);
++    assert!(
++        rows.iter()
++            .all(|r| r["epilogue_rounding_control"]["differing_values"] == 0),
++        "epilogue itself changed rounding"
++    );
++    assert!(
++        rows.iter()
++            .all(|r| r["fused_vs_candle"]["differing_values"] == 0),
++        "candidate fails exact-output gate"
++    );
++    Ok(())
++}
++
++static ACTIVE: std::sync::atomic::AtomicBool =
++    std::sync::atomic::AtomicBool::new(false);
++static REFERENCE: std::sync::atomic::AtomicBool =
++    std::sync::atomic::AtomicBool::new(false);
++pub(super) fn forward(
++    xs: &Tensor,
++    act: &Linear,
++    gate: &Linear,
++) -> Result<Option<Tensor>> {
++    use std::sync::atomic::Ordering;
++    if !ACTIVE.load(Ordering::Relaxed) || REFERENCE.load(Ordering::Relaxed) {
++        return Ok(None);
++    }
++    if xs.dim(0)? < 2048 {
++        return Ok(None);
++    }
++    let g = super::encoder_linear(xs, gate)?;
++    Ok(Some(xs.apply_op3_no_bwd(act.weight(), &g, &Pilot(true))?))
++}
++#[test]
++#[ignore = "requires CUTLASS pilot, CUDA and checkpoint"]
++fn paired_cutlass_epilogue() -> anyhow::Result<()> {
++    ACTIVE.store(true, std::sync::atomic::Ordering::Relaxed);
++    let result = crate::model::batch_bench::run_paired_cases(
++        &REFERENCE,
++        crate::model::batch_bench::cases(),
++    );
++    ACTIVE.store(false, std::sync::atomic::Ordering::Relaxed);
++    result
++}
++
++#[test]
++#[ignore = "requires CUTLASS pilot and CUDA"]
++fn cutlass_seeded_products() -> anyhow::Result<()> {
++    let device = candle_core::Device::new_cuda(0)?;
++    let mut seed = 713u32;
++    let mut tensor = |rows, columns| -> Result<Tensor> {
++        let data: Vec<f32> = (0..rows * columns)
++            .map(|i| {
++                seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
++                ((seed >> 8) as f32 / 16777216.0 - 0.5)
++                    * [0.001, 0.1, 1.0, 8.0][i % 4]
++            })
++            .collect();
++        Tensor::from_vec(data, (rows, columns), &device)?.to_dtype(DType::BF16)
++    };
++    let a = Linear::new(tensor(2624, 1024)?, None);
++    let g = Linear::new(tensor(2624, 1024)?, None);
++    let mut report = vec![];
++    for rows in [129, 1032, 1536, 2048, 3870, 4128, 5400] {
++        let input = tensor(rows, 1024)?;
++        for xs in [&input, &input.neg()?] {
++            let gate = xs.apply(&g)?;
++            let expected_act = xs.apply(&a)?;
++            let plain =
++                xs.apply_op3_no_bwd(a.weight(), &gate, &Pilot(false))?;
++            let fused = xs.apply_op3_no_bwd(a.weight(), &gate, &Pilot(true))?;
++            report.push(json!({"rows":rows,"gemm_vs_candle":compare(&plain,&expected_act)?,
++                "fused_vs_candle":compare(&fused,&crate::geglu_cuda::forward(&expected_act,&gate)?)?,
++                "epilogue_rounding_control":compare(&fused,&crate::geglu_cuda::forward(&plain,&gate)?)?}));
++        }
++    }
++    std::fs::write(
++        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
++            "../../research/inference-followups/03-seeded-exactness.json",
++        ),
++        serde_json::to_vec_pretty(&report)?,
++    )?;
++    eprintln!("SEEDED_REPORT={}", serde_json::to_string(&report)?);
++    assert!(
++        report
++            .iter()
++            .all(|r| r["fused_vs_candle"]["differing_values"] == 0)
++    );
++    Ok(())
++}
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index aa800e7cf1..bc7aeae6ad 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -606,6 +606,14 @@
+     ) -> Result<Tensor> {
+         #[cfg(feature = "cuda")]
+         if xs.device().is_cuda() && xs.dtype() == DType::BF16 {
++            #[cfg(all(test, feature = "flash-attn"))]
++            fused_gemm_probe::probe(xs, &self.wi_act, &self.wi_gate)?;
++            #[cfg(all(test, feature = "flash-attn"))]
++            if let Some(fused) =
++                fused_gemm_probe::forward(xs, &self.wi_act, &self.wi_gate)?
++            {
++                return output(&fused, &self.wo);
++            }
+             #[cfg(test)]
+             if crate::geglu_cuda::REFERENCE_MLP
+                 .load(std::sync::atomic::Ordering::Relaxed)
+@@ -1429,3 +1437,7 @@
+         Ok(xs)
+     }
+ }
++
++#[cfg(all(test, feature = "flash-attn"))]
++#[path = "fused_gemm_probe.rs"]
++mod fused_gemm_probe;

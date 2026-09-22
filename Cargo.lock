@@ -3938,6 +3938,7 @@ dependencies = [
  "candle-flash-attn",
  "candle-nn",
  "criterion",
+ "cudaforge",
  "hegeltest",
  "hf-hub",
  "indexmap",

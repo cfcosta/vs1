@@ -58,6 +58,7 @@ pub(crate) fn enabled(kind: &str, xs: &Tensor) -> bool {
         || xs.dtype() != DType::BF16
         || xs.rank() != 2
         || !xs.is_contiguous()
+        || candle_core::cuda_backend::gemm_reduced_precision_bf16()
     {
         return false;
     }
@@ -65,6 +66,10 @@ pub(crate) fn enabled(kind: &str, xs: &Tensor) -> bool {
     if xs.dims()[0] < minimum_rows || xs.dims()[1] != 1024 {
         return false;
     }
+    supported_device(xs)
+}
+
+pub(crate) fn supported_device(xs: &Tensor) -> bool {
     let Ok(dev) = xs.device().as_cuda_device() else {
         return false;
     };

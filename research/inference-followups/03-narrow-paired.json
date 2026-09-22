@@ -1,0 +1,83 @@
+[
+  {
+    "name": "1",
+    "baseline_p50_ms": 5.999269,
+    "candidate_p50_ms": 5.989864,
+    "paired_change_percent": -0.030360575379539956,
+    "faster_pairs": 21,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "8",
+    "baseline_p50_ms": 26.220422,
+    "candidate_p50_ms": 25.0577435,
+    "paired_change_percent": -0.06767764923087949,
+    "faster_pairs": 22,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "32",
+    "baseline_p50_ms": 74.746074,
+    "candidate_p50_ms": 73.052859,
+    "paired_change_percent": -2.1798213211828177,
+    "faster_pairs": 29,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "64",
+    "baseline_p50_ms": 153.618427,
+    "candidate_p50_ms": 149.95804900000002,
+    "paired_change_percent": -2.562637556095182,
+    "faster_pairs": 35,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "128",
+    "baseline_p50_ms": 311.2564595,
+    "candidate_p50_ms": 306.312405,
+    "paired_change_percent": -0.8041502015374236,
+    "faster_pairs": 23,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "mixed128",
+    "baseline_p50_ms": 423.860179,
+    "candidate_p50_ms": 415.1350465,
+    "paired_change_percent": -1.2833883473292396,
+    "faster_pairs": 35,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "shared128",
+    "baseline_p50_ms": 329.122021,
+    "candidate_p50_ms": 323.2129915,
+    "paired_change_percent": -1.8359293011252387,
+    "faster_pairs": 37,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "browser_call3",
+    "baseline_p50_ms": 22.546264,
+    "candidate_p50_ms": 22.508054,
+    "paired_change_percent": -0.381981071388493,
+    "faster_pairs": 21,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "browser_call5",
+    "baseline_p50_ms": 38.60260650000001,
+    "candidate_p50_ms": 38.703931,
+    "paired_change_percent": 0.3990698735214515,
+    "faster_pairs": 19,
+    "pairs": 40,
+    "outputs_exact": true
+  }
+]

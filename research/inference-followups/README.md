@@ -143,6 +143,80 @@ The final repeat is `02-batch-final-repeat.json`. Release FlashAttention unit
 tests (50 passed), all-target release Clippy with warnings denied, and the
 CPU-only build check passed. Canonical `nix fmt` passed.
 
+## 3. Rounded CUTLASS GeGLU epilogue
+
+The unrestricted pilot passed checkpoint-output checks but slowed single-question
+calls by 22.4%. That dispatch was rejected. The retained candidate is limited to
+BF16 contiguous matrices with 1024 input columns, 2624 output columns, 2048–32768
+packed rows, default BF16 reduction precision, the RTX 3080 Ti and cuBLAS 12.9.1.
+Other cases retain the preceding implementation. It reuses the same pinned
+CUTLASS commit/cache as Candle FlashAttention and builds a static CUDA library;
+there is no runtime NVRTC compilation or external shared-library path in production.
+
+The activation GEMM accumulates in F32, then its epilogue rounds to BF16 before
+GELU, rounds the normal CDF to BF16, and performs both multiplications with BF16
+rounding. The gate projection remains a separate unchanged GEMM. This removes
+the activation-buffer write/read and the standalone GeGLU launch. On eligible
+shapes it supersedes the FFN projection-stream path from experiment 1; Q/K/V
+stream overlap remains active. The ordinary one/eight/browser cases are below
+the row cutoff and keep their prior path.
+
+The initial actual-checkpoint first-FFN screen covered four shapes. The extended
+seeded test covers 24 products (positive/negative inputs at 12 row counts, mixed
+input magnitudes), including 2047/2048/2049 boundaries and rows up to 32768.
+Across **417,651,584** BF16 outputs, the plain CUTLASS GEMM matches Candle, the
+rounded epilogue matches the separate GeGLU kernel, and the fused result matches
+Candle plus GeGLU exactly. These finite checks do not prove arbitrary-input
+bitwise equivalence. `03-final-seeded-exactness.json` contains the comparisons.
+
+The initial all-row and narrowed pilot reports are `03-pilot-paired.json` and
+`03-narrow-paired.json`. `03-pilot.patch` plus `03-pilot.cu` preserve the offline
+prototype (apply to `da52a505b732`, compile with CUDA 12.9 and the pinned CUTLASS
+headers, then set `VS1_CUTLASS_LIB` for its opt-in tests). The archived prototype
+contains the narrowed cutoff; remove its row cutoff only to reproduce the
+rejected unrestricted dispatch.
+
+Integrated implementation, 40 AB/BA pairs per workload:
+
+| Workload      | First paired latency change | Repeat |
+| ------------- | --------------------------: | -----: |
+| 1             |                      -0.05% | -0.25% |
+| 8             |                      -0.14% | -0.03% |
+| 32            |                      -2.37% | -2.63% |
+| 64            |                      -1.49% | -1.66% |
+| 128           |                      -1.55% | -1.58% |
+| mixed128      |                      -0.54% | -0.37% |
+| shared128     |                      -1.84% | -1.51% |
+| browser_call3 |                      +0.03% | -0.00% |
+| browser_call5 |                      +0.09% | +0.07% |
+
+Small-path fluctuations are controls, not improvements. The mixed-length gain
+is small and variable; the strongest repeatable evidence is the uniform and
+shared-state larger workloads. `03-final-paired.json` and `03-final-repeat.json` record both runs.
+The opt-in tests are `rounded_products_match_candle` and
+`paired_rounded_epilogue`, run with release FlashAttention and one test thread.
+
+The full integrated 12-workload regression (10 iterations, alternate inputs,
+five shape cycles) matches the initial `4309c5ed6751` response/action baseline
+exactly; see `03-final-regression-summary.json`. Worker ordering/error/concurrent
+caller checks and the cache-plus-workers check also passed with fusion enabled.
+A combined-worker run (`03-combined-batches.json`) still improves uniform/shared
+multi-batch latency by 4.5–6.1% over fused serial inference, and mixed128 by 3.7%.
+Those figures use a newer baseline than experiment 2 and should not be added to
+its earlier percentages.
+
+To isolate the interaction, a further 40-pair comparison keeps parallel workers
+on and changes only fusion. Fusion improves 64 questions by 1.90% and shared128
+by 1.17%, with 39/40 pairs faster in each case and exact outputs. The report is
+`03-worker-interaction.json`; the earlier worker implementation is its baseline.
+This directly checks that fusion helps the opted-in worker path as well.
+
+The independent worker-path repeat improves 64 by 1.54% (29/40 pairs faster), shared128 by 2.15% (33/40 pairs faster).
+`03-worker-interaction-repeat.json` records it. Final release tests (52 passed),
+all-target release Clippy with warnings denied, CPU-only tests (46 passed),
+plain-CUDA compilation, and canonical `nix fmt` pass. The widened seeded
+product check also passes again with explicit dispatch-boundary assertions.
+
 ## 4. Exact prepared-batch result cache
 
 Accepted as the opt-in builder setting `.with_result_cache_capacity(32)`; the

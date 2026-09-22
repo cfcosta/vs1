@@ -231,6 +231,14 @@ pub(crate) fn run_paired_cases(
     reference: &'static std::sync::atomic::AtomicBool,
     cases: Vec<(String, Vec<SystemOneRequest>)>,
 ) -> anyhow::Result<()> {
+    run_paired_model(reference, cases, model()?)
+}
+
+pub(crate) fn run_paired_model(
+    reference: &'static std::sync::atomic::AtomicBool,
+    cases: Vec<(String, Vec<SystemOneRequest>)>,
+    model: SystemOne,
+) -> anyhow::Result<()> {
     use std::sync::atomic::Ordering;
     struct Reset(&'static std::sync::atomic::AtomicBool);
     impl Drop for Reset {
@@ -239,7 +247,6 @@ pub(crate) fn run_paired_cases(
         }
     }
     let _reset = Reset(reference);
-    let model = model()?;
     let mut report = vec![];
     for (name, requests) in cases {
         reference.store(true, Ordering::Relaxed);

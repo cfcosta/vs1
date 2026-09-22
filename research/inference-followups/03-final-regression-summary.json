@@ -1,0 +1,7 @@
+{
+  "workloads": 12,
+  "iterations": 10,
+  "baseline_revision": "4309c5ed6751ca23064c6603cff968bc6e4ed4ed",
+  "original_and_alternate_outputs_exact": true,
+  "shape_cycles": 5
+}

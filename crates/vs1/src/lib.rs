@@ -107,3 +107,6 @@ pub use types::AbstentionAnswer;
 
 #[cfg(feature = "flash-attn")]
 mod parallel_cuda;
+
+#[cfg(feature = "flash-attn")]
+mod cutlass_geglu;

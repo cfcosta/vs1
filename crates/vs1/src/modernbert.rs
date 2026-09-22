@@ -615,6 +615,16 @@ impl ModernBertMLP {
                 return output(&(act * gate)?, &self.wo);
             }
             #[cfg(feature = "flash-attn")]
+            if crate::cutlass_geglu::enabled(xs, self.wi_act.weight()) {
+                let gate = encoder_linear(xs, &self.wi_gate)?;
+                let fused = crate::cutlass_geglu::forward(
+                    xs,
+                    self.wi_act.weight(),
+                    &gate,
+                )?;
+                return output(&fused, &self.wo);
+            }
+            #[cfg(feature = "flash-attn")]
             if crate::parallel_cuda::enabled("ffn", xs) {
                 let pair = crate::parallel_cuda::project(
                     xs,

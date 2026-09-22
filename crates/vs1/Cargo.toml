@@ -38,7 +38,7 @@ cuda = ["candle-core/cuda", "candle-nn/cuda"]
 # Packed and windowed flash-attention kernels for the encoder. Needs
 # nvcc and NVIDIA's cutlass at build time; the plain `cuda` feature is
 # enough for the masked path the decision head uses.
-flash-attn = ["cuda", "dep:candle-flash-attn"]
+flash-attn = ["cuda", "dep:candle-flash-attn", "dep:cudaforge"]
 metal = ["candle-core/metal", "candle-nn/metal"]
 mkl = ["candle-core/mkl", "candle-nn/mkl"]
 accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
@@ -54,3 +54,6 @@ path = "src/bin/vs1.rs"
 [[bench]]
 name = "decide"
 harness = false
+
+[build-dependencies]
+cudaforge = { version = "0.1.6", optional = true }

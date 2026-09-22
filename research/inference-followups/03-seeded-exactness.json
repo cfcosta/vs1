@@ -1,0 +1,254 @@
+[
+  {
+    "rows": 129,
+    "gemm_vs_candle": {
+      "values": 338496,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 338496,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 338496,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 129,
+    "gemm_vs_candle": {
+      "values": 338496,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 338496,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 338496,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 1032,
+    "gemm_vs_candle": {
+      "values": 2707968,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 2707968,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 2707968,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 1032,
+    "gemm_vs_candle": {
+      "values": 2707968,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 2707968,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 2707968,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 1536,
+    "gemm_vs_candle": {
+      "values": 4030464,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 4030464,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 4030464,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 1536,
+    "gemm_vs_candle": {
+      "values": 4030464,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 4030464,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 4030464,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 2048,
+    "gemm_vs_candle": {
+      "values": 5373952,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 5373952,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 5373952,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 2048,
+    "gemm_vs_candle": {
+      "values": 5373952,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 5373952,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 5373952,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 3870,
+    "gemm_vs_candle": {
+      "values": 10154880,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 10154880,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 10154880,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 3870,
+    "gemm_vs_candle": {
+      "values": 10154880,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 10154880,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 10154880,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 4128,
+    "gemm_vs_candle": {
+      "values": 10831872,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 10831872,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 10831872,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 4128,
+    "gemm_vs_candle": {
+      "values": 10831872,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 10831872,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 10831872,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 5400,
+    "gemm_vs_candle": {
+      "values": 14169600,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 14169600,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 14169600,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  },
+  {
+    "rows": 5400,
+    "gemm_vs_candle": {
+      "values": 14169600,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "fused_vs_candle": {
+      "values": 14169600,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    },
+    "epilogue_rounding_control": {
+      "values": 14169600,
+      "differing_values": 0,
+      "max_absolute_error": 0.0
+    }
+  }
+]
