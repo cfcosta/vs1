@@ -38,7 +38,7 @@ struct Config {
 impl Config {
     fn from_slice(bytes: &[u8]) -> Result<Self> {
         let config: Self = serde_json::from_slice(bytes)?;
-        for (setting, unsupported) in [
+        for (setting, is_unsupported) in [
             ("peft_type", config.peft_type != "LORA"),
             ("bias", config.bias != "none"),
             ("use_dora", config.use_dora),
@@ -60,7 +60,7 @@ impl Config {
                 config.trainable_token_indices.is_some(),
             ),
         ] {
-            if unsupported {
+            if is_unsupported {
                 return Err(SystemOneError::Config(format!(
                     "unsupported LoRA setting: {setting}"
                 )));
@@ -79,7 +79,7 @@ impl Config {
 struct Weights {
     a: Tensor,
     b: Tensor,
-    used: bool,
+    is_used: bool,
 }
 
 /// PEFT text adapters keyed by the original Qwen3.5 checkpoint weight names.
@@ -161,7 +161,14 @@ impl LoraAdapter {
                     config.r
                 )));
             }
-            modules.insert(name, Weights { a, b, used: false });
+            modules.insert(
+                name,
+                Weights {
+                    a,
+                    b,
+                    is_used: false,
+                },
+            );
         }
         Ok(Self {
             modules,
@@ -199,7 +206,7 @@ impl LoraAdapter {
         let b = weights.b.to_device(base_weight.device())?;
         let delta = (b.matmul(&a)? * self.scale)?;
         let merged = (base_weight.to_dtype(DType::F32)? + delta)?;
-        weights.used = true;
+        weights.is_used = true;
         Ok(merged)
     }
 
@@ -208,7 +215,7 @@ impl LoraAdapter {
         let unused: Vec<_> = self
             .modules
             .iter()
-            .filter(|(_, weights)| !weights.used)
+            .filter(|(_, weights)| !weights.is_used)
             .map(|(name, _)| name.as_str())
             .collect();
         if !unused.is_empty() {
@@ -460,7 +467,7 @@ mod tests {
             adapter
                 .modules
                 .values()
-                .filter(|weights| weights.used)
+                .filter(|weights| weights.is_used)
                 .count(),
             1
         );

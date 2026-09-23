@@ -43,7 +43,7 @@ impl CuaS1Input {
     ) -> Result<Self> {
         let (chat_text, letters) =
             build_prompt(options, app, task_family, ax_tree, goal)?;
-        let letter_ids = letter_token_ids(tokenizer, &letters)?;
+        let letter_ids = encode_letters(tokenizer, &letters)?;
         // Python calls tokenizer(chat_text) with special tokens enabled.
         let input_ids = tokenizer
             .encode(chat_text.as_str(), true)?
@@ -114,10 +114,7 @@ fn build_prompt(
     ))
 }
 
-fn letter_token_ids(
-    tokenizer: &Tokenizer,
-    letters: &[char],
-) -> Result<Vec<u32>> {
+fn encode_letters(tokenizer: &Tokenizer, letters: &[char]) -> Result<Vec<u32>> {
     letters.iter().map(|letter| {
         let encoded = tokenizer.encode(letter.to_string(), false)?;
         match encoded.get_ids() {
@@ -288,7 +285,7 @@ mod tests {
             tokenizer
                 .with_normalizer(Some(Replace::new("A", replacement).unwrap()))
                 .unwrap();
-            let error = letter_token_ids(&tokenizer, &['A']).unwrap_err();
+            let error = encode_letters(&tokenizer, &['A']).unwrap_err();
             assert!(error.to_string().contains(&format!("got {count}")));
         }
     }
