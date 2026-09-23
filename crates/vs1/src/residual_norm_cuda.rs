@@ -24,6 +24,15 @@ pub(crate) static REFERENCE_NORM: std::sync::atomic::AtomicBool =
 static KERNEL_CALLS: std::sync::atomic::AtomicUsize =
     std::sync::atomic::AtomicUsize::new(0);
 
+/// Test-only switch back to the 1024-thread kernel at width 1024.
+#[cfg(test)]
+pub(crate) static REFERENCE_WIDE: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
+#[cfg(test)]
+static WIDE_CALLS: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+
 struct ResidualNorm {
     eps: f32,
 }
@@ -63,6 +72,54 @@ impl CustomOp3 for ResidualNorm {
         let (rows, cols) = xl.shape().dims2()?;
         let count = rows * cols;
         let dev = x.device();
+        // 16-byte vector loads need every view to start on 8 BF16 values;
+        // cudaMalloc bases are 256-byte aligned.
+        let wide = cols == 1024
+            && [xl, yl, wl].iter().all(|l| l.start_offset() % 8 == 0);
+        #[cfg(test)]
+        let wide =
+            wide && !REFERENCE_WIDE.load(std::sync::atomic::Ordering::Relaxed);
+        if wide {
+            #[cfg(test)]
+            WIDE_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let func = dev.get_or_load_custom_func(
+                "residual_norm_1024_bf16",
+                "vs1_residual_norm",
+                include_str!(concat!(env!("OUT_DIR"), "/residual_norm.ptx")),
+            )?;
+            let x = xs.slice(xl.start_offset()..xl.start_offset() + count);
+            let y = ys.slice(yl.start_offset()..yl.start_offset() + count);
+            let weight = ws.slice(wl.start_offset()..wl.start_offset() + cols);
+            // SAFETY: every output element is written by the kernel.
+            let mut out = unsafe { dev.alloc(2 * count)? };
+            let (r, eps) = (rows as u32, self.eps);
+            let mut launch = func.builder();
+            launch
+                .arg(&x)
+                .arg(&y)
+                .arg(&weight)
+                .arg(&mut out)
+                .arg(&r)
+                .arg(&eps);
+            const ROWS_PER_BLOCK: u32 = 4;
+            // SAFETY: forward validates shapes, devices and contiguous BF16
+            // storage; alignment is checked above.
+            unsafe {
+                launch.launch(LaunchConfig {
+                    grid_dim: (r.div_ceil(ROWS_PER_BLOCK), 1, 1),
+                    block_dim: (32, ROWS_PER_BLOCK, 1),
+                    shared_mem_bytes: 0,
+                })
+            }
+            .w()?;
+            return Ok((
+                CudaStorage {
+                    slice: CudaStorageSlice::BF16(out),
+                    device: dev.clone(),
+                },
+                (2, rows, cols).into(),
+            ));
+        }
         let func = dev.get_or_load_custom_func(
             "residual_norm_bf16",
             "vs1_residual_norm",
@@ -227,6 +284,72 @@ mod tests {
             .to_dtype(DType::BF16)?;
         let weight = Tensor::ones(1024, DType::BF16, &device)?;
         check(&x, &x, &weight, 1e-5)?;
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "requires CUDA"]
+    fn wide_residual_norm_matches_candle_bits() -> Result<()> {
+        let device = candle_core::Device::new_cuda(0)?;
+        let mut state = 0x9e37_79b9_7f4a_7c15u64;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        // 4133 rows leaves a partial four-row block; scales span
+        // cancellation-heavy, tiny (subnormal products) and large rows.
+        let rows = 4133;
+        let mut values = |rows: usize| -> Vec<f32> {
+            (0..rows * 1024)
+                .map(|i| {
+                    let r = next();
+                    let unit = (r >> 40) as f32 / (1u64 << 24) as f32 - 0.5;
+                    let scale = [1.0, 1e-3, 1e-20, 64.0, 3e4][(i / 1024) % 5];
+                    let offset = if (i / 1024) % 7 == 3 { 50.0 } else { 0.0 };
+                    unit * scale + offset
+                })
+                .collect()
+        };
+        let x = Tensor::from_vec(values(rows), (rows, 1024), &device)?
+            .to_dtype(DType::BF16)?;
+        let y = Tensor::from_vec(values(rows), (rows, 1024), &device)?
+            .to_dtype(DType::BF16)?;
+        let weight = Tensor::from_vec(
+            (0..1024)
+                .map(|i| ((i * 13 % 257) as f32 - 128.0) / 97.0)
+                .collect::<Vec<_>>(),
+            1024,
+            &device,
+        )?
+        .to_dtype(DType::BF16)?;
+        WIDE_CALLS.store(0, std::sync::atomic::Ordering::Relaxed);
+        for eps in [1e-5, 1e-12] {
+            check(&x, &y, &weight, eps)?;
+            check(&x.narrow(0, 1, 7)?, &y.narrow(0, 2, 7)?, &weight, eps)?;
+        }
+        assert_eq!(WIDE_CALLS.load(std::sync::atomic::Ordering::Relaxed), 4);
+        // A view that is not 16-byte aligned takes the original kernel.
+        let flat = x.flatten_all()?;
+        let shifted = flat.narrow(0, 1, 8 * 1024)?.reshape((8, 1024))?;
+        check(&shifted, &y.narrow(0, 0, 8)?, &weight, 1e-5)?;
+        assert_eq!(WIDE_CALLS.load(std::sync::atomic::Ordering::Relaxed), 4);
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "requires CUDA and checkpoint; run alone"]
+    fn paired_wide_norm() -> anyhow::Result<()> {
+        WIDE_CALLS.store(0, std::sync::atomic::Ordering::Relaxed);
+        crate::model::batch_bench::run_paired_cases(
+            &REFERENCE_WIDE,
+            crate::model::batch_bench::cases(),
+        )?;
+        assert!(
+            WIDE_CALLS.load(std::sync::atomic::Ordering::Relaxed) > 0,
+            "benchmark did not exercise the wide residual norm"
+        );
         Ok(())
     }
 
