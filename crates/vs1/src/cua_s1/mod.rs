@@ -2,6 +2,8 @@
 
 mod api;
 mod attention;
+#[cfg(feature = "cuda")]
+mod causal_conv_cuda;
 mod config;
 mod delta_net;
 #[cfg(feature = "cuda")]

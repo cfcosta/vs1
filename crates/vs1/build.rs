@@ -6,6 +6,7 @@ fn main() {
     println!("cargo::rerun-if-changed=src/residual_norm.cu");
     println!("cargo::rerun-if-changed=src/bias_act.cu");
     println!("cargo::rerun-if-changed=src/gated_delta.cu");
+    println!("cargo::rerun-if-changed=src/causal_conv.cu");
     println!("cargo::rerun-if-changed=src/zero_centered_rms_norm.cu");
     println!("cargo::rerun-if-env-changed=CUDA_PATH");
     println!("cargo::rerun-if-env-changed=NVCC");
@@ -29,6 +30,7 @@ fn main() {
         "residual_norm",
         "bias_act",
         "gated_delta",
+        "causal_conv",
         "zero_centered_rms_norm",
     ] {
         let status = Command::new(&nvcc)

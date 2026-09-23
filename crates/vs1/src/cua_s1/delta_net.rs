@@ -100,7 +100,7 @@ impl GatedDeltaNet {
 
     fn mix(&self, mixed: &Tensor, a: &Tensor, b: &Tensor) -> Result<Tensor> {
         let seq = mixed.dim(0)?;
-        let mixed = convolve_causally(mixed, &self.conv_weight)?.silu()?;
+        let mixed = convolve_causally_with_silu(mixed, &self.conv_weight)?;
         let key_dim = self.num_key_heads * self.key_head_dim;
         let value_dim = self.num_value_heads * self.value_head_dim;
         let query = mixed.narrow(1, 0, key_dim)?.reshape((
@@ -169,7 +169,17 @@ impl Module for GatedDeltaNet {
     }
 }
 
-fn convolve_causally(x: &Tensor, weight: &Tensor) -> Result<Tensor> {
+fn convolve_causally_with_silu(x: &Tensor, weight: &Tensor) -> Result<Tensor> {
+    #[cfg(feature = "cuda")]
+    if let Some(output) =
+        super::causal_conv_cuda::convolve_causally_with_silu(x, weight)?
+    {
+        return Ok(output);
+    }
+    convolve_causally(x, weight)?.silu()
+}
+
+pub(super) fn convolve_causally(x: &Tensor, weight: &Tensor) -> Result<Tensor> {
     let (seq, channels) = x.dims2()?;
     let (weight_channels, channels_per_group, kernel) = weight.dims3()?;
     if weight_channels != channels || channels_per_group != 1 || kernel == 0 {
