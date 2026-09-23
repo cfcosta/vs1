@@ -41,6 +41,7 @@ fn main() -> anyhow::Result<()> {
     let mut device_name = "cpu".to_string();
     let mut dtype: Option<DType> = None;
     let mut batch_size: Option<usize> = None;
+    let mut max_len: Option<usize> = None;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--dump-ids" => dump_ids = true,
@@ -73,13 +74,22 @@ fn main() -> anyhow::Result<()> {
                         .parse()?,
                 )
             }
+            "--max-len" => {
+                max_len = Some(
+                    args.next().context("--max-len needs a value")?.parse()?,
+                )
+            }
             other if path.is_none() => path = Some(other.to_string()),
             other => bail!("unexpected argument {other:?}"),
         }
     }
     let path = path.context(
-        "usage: vs1 [--backend laya|openjev|cua-s1|jev] [--model MODEL] [--dump-ids] [--device cpu|cuda] request.json",
+        "usage: vs1 [--backend laya|openjev|cua-s1|jev] [--model MODEL] [--dump-ids] [--device cpu|cuda] [--max-len TOKENS] request.json",
     )?;
+    anyhow::ensure!(
+        max_len.is_none() || backend == "cua-s1",
+        "--max-len is supported only for --backend cua-s1"
+    );
     let raw = fs::read_to_string(&path)?;
     let (requests, single): (Vec<SystemOneRequest>, bool) =
         match serde_json::from_str(&raw) {
@@ -149,6 +159,9 @@ fn main() -> anyhow::Result<()> {
             .with_device(device(&device_name)?);
             if let Some(dtype) = dtype {
                 builder = builder.with_dtype(dtype);
+            }
+            if let Some(tokens) = max_len {
+                builder = builder.with_max_len(tokens);
             }
             let model: vs1::CuaS1 = builder.try_into()?;
             eprintln!(

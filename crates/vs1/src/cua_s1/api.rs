@@ -31,6 +31,7 @@ pub const ADAPTER_REVISION: &str = "16818868b0cc7813808aae4e87b417657046ab79";
 pub const BASE_REPO_ID: &str = "Qwen/Qwen3.5-4B";
 pub const BASE_REVISION: &str = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a";
 pub const MODEL_NAME: &str = "Cua-S1-4B";
+pub const DEFAULT_MAX_LEN: usize = 4096;
 
 /// One option's final-position letter logit and option-only probability.
 #[derive(Debug, Clone, Serialize)]
@@ -39,6 +40,8 @@ pub struct CuaS1OptionPrediction {
     pub option: CuaS1Option,
     pub logit: f32,
     pub probability: f32,
+    /// State tokens dropped for this question; identical for every option.
+    pub dropped_state_tokens: usize,
 }
 
 /// Local Cua-S1 text decision model, supported on CPU/F32 and CUDA/BF16.
@@ -48,6 +51,7 @@ pub struct CuaS1 {
     app: String,
     device: Device,
     dtype: DType,
+    max_len: usize,
 }
 
 pub struct CuaS1Builder {
@@ -56,9 +60,15 @@ pub struct CuaS1Builder {
     dtype: Option<DType>,
     local_directories: Option<(PathBuf, PathBuf)>,
     app: String,
+    max_len: usize,
 }
 
 impl CuaS1Builder {
+    /// Limits the complete prompt, truncating only the end of the state.
+    pub fn with_max_len(mut self, tokens: usize) -> Self {
+        self.max_len = tokens;
+        self
+    }
     pub fn with_app(mut self, app: impl Into<String>) -> Self {
         self.app = app.into();
         self
@@ -132,6 +142,7 @@ impl TryFrom<CuaS1Builder> for CuaS1 {
             app: builder.app,
             device: builder.device,
             dtype,
+            max_len: builder.max_len,
         })
     }
 }
@@ -190,6 +201,7 @@ impl CuaS1 {
             dtype: None,
             local_directories: None,
             app: "vs1".into(),
+            max_len: DEFAULT_MAX_LEN,
         }
     }
     pub fn model_name(&self) -> &str {
@@ -200,6 +212,9 @@ impl CuaS1 {
     }
     pub fn dtype(&self) -> DType {
         self.dtype
+    }
+    pub fn max_len(&self) -> usize {
+        self.max_len
     }
 
     pub fn system_one(
@@ -220,13 +235,14 @@ impl CuaS1 {
             let state = request.state.render();
             for (id, question) in &request.questions {
                 let (goal, options) = format_input(id, question)?;
-                inputs.push(CuaS1Input::encode(
+                inputs.push(CuaS1Input::encode_with_max_len(
                     &self.tokenizer,
                     &options,
                     &self.app,
                     id,
                     &state,
                     Some(&goal),
+                    self.max_len,
                 )?);
                 locations.push((r, id, question, options));
             }
@@ -239,9 +255,17 @@ impl CuaS1 {
                 usage: Usage::default(),
             })
             .collect();
-        for ((r, id, q, options), input) in locations.into_iter().zip(inputs) {
+        for ((r, id, q, options), (input, dropped_state_tokens)) in
+            locations.into_iter().zip(inputs)
+        {
             let prediction = self.model.forward(&input)?;
             responses[r].usage.input_tokens += input.input_ids.len();
+            if dropped_state_tokens > 0 {
+                responses[r]
+                    .usage
+                    .dropped_state_tokens
+                    .insert(id.clone(), dropped_state_tokens);
+            }
             responses[r].answers.insert(
                 id.clone(),
                 answer(q, &options, &prediction.probabilities),
@@ -260,13 +284,14 @@ impl CuaS1 {
         goal: Option<&str>,
         options: &[CuaS1Option],
     ) -> Result<Vec<CuaS1OptionPrediction>> {
-        let input = CuaS1Input::encode(
+        let (input, dropped_state_tokens) = CuaS1Input::encode_with_max_len(
             &self.tokenizer,
             options,
             app,
             task_family,
             ax_tree,
             goal,
+            self.max_len,
         )?;
         let prediction = self.model.forward(&input)?;
         Ok(options
@@ -280,6 +305,7 @@ impl CuaS1 {
                     option: option.clone(),
                     logit,
                     probability,
+                    dropped_state_tokens,
                 }
             })
             .collect())
@@ -427,6 +453,13 @@ mod tests {
     fn defaults_app_to_vs1_and_accepts_an_override() {
         assert_eq!(CuaS1::from("unused/repo").app, "vs1");
         assert_eq!(CuaS1::from("unused/repo").with_app("mail").app, "mail");
+    }
+
+    #[test]
+    fn defaults_max_len_to_4096_and_accepts_an_override() {
+        assert_eq!(DEFAULT_MAX_LEN, 4096);
+        assert_eq!(CuaS1::from("unused/repo").max_len, DEFAULT_MAX_LEN);
+        assert_eq!(CuaS1::from("unused/repo").with_max_len(512).max_len, 512);
     }
 
     #[test]

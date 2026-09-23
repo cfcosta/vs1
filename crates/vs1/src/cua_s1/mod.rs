@@ -19,6 +19,7 @@ pub use api::{
     CuaS1,
     CuaS1Builder,
     CuaS1OptionPrediction,
+    DEFAULT_MAX_LEN,
     DEFAULT_REPO_ID,
     MODEL_NAME,
 };

@@ -121,14 +121,15 @@ impl Backend {
             }
             "cua-s1" => {
                 ensure!(
-                    args.subfolder.is_empty()
-                        && args.max_len.is_none()
-                        && args.head_max_len.is_none(),
-                    "Cua-S1 does not use --subfolder, --max-len or --head-max-len"
+                    args.subfolder.is_empty() && args.head_max_len.is_none(),
+                    "Cua-S1 does not use --subfolder or --head-max-len"
                 );
                 let mut builder = vs1::CuaS1::from(&args.checkpoint)
                     .with_dtype(dtype)
                     .with_device(device);
+                if let Some(tokens) = args.max_len {
+                    builder = builder.with_max_len(tokens);
+                }
                 let root = std::path::Path::new(&args.checkpoint);
                 if root.is_dir() {
                     builder = builder.with_local_directories(
@@ -139,7 +140,9 @@ impl Backend {
                     );
                 }
                 let model: vs1::CuaS1 = builder.try_into()?;
-                (model.into(), json!({"backend":"cua-s1"}))
+                let metadata =
+                    json!({"backend":"cua-s1","max_len":model.max_len()});
+                (model.into(), metadata)
             }
             _ => unreachable!("validated local backend"),
         };
@@ -416,13 +419,38 @@ mod tests {
     }
     #[cfg(feature = "local")]
     #[test]
+    fn cua_s1_accepts_max_len_before_loading_weights() {
+        use clap::Parser;
+        let args = crate::Cli::try_parse_from([
+            "vs1-browser",
+            "--backend",
+            "cua-s1",
+            "--device",
+            "cpu",
+            "--max-len",
+            "512",
+            "--checkpoint",
+            env!("CARGO_MANIFEST_DIR"),
+        ])
+        .unwrap();
+        assert_eq!(args.model.max_len, Some(512));
+        let error = Backend::load(&args.model).err().unwrap();
+        assert!(
+            matches!(
+                error.downcast_ref::<vs1::SystemOneError>(),
+                Some(vs1::SystemOneError::Io(_))
+            ),
+            "{error}"
+        );
+    }
+    #[cfg(feature = "local")]
+    #[test]
     fn local_backends_reject_unsupported_options_before_loading_weights() {
         use clap::Parser;
         for (backend, option, message) in [
             ("openjev", "--subfolder", "OpenJev does not use"),
             ("openjev", "--head-max-len", "OpenJev does not use"),
             ("cua-s1", "--subfolder", "Cua-S1 does not use"),
-            ("cua-s1", "--max-len", "Cua-S1 does not use"),
             ("cua-s1", "--head-max-len", "Cua-S1 does not use"),
         ] {
             let args = crate::Cli::try_parse_from([

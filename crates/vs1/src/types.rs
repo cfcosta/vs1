@@ -538,14 +538,15 @@ impl Answer {
 }
 
 /// Token accounting for one request.
-#[derive(
-    Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Usage {
     /// Tokens the encoder read, summed over every question sequence.
     pub input_tokens: usize,
     /// Always zero: nothing is generated.
     pub output_tokens: usize,
+    /// State tokens dropped by Cua-S1, keyed by truncated question ID.
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
+    pub dropped_state_tokens: IndexMap<String, usize>,
 }
 
 /// Answers for one request.
@@ -707,6 +708,18 @@ mod tests {
         });
         let value = serde_json::to_value(&answer).unwrap();
         assert_eq!(value, json!({"type": "noul", "noul": 0.9f32 as f64}));
+    }
+
+    #[test]
+    fn usage_reports_truncation_only_when_present() {
+        let value = json!({"input_tokens": 120, "output_tokens": 0});
+        let mut usage: Usage = serde_json::from_value(value.clone()).unwrap();
+        assert!(usage.dropped_state_tokens.is_empty());
+        assert_eq!(serde_json::to_value(&usage).unwrap(), value);
+        usage.dropped_state_tokens.insert("route".into(), 53);
+        let value = serde_json::to_value(&usage).unwrap();
+        assert_eq!(value["dropped_state_tokens"], json!({"route": 53}));
+        assert_eq!(serde_json::from_value::<Usage>(value).unwrap(), usage);
     }
 
     #[test]

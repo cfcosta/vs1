@@ -41,6 +41,11 @@ impl CuaS1Input {
         ax_tree: &str,
         goal: Option<&str>,
     ) -> Result<Self> {
+        if ax_tree.is_empty() {
+            return Err(SystemOneError::Config(
+                "Cua-S1 text modality requires ax_tree".into(),
+            ));
+        }
         let (chat_text, letters) =
             build_prompt(options, app, task_family, ax_tree, goal)?;
         let letter_ids = encode_letters(tokenizer, &letters)?;
@@ -55,6 +60,57 @@ impl CuaS1Input {
             letters,
             letter_ids,
         })
+    }
+
+    /// Drops only the state's tail, then checks the complete chat prompt.
+    pub(super) fn encode_with_max_len(
+        tokenizer: &Tokenizer,
+        options: &[CuaS1Option],
+        app: &str,
+        task_family: &str,
+        ax_tree: &str,
+        goal: Option<&str>,
+        max_len: usize,
+    ) -> Result<(Self, usize)> {
+        let mut input =
+            Self::encode(tokenizer, options, app, task_family, ax_tree, goal)?;
+        if input.input_ids.len() <= max_len {
+            return Ok((input, 0));
+        }
+        let (empty_prompt, _) =
+            build_prompt(options, app, task_family, "", goal)?;
+        let empty_len = tokenizer.encode(empty_prompt.as_str(), true)?.len();
+        if empty_len > max_len {
+            return Err(SystemOneError::Question {
+                id: task_family.into(),
+                reason: format!(
+                    "Cua-S1 prompt requires {empty_len} tokens even with an empty state, exceeding max_len ({max_len}); shorten the goal or options, or increase max_len"
+                ),
+            });
+        }
+        let state = tokenizer.encode(ax_tree, false)?;
+        let state_ids = state.get_ids();
+        let mut kept = (max_len - empty_len).min(state_ids.len());
+        loop {
+            let prefix = tokenizer.decode(&state_ids[..kept], false)?;
+            // A byte-level token prefix can end inside a Unicode character.
+            if !ax_tree.starts_with(&prefix) {
+                kept = kept.saturating_sub(1);
+                continue;
+            }
+            let (chat_text, _) =
+                build_prompt(options, app, task_family, &prefix, goal)?;
+            let input_ids = tokenizer
+                .encode(chat_text.as_str(), true)?
+                .get_ids()
+                .to_vec();
+            if input_ids.len() <= max_len {
+                input.chat_text = chat_text;
+                input.input_ids = input_ids;
+                return Ok((input, state_ids.len() - kept));
+            }
+            kept = kept.saturating_sub(input_ids.len() - max_len);
+        }
     }
 }
 
@@ -81,11 +137,6 @@ fn build_prompt(
     if !(1..=26).contains(&options.len()) {
         return Err(SystemOneError::Config(
             "Cua-S1 requires between 1 and 26 options".into(),
-        ));
-    }
-    if ax_tree.is_empty() {
-        return Err(SystemOneError::Config(
-            "Cua-S1 text modality requires ax_tree".into(),
         ));
     }
     let letters: Vec<char> = ('A'..='Z').take(options.len()).collect();
@@ -131,7 +182,32 @@ fn encode_letters(tokenizer: &Tokenizer, letters: &[char]) -> Result<Vec<u32>> {
 mod tests {
     use std::path::Path;
 
+    use tokenizers::{
+        models::bpe::{BPE, Vocab},
+        pre_tokenizers::byte_level::ByteLevel,
+    };
+
     use super::*;
+
+    fn build_byte_tokenizer() -> Tokenizer {
+        let mut alphabet: Vec<_> = ByteLevel::alphabet().into_iter().collect();
+        alphabet.sort_unstable();
+        let model = BPE::builder()
+            .vocab_and_merges(
+                alphabet
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, c)| (c.to_string(), i as u32))
+                    .collect::<Vocab>(),
+                vec![],
+            )
+            .build()
+            .unwrap();
+        let mut tokenizer = Tokenizer::new(model);
+        tokenizer.with_pre_tokenizer(Some(ByteLevel::new(false, false, false)));
+        tokenizer.with_decoder(Some(ByteLevel::default()));
+        tokenizer
+    }
 
     #[derive(Deserialize)]
     struct Case {
@@ -191,6 +267,242 @@ mod tests {
     }
 
     #[test]
+    fn leaves_short_prompts_untouched() {
+        let tokenizer = build_byte_tokenizer();
+        let (cases, _) = fixtures();
+        for case in cases {
+            let full = CuaS1Input::encode(
+                &tokenizer,
+                &case.options,
+                &case.app,
+                &case.task_family,
+                &case.ax_tree,
+                case.goal.as_deref(),
+            )
+            .unwrap();
+            for max_len in [full.input_ids.len(), full.input_ids.len() + 100] {
+                let (input, dropped) = CuaS1Input::encode_with_max_len(
+                    &tokenizer,
+                    &case.options,
+                    &case.app,
+                    &case.task_family,
+                    &case.ax_tree,
+                    case.goal.as_deref(),
+                    max_len,
+                )
+                .unwrap();
+                assert_eq!(
+                    serde_json::to_value(input).unwrap(),
+                    serde_json::to_value(&full).unwrap()
+                );
+                assert_eq!(dropped, 0);
+            }
+        }
+    }
+
+    #[test]
+    fn truncates_only_the_state_to_fit_the_complete_prompt() {
+        let tokenizer = build_byte_tokenizer();
+        let (cases, _) = fixtures();
+        let options = &cases[0].options;
+        let state = "Saved message. ".repeat(200);
+        let goal = Some("Save this message.");
+        let (empty, letters) =
+            build_prompt(options, "mail", "save", "", goal).unwrap();
+        let empty_len = tokenizer.encode(empty.as_str(), true).unwrap().len();
+        for kept in [0, 1, 37] {
+            let max_len = empty_len + kept;
+            let (input, dropped) = CuaS1Input::encode_with_max_len(
+                &tokenizer, options, "mail", "save", &state, goal, max_len,
+            )
+            .unwrap();
+            let (expected, _) =
+                build_prompt(options, "mail", "save", &state[..kept], goal)
+                    .unwrap();
+            assert_eq!(input.input_ids.len(), max_len);
+            assert_eq!(input.chat_text, expected);
+            assert_eq!(input.letters, letters);
+            assert_eq!(
+                input.letter_ids,
+                encode_letters(&tokenizer, &letters).unwrap()
+            );
+            assert_eq!(
+                dropped,
+                tokenizer.encode(state.as_str(), false).unwrap().len() - kept
+            );
+            assert_eq!(
+                input.input_ids,
+                tokenizer.encode(expected.as_str(), true).unwrap().get_ids()
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_limits_smaller_than_the_prompt_with_empty_state() {
+        let tokenizer = build_byte_tokenizer();
+        let (cases, _) = fixtures();
+        let options = &cases[0].options;
+        let (empty, _) =
+            build_prompt(options, "mail", "save", "", Some("Save.")).unwrap();
+        let empty_len = tokenizer.encode(empty.as_str(), true).unwrap().len();
+        for max_len in [0, empty_len - 1] {
+            let error = CuaS1Input::encode_with_max_len(
+                &tokenizer,
+                options,
+                "mail",
+                "save",
+                "message",
+                Some("Save."),
+                max_len,
+            )
+            .unwrap_err();
+            let SystemOneError::Question { id, reason } = error else {
+                panic!("expected a per-question error");
+            };
+            assert_eq!(id, "save");
+            assert!(reason.contains(&format!(
+                "requires {empty_len} tokens even with an empty state"
+            )));
+            assert!(reason.contains(&format!("max_len ({max_len})")));
+        }
+    }
+
+    #[test]
+    fn truncates_at_unicode_boundaries() {
+        let tokenizer = build_byte_tokenizer();
+        let (cases, _) = fixtures();
+        let options = &cases[0].options;
+        let (empty, _) =
+            build_prompt(options, "mail", "save", "", None).unwrap();
+        let empty_len = tokenizer.encode(empty.as_str(), true).unwrap().len();
+        for budget in [1, 3, 4, 5] {
+            let (input, dropped) = CuaS1Input::encode_with_max_len(
+                &tokenizer,
+                options,
+                "mail",
+                "save",
+                "🙂🙂",
+                None,
+                empty_len + budget,
+            )
+            .unwrap();
+            let retained = if budget < 4 { "" } else { "🙂" };
+            assert_eq!(
+                input.chat_text,
+                build_prompt(options, "mail", "save", retained, None)
+                    .unwrap()
+                    .0
+            );
+            assert!(input.input_ids.len() <= empty_len + budget);
+            assert_eq!(dropped, 8 - retained.len());
+        }
+    }
+
+    #[test]
+    #[ignore = "requires the pinned local Qwen3.5 tokenizer in artifacts/cua-s1/base"]
+    fn bounds_prompts_with_the_pinned_tokenizer() {
+        let (cases, fixtures) = fixtures();
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../artifacts/cua-s1/base")
+            .join(&fixtures.tokenizer_revision)
+            .join("tokenizer.json");
+        let tokenizer = Tokenizer::from_file(path).unwrap();
+        for (case, expected) in cases.iter().zip(fixtures.cases) {
+            let (short, dropped) = CuaS1Input::encode_with_max_len(
+                &tokenizer,
+                &case.options,
+                &case.app,
+                &case.task_family,
+                &case.ax_tree,
+                case.goal.as_deref(),
+                expected.input_ids.len(),
+            )
+            .unwrap();
+            assert_eq!(short.chat_text, expected.chat_text);
+            assert_eq!(short.input_ids, expected.input_ids);
+            assert_eq!(dropped, 0);
+            let state = format!(
+                "{} {}",
+                case.ax_tree,
+                "Long email. São Paulo 🙂 東京\n".repeat(1000)
+            );
+            let (empty, _) = build_prompt(
+                &case.options,
+                &case.app,
+                &case.task_family,
+                "",
+                case.goal.as_deref(),
+            )
+            .unwrap();
+            let empty_len =
+                tokenizer.encode(empty.as_str(), true).unwrap().len();
+            for max_len in [empty_len, empty_len + 1, empty_len + 37, 4096] {
+                let (input, dropped) = CuaS1Input::encode_with_max_len(
+                    &tokenizer,
+                    &case.options,
+                    &case.app,
+                    &case.task_family,
+                    &state,
+                    case.goal.as_deref(),
+                    max_len,
+                )
+                .unwrap();
+                assert!(input.input_ids.len() <= max_len);
+                assert!(dropped > 0);
+                let retained = input
+                    .chat_text
+                    .split_once("Accessibility tree:\n")
+                    .unwrap()
+                    .1
+                    .split_once("\n\nOptions:\n")
+                    .unwrap()
+                    .0;
+                assert!(state.starts_with(retained));
+                assert_eq!(
+                    input.chat_text,
+                    build_prompt(
+                        &case.options,
+                        &case.app,
+                        &case.task_family,
+                        retained,
+                        case.goal.as_deref()
+                    )
+                    .unwrap()
+                    .0
+                );
+                assert_eq!(
+                    input.input_ids,
+                    tokenizer
+                        .encode(input.chat_text.as_str(), true)
+                        .unwrap()
+                        .get_ids()
+                );
+                assert_eq!(input.letters, expected.letters);
+                assert_eq!(input.letter_ids, expected.letter_ids);
+                if max_len == empty_len {
+                    assert!(retained.is_empty());
+                    assert_eq!(
+                        dropped,
+                        tokenizer.encode(state.as_str(), false).unwrap().len()
+                    );
+                }
+            }
+            assert!(matches!(
+                CuaS1Input::encode_with_max_len(
+                    &tokenizer,
+                    &case.options,
+                    &case.app,
+                    &case.task_family,
+                    &state,
+                    case.goal.as_deref(),
+                    empty_len - 1
+                ),
+                Err(SystemOneError::Question { .. })
+            ));
+        }
+    }
+
+    #[test]
     #[ignore = "requires the pinned local Qwen3.5 tokenizer in artifacts/cua-s1/base"]
     fn upstream_token_ids() {
         let (cases, fixtures) = fixtures();
@@ -240,7 +552,15 @@ mod tests {
             }
         }
         assert!(
-            build_prompt(&cases[0].options, "app", "task", "", None).is_err()
+            CuaS1Input::encode(
+                &build_byte_tokenizer(),
+                &cases[0].options,
+                "app",
+                "task",
+                "",
+                None
+            )
+            .is_err()
         );
     }
 

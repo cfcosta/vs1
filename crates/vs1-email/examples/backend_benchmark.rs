@@ -92,8 +92,8 @@ fn default_audit(backend: &str) -> &'static str {
 }
 fn resolve_audit_budget(backend: &str, mode: &str) -> Result<Option<usize>> {
     if backend == "cua-s1" {
-        // Cua-S1 accepts up to 26 candidates and has no fixed token budget.
-        // Keep full descriptions and whole emails; budgeted audits are OpenJev-only.
+        // Cua-S1 accepts up to 26 candidates and applies its own prompt limit.
+        // Keep original requests; budgeted audit modes are OpenJev-only.
         ensure!(
             mode == "original",
             "cua-s1 supports only original audit mode"
@@ -188,7 +188,7 @@ fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     ensure!(
         (4..=6).contains(&args.len()),
-        "ROOT export|laya|jev|openjev|openjev-bf16|cua-s1 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]\ncua-s1: original only (default), full descriptions and whole emails, at most 26 candidates, no fixed token budget; prepare is OpenJev-only"
+        "ROOT export|laya|jev|openjev|openjev-bf16|cua-s1 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]\ncua-s1: original only (default), full descriptions, state truncated to the model's default prompt limit, at most 26 candidates; prepare is OpenJev-only"
     );
     let root = Path::new(&args[1]);
     let backend = args[2].as_str();
@@ -550,6 +550,7 @@ fn main() -> Result<()> {
                 vs1::CuaS1::from(vs1::cua_s1::DEFAULT_REPO_ID)
                     .with_device(candle_core::Device::new_cuda(0)?)
                     .with_dtype(candle_core::DType::BF16)
+                    .with_max_len(vs1::cua_s1::DEFAULT_MAX_LEN)
                     .try_into()?;
             eprintln!(
                 "{} {:?} {:?}",
@@ -675,7 +676,7 @@ fn compact_audit_preserves_category_ids_and_rejects_unknown_rules() {
 }
 
 #[test]
-fn cua_s1_defaults_to_original_without_a_token_budget() {
+fn cua_s1_defaults_to_original_without_an_audit_budget() {
     assert_eq!(default_audit("cua-s1"), "original");
     assert_eq!(
         resolve_audit_budget("cua-s1", default_audit("cua-s1")).unwrap(),
