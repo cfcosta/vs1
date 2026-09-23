@@ -33,6 +33,21 @@ pub fn normalize_rms_gated(
     gate: &Tensor,
     eps: f64,
 ) -> Result<Tensor> {
+    #[cfg(feature = "cuda")]
+    if let Some(output) =
+        super::gated_rms_norm_cuda::normalize_rms_gated(x, weight, gate, eps)?
+    {
+        return Ok(output);
+    }
+    normalize_rms_gated_candle(x, weight, gate, eps)
+}
+
+pub(super) fn normalize_rms_gated_candle(
+    x: &Tensor,
+    weight: &Tensor,
+    gate: &Tensor,
+    eps: f64,
+) -> Result<Tensor> {
     let input_dtype = x.dtype();
     let x = x.to_dtype(DType::F32)?;
     let variance = x.sqr()?.mean_keepdim(D::Minus1)?;

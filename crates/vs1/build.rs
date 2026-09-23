@@ -8,6 +8,7 @@ fn main() {
     println!("cargo::rerun-if-changed=src/gated_delta.cu");
     println!("cargo::rerun-if-changed=src/causal_conv.cu");
     println!("cargo::rerun-if-changed=src/zero_centered_rms_norm.cu");
+    println!("cargo::rerun-if-changed=src/gated_rms_norm.cu");
     println!("cargo::rerun-if-env-changed=CUDA_PATH");
     println!("cargo::rerun-if-env-changed=NVCC");
     if env::var_os("CARGO_FEATURE_CUDA").is_none() {
@@ -32,6 +33,7 @@ fn main() {
         "gated_delta",
         "causal_conv",
         "zero_centered_rms_norm",
+        "gated_rms_norm",
     ] {
         let status = Command::new(&nvcc)
             .args([
