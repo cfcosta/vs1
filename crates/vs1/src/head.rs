@@ -139,9 +139,11 @@ impl HeadLayer {
         let (total, d) = xs.dims2()?;
         let h = xs.apply(&self.norm1)?;
         let shape = (total, self.num_heads, self.head_dim);
-        let q = h.apply(&self.q)?.reshape(shape)?;
-        let k = h.apply(&self.k)?.reshape(shape)?;
-        let v = h.apply(&self.v)?.reshape(shape)?;
+        let linear =
+            |layer, relu| crate::bias_act_cuda::linear(&h, layer, relu);
+        let q = linear(&self.q, false)?.reshape(shape)?;
+        let k = linear(&self.k, false)?.reshape(shape)?;
+        let v = linear(&self.v, false)?.reshape(shape)?;
         let orig_dtype = q.dtype();
         let flash_dtype = crate::modernbert::flash_compat_dtype(orig_dtype);
         let ctx = candle_flash_attn::flash_attn_varlen(
@@ -156,10 +158,13 @@ impl HeadLayer {
             false,
         )?
         .to_dtype(orig_dtype)?
-        .reshape((total, d))?
-        .apply(&self.out_proj)?;
+        .reshape((total, d))?;
+        let ctx = crate::bias_act_cuda::linear(&ctx, &self.out_proj, false)?;
         let xs = (xs + ctx)?;
-        self.ffn(&xs)
+        let h = xs.apply(&self.norm2)?;
+        let ffn = crate::bias_act_cuda::linear(&h, &self.linear1, true)?;
+        let ffn = crate::bias_act_cuda::linear(&ffn, &self.linear2, false)?;
+        xs + ffn
     }
 
     fn ffn(&self, xs: &Tensor) -> Result<Tensor> {

@@ -1,0 +1,83 @@
+[
+  {
+    "name": "1",
+    "baseline_p50_ms": 5.71846,
+    "candidate_p50_ms": 5.638036,
+    "paired_change_percent": -1.4104720224498934,
+    "faster_pairs": 39,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "8",
+    "baseline_p50_ms": 22.329999,
+    "candidate_p50_ms": 21.875335999999997,
+    "paired_change_percent": -2.020985042382961,
+    "faster_pairs": 38,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "32",
+    "baseline_p50_ms": 73.2177385,
+    "candidate_p50_ms": 70.52116050000001,
+    "paired_change_percent": -3.48434528826983,
+    "faster_pairs": 40,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "64",
+    "baseline_p50_ms": 144.238876,
+    "candidate_p50_ms": 139.89713749999999,
+    "paired_change_percent": -2.9461035056218776,
+    "faster_pairs": 40,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "128",
+    "baseline_p50_ms": 291.056285,
+    "candidate_p50_ms": 284.202042,
+    "paired_change_percent": -3.127037002178823,
+    "faster_pairs": 38,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "mixed128",
+    "baseline_p50_ms": 412.298187,
+    "candidate_p50_ms": 399.71363,
+    "paired_change_percent": -3.122796910670944,
+    "faster_pairs": 40,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "shared128",
+    "baseline_p50_ms": 295.4199145,
+    "candidate_p50_ms": 287.226855,
+    "paired_change_percent": -2.8084306861427932,
+    "faster_pairs": 36,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "browser_call3",
+    "baseline_p50_ms": 18.7080655,
+    "candidate_p50_ms": 17.7285915,
+    "paired_change_percent": -2.7797017399082358,
+    "faster_pairs": 35,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "browser_call5",
+    "baseline_p50_ms": 31.716126000000003,
+    "candidate_p50_ms": 31.571352,
+    "paired_change_percent": -2.260211472586793,
+    "faster_pairs": 28,
+    "pairs": 40,
+    "outputs_exact": true
+  }
+]

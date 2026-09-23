@@ -131,3 +131,47 @@ runs. Five norm/add pairs per batch are too little work relative to 28
 encoder layers to show above noise. Reverted; the prototype and tests are
 archived in `02-head-norms.patch` (applies on top of experiment 1), with
 reports `02-paired.json` and `02-paired-repeat.json`.
+
+## 3. Fused head bias add and ReLU — accepted
+
+Each decision-head `Linear` (Q, K, V, `out_proj`, `linear1`,
+`linear2`; two layers) ran Candle's GEMM followed by a broadcast
+`badd_bf16`, and `linear1` was followed by a separate `urelu_bf16` over
+the 4096-wide activation. `bias_act.cu` performs the bias add, and the
+ReLU where needed, in one pass with 16-byte loads and BF16x2 arithmetic:
+`fma.rn.bf16x2(x, 1, bias)` is the Ampere lowering of Candle's BF16 add,
+and `max.NaN.bf16x2(x, 0)` is the lowering of its `__hmax_nan` ReLU. The
+GEMM is the same `x.matmul(&w.t())` call `candle_nn::Linear` makes, so
+matrix shapes and rounding are unchanged. Unaligned or non-BF16 inputs
+fall back to Candle.
+
+`bias_relu_matches_candle_bits` checks every BF16 bit pattern (NaNs,
+infinities, signed zeros, subnormals) against 64 reversed full-sweep
+biases and nine special bias values, with and without ReLU, plus a
+4096-wide row-offset view and the unaligned fallback.
+
+| Workload      | First paired change | Faster | Repeat | Faster |
+| ------------- | ------------------: | -----: | -----: | -----: |
+| 1             |              -1.41% |  39/40 | -1.38% |  34/40 |
+| 8             |              -2.02% |  38/40 | -1.90% |  28/40 |
+| 32            |              -3.48% |  40/40 | -2.94% |  33/40 |
+| 64            |              -2.95% |  40/40 | -1.79% |  29/40 |
+| 128           |              -3.13% |  38/40 | -2.97% |  40/40 |
+| mixed128      |              -3.12% |  40/40 | -3.01% |  38/40 |
+| shared128     |              -2.81% |  36/40 | -2.55% |  36/40 |
+| browser_call3 |              -2.78% |  35/40 | -2.50% |  29/40 |
+| browser_call5 |              -2.26% |  28/40 | -3.39% |  31/40 |
+
+All 720 timed calls match exactly. The gain is larger than the old trace's
+kernel averages suggested; this run did not profile how much came from the
+broadcast adds versus the ReLU pass. Reports: `03-paired.json`,
+`03-paired-repeat.json`. Release FlashAttention library tests (52 passed),
+all-target Clippy with warnings denied, CPU-only and plain-CUDA `cargo
+check`, and `nix fmt` pass.
+
+```sh
+cargo test --release -p vs1 --features flash-attn --lib \
+  bias_relu_matches_candle_bits -- --ignored --test-threads=1
+cargo test --release -p vs1 --features flash-attn --lib \
+  paired_bias_act -- --ignored --nocapture --test-threads=1
+```

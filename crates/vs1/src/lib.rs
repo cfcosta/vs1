@@ -54,6 +54,8 @@ pub mod types;
 mod geglu_cuda;
 
 #[cfg(feature = "flash-attn")]
+mod bias_act_cuda;
+#[cfg(feature = "flash-attn")]
 mod residual_norm_cuda;
 #[cfg(feature = "flash-attn")]
 mod rope_cuda;
