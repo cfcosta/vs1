@@ -86,6 +86,16 @@ impl FullAttention {
         key: &Tensor,
         value: &Tensor,
     ) -> Result<Tensor> {
+        self.attend_with_kernel(query_gate, key, value, attend_causally)
+    }
+
+    fn attend_with_kernel(
+        &self,
+        query_gate: &Tensor,
+        key: &Tensor,
+        value: &Tensor,
+        attend: impl FnOnce(&Tensor, &Tensor, &Tensor) -> Result<Tensor>,
+    ) -> Result<Tensor> {
         let seq = query_gate.dim(0)?;
         let query_gate =
             query_gate.reshape((seq, self.num_heads, 2 * self.head_dim))?;
@@ -111,33 +121,9 @@ impl FullAttention {
         let freqs = Tensor::cat(&[&freqs, &freqs], D::Minus1)?;
         let cos = freqs.cos()?.to_dtype(query.dtype())?;
         let sin = freqs.sin()?.to_dtype(query.dtype())?;
-        // Materialize the per-head layouts for CUDA's batched matmul.
-        let query = apply_rotary(&query, &cos, &sin)?.contiguous()?;
+        let query = apply_rotary(&query, &cos, &sin)?;
         let key = apply_rotary(&key, &cos, &sin)?;
-        let groups = self.num_heads / self.num_kv_heads;
-        let key = repeat_kv(&key, groups)?.transpose(1, 2)?.contiguous()?;
-        let value = repeat_kv(&value, groups)?.contiguous()?;
-
-        let scores =
-            (query.matmul(&key)? * (self.head_dim as f64).sqrt().recip())?;
-        let mask: Vec<_> = (0..seq)
-            .flat_map(|row| {
-                (0..seq).map(
-                    move |col| {
-                        if col > row { f32::NEG_INFINITY } else { 0. }
-                    },
-                )
-            })
-            .collect();
-        let mask = Tensor::from_vec(mask, (seq, seq), scores.device())?
-            .to_dtype(scores.dtype())?;
-        let probabilities = ops::softmax_last_dim(
-            &scores.broadcast_add(&mask)?.to_dtype(DType::F32)?,
-        )?
-        .to_dtype(query.dtype())?;
-        let output = probabilities
-            .matmul(&value)?
-            .transpose(0, 1)?
+        let output = attend(&query, &key, &value)?
             .reshape((seq, self.num_heads * self.head_dim))?;
         output * ops::sigmoid(&gate)?
     }
@@ -156,6 +142,60 @@ impl Module for FullAttention {
         self.o_proj
             .forward(&self.attend(&query_gate, &key, &value)?)
     }
+}
+
+fn attend_causally(
+    query: &Tensor,
+    key: &Tensor,
+    value: &Tensor,
+) -> Result<Tensor> {
+    #[cfg(feature = "cuda")]
+    if query.device().is_cuda()
+        && matches!(query.dtype(), DType::BF16 | DType::F16)
+    {
+        // Flash attention consumes [batch, seq, heads, dim] with grouped KV heads.
+        let head_dim = query.dim(D::Minus1)?;
+        return candle_flash_attn::flash_attn(
+            &query.transpose(0, 1)?.contiguous()?.unsqueeze(0)?,
+            &key.transpose(0, 1)?.contiguous()?.unsqueeze(0)?,
+            &value.transpose(0, 1)?.contiguous()?.unsqueeze(0)?,
+            (head_dim as f32).sqrt().recip(),
+            true,
+        )?
+        .squeeze(0);
+    }
+    attend_explicitly(query, key, value)
+}
+
+fn attend_explicitly(
+    query: &Tensor,
+    key: &Tensor,
+    value: &Tensor,
+) -> Result<Tensor> {
+    let (heads, seq, head_dim) = query.dims3()?;
+    // Materialize the per-head layouts for CUDA's batched matmul.
+    let query = query.contiguous()?;
+    let groups = heads / key.dim(0)?;
+    let key = repeat_kv(key, groups)?.transpose(1, 2)?.contiguous()?;
+    let value = repeat_kv(value, groups)?.contiguous()?;
+
+    let scores = (query.matmul(&key)? * (head_dim as f64).sqrt().recip())?;
+    let mask: Vec<_> = (0..seq)
+        .flat_map(|row| {
+            (0..seq).map(
+                move |col| {
+                    if col > row { f32::NEG_INFINITY } else { 0. }
+                },
+            )
+        })
+        .collect();
+    let mask = Tensor::from_vec(mask, (seq, seq), scores.device())?
+        .to_dtype(scores.dtype())?;
+    let probabilities = ops::softmax_last_dim(
+        &scores.broadcast_add(&mask)?.to_dtype(DType::F32)?,
+    )?
+    .to_dtype(query.dtype())?;
+    probabilities.matmul(&value)?.transpose(0, 1)
 }
 
 fn apply_rotary(x: &Tensor, cos: &Tensor, sin: &Tensor) -> Result<Tensor> {
@@ -298,6 +338,84 @@ mod tests {
                 .is_err()
         );
         assert!(attention.forward(&x.unsqueeze(0).unwrap()).is_err());
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires CUDA"]
+    fn flash_attention_matches_explicit_attention_on_bf16() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        device.set_seed(42)?;
+        let hidden_size = 2560;
+        let num_heads = 16;
+        let num_kv_heads = 4;
+        let head_dim = 256;
+        let sample_projection = |input: usize, output| -> Result<Linear> {
+            let weight = Tensor::randn(
+                0f32,
+                (input as f32).sqrt().recip(),
+                (output, input),
+                &device,
+            )?
+            .to_dtype(DType::BF16)?;
+            Ok(Linear::new(weight, None))
+        };
+        let inv_freq: Vec<_> = (0..64)
+            .step_by(2)
+            .map(|i| 10_000_000f32.powf(i as f32 / 64.).recip())
+            .collect();
+        let attention = FullAttention {
+            q_proj: sample_projection(hidden_size, num_heads * head_dim * 2)?,
+            k_proj: sample_projection(hidden_size, num_kv_heads * head_dim)?,
+            v_proj: sample_projection(hidden_size, num_kv_heads * head_dim)?,
+            o_proj: sample_projection(num_heads * head_dim, hidden_size)?,
+            q_norm: Tensor::zeros(head_dim, DType::BF16, &device)?,
+            k_norm: Tensor::zeros(head_dim, DType::BF16, &device)?,
+            inv_freq: Tensor::new(inv_freq.as_slice(), &device)?,
+            num_heads,
+            num_kv_heads,
+            head_dim,
+            rms_norm_eps: 1e-6,
+        };
+        for seq in [1, 7, 129, 257] {
+            let input = Tensor::randn(0f32, 1., (seq, hidden_size), &device)?
+                .to_dtype(DType::BF16)?;
+            let query_gate = attention.q_proj.forward(&input)?;
+            let key = attention.k_proj.forward(&input)?;
+            let value = attention.v_proj.forward(&input)?;
+            let expected =
+                attention.o_proj.forward(&attention.attend_with_kernel(
+                    &query_gate,
+                    &key,
+                    &value,
+                    attend_explicitly,
+                )?)?;
+            let output = attention.forward(&input)?;
+            assert_eq!(output.dtype(), DType::BF16);
+            assert_eq!(output.dims(), expected.dims());
+            let output = output
+                .to_dtype(DType::F32)?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            let expected = expected
+                .to_dtype(DType::F32)?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            let mut max_absolute_difference = 0f32;
+            for (actual, expected) in output.into_iter().zip(expected) {
+                assert!(actual.is_finite() && expected.is_finite());
+                max_absolute_difference =
+                    max_absolute_difference.max((actual - expected).abs());
+            }
+            println!(
+                "seq {seq}: flash attention max absolute difference {max_absolute_difference:e}"
+            );
+            assert!(
+                max_absolute_difference <= 2e-2,
+                "seq {seq}: exceeds BF16 atol=2e-2"
+            );
+        }
+        Ok(())
     }
 
     #[test]
