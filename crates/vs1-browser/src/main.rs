@@ -1,4 +1,6 @@
 mod browser;
+#[cfg(feature = "local")]
+pub mod cua_s1_policy;
 mod model;
 mod policy;
 mod scenario;
