@@ -1,0 +1,83 @@
+[
+  {
+    "name": "1",
+    "baseline_p50_ms": 5.69243,
+    "candidate_p50_ms": 5.70589,
+    "paired_change_percent": 0.24525295994801688,
+    "faster_pairs": 8,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "8",
+    "baseline_p50_ms": 22.194283,
+    "candidate_p50_ms": 22.206423,
+    "paired_change_percent": 0.0442598217941903,
+    "faster_pairs": 16,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "32",
+    "baseline_p50_ms": 68.20226500000001,
+    "candidate_p50_ms": 68.1190655,
+    "paired_change_percent": -0.11966474767525215,
+    "faster_pairs": 24,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "64",
+    "baseline_p50_ms": 134.056856,
+    "candidate_p50_ms": 134.26327500000002,
+    "paired_change_percent": -0.021331277176173113,
+    "faster_pairs": 20,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "128",
+    "baseline_p50_ms": 266.96169199999997,
+    "candidate_p50_ms": 265.88604349999997,
+    "paired_change_percent": -0.18395983612646827,
+    "faster_pairs": 28,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "mixed128",
+    "baseline_p50_ms": 373.3701415,
+    "candidate_p50_ms": 373.11897450000004,
+    "paired_change_percent": -0.053070401540689094,
+    "faster_pairs": 22,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "shared128",
+    "baseline_p50_ms": 263.14905050000004,
+    "candidate_p50_ms": 264.0118615,
+    "paired_change_percent": 0.3701091472523288,
+    "faster_pairs": 15,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "browser_call3",
+    "baseline_p50_ms": 17.60696,
+    "candidate_p50_ms": 17.5888205,
+    "paired_change_percent": -0.11807870792458486,
+    "faster_pairs": 23,
+    "pairs": 40,
+    "outputs_exact": true
+  },
+  {
+    "name": "browser_call5",
+    "baseline_p50_ms": 30.5958055,
+    "candidate_p50_ms": 30.5965405,
+    "paired_change_percent": -0.022490914668393813,
+    "faster_pairs": 22,
+    "pairs": 40,
+    "outputs_exact": true
+  }
+]

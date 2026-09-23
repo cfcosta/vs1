@@ -1,0 +1,144 @@
+diff --git a/crates/vs1/src/geglu.cu b/crates/vs1/src/geglu.cu
+index 38cf2dcc05..1a4e2cbb2f 100644
+--- a/crates/vs1/src/geglu.cu
++++ b/crates/vs1/src/geglu.cu
+@@ -58,3 +58,26 @@
+         output[i] = mul_bf16(mul_bf16(a, cdf), gate[i]);
+     }
+ }
++
++__device__ __forceinline__ unsigned int geglu_pair(unsigned int a, unsigned int g) {
++    unsigned int c0 = bf16(normcdff(__uint_as_float((a & 0xffff) << 16)));
++    unsigned int c1 = bf16(normcdff(__uint_as_float(a & 0xffff0000)));
++    return mul_pair(mul_pair(a, c0 | (c1 << 16)), g);
++}
++
++// Eight values per thread with 16-byte accesses; same arithmetic per value
++// as geglu_bf16_pair. `count8` counts uint4 groups; offsets are 8-aligned.
++extern "C" __global__ void geglu_bf16_x8(
++    const uint4 *__restrict__ activation,
++    const uint4 *__restrict__ gate,
++    uint4 *__restrict__ output,
++    unsigned int count8
++) {
++    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
++    if (i < count8) {
++        const uint4 a = activation[i], g = gate[i];
++        output[i] = make_uint4(
++            geglu_pair(a.x, g.x), geglu_pair(a.y, g.y),
++            geglu_pair(a.z, g.z), geglu_pair(a.w, g.w));
++    }
++}
+diff --git a/crates/vs1/src/geglu_cuda.rs b/crates/vs1/src/geglu_cuda.rs
+index 38182ea1e6..319e2784f3 100644
+--- a/crates/vs1/src/geglu_cuda.rs
++++ b/crates/vs1/src/geglu_cuda.rs
+@@ -27,6 +27,15 @@
+ pub(crate) static REFERENCE_VECTOR: std::sync::atomic::AtomicBool =
+     std::sync::atomic::AtomicBool::new(false);
+ 
++/// Test-only switch from the 8-wide kernel back to the pairwise one.
++#[cfg(test)]
++pub(crate) static REFERENCE_X8: std::sync::atomic::AtomicBool =
++    std::sync::atomic::AtomicBool::new(false);
++
++#[cfg(test)]
++static X8_CALLS: std::sync::atomic::AtomicUsize =
++    std::sync::atomic::AtomicUsize::new(0);
++
+ impl CustomOp2 for GeGlu {
+     fn name(&self) -> &'static str {
+         "vs1_geglu_bf16"
+@@ -64,6 +73,44 @@
+         }
+         let ptx = include_str!(concat!(env!("OUT_DIR"), "/geglu.ptx"));
+         let dev = activation.device();
++        let count = al.shape().elem_count();
++        let x8 = count.is_multiple_of(8)
++            && al.start_offset().is_multiple_of(8)
++            && gl.start_offset().is_multiple_of(8);
++        #[cfg(test)]
++        let x8 = x8
++            && !REFERENCE_X8.load(std::sync::atomic::Ordering::Relaxed)
++            && !REFERENCE_VECTOR.load(std::sync::atomic::Ordering::Relaxed);
++        if x8 {
++            #[cfg(test)]
++            X8_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
++            let func =
++                dev.get_or_load_custom_func("geglu_bf16_x8", "vs1_geglu", ptx)?;
++            let count8 = u32::try_from(count / 8)
++                .map_err(|e| candle_core::Error::Msg(e.to_string()))?;
++            let a = a.slice(al.start_offset()..al.start_offset() + count);
++            let g = g.slice(gl.start_offset()..gl.start_offset() + count);
++            // SAFETY: the launch writes every element before returning.
++            let mut output = unsafe { dev.alloc(count)? };
++            let mut launch = func.builder();
++            launch.arg(&a).arg(&g).arg(&mut output).arg(&count8);
++            // SAFETY: 8-aligned contiguous BF16 buffers of `count` values.
++            unsafe {
++                launch.launch(LaunchConfig {
++                    grid_dim: (count8.div_ceil(256), 1, 1),
++                    block_dim: (256, 1, 1),
++                    shared_mem_bytes: 0,
++                })
++            }
++            .w()?;
++            return Ok((
++                CudaStorage {
++                    slice: CudaStorageSlice::BF16(output),
++                    device: dev.clone(),
++                },
++                al.shape().clone(),
++            ));
++        }
+         let paired = al.start_offset().is_multiple_of(2)
+             && gl.start_offset().is_multiple_of(2);
+         #[cfg(test)]
+@@ -75,7 +122,6 @@
+             "geglu_bf16"
+         };
+         let func = dev.get_or_load_custom_func(name, "vs1_geglu", ptx)?;
+-        let count = al.shape().elem_count();
+         let count_u32 = u32::try_from(count)
+             .map_err(|e| candle_core::Error::Msg(e.to_string()))?;
+         let a = a.slice(al.start_offset()..al.start_offset() + count);
+@@ -160,6 +206,7 @@
+         let n = values.len();
+         let activation = Tensor::from_vec(values.clone(), n, &device)?
+             .to_dtype(DType::BF16)?;
++        X8_CALLS.store(0, std::sync::atomic::Ordering::Relaxed);
+         // Every finite BF16 value on both inputs, with several different pairings.
+         for offset in [0, 1, 127, 8191, 32767] {
+             let gates: Vec<_> =
+@@ -188,6 +235,16 @@
+         assert_exact(&a, &g)?;
+         let even = activation.narrow(0, 16124, 257)?;
+         assert_exact(&even, &even)?;
++        // 8-aligned views take the wide kernel.
++        let calls = X8_CALLS.load(std::sync::atomic::Ordering::Relaxed);
++        assert!(calls >= 13, "wide kernel ran {calls} times");
++        let a8 = activation.narrow(0, 16128, 4096)?.reshape((4, 1024))?;
++        let g8 = activation.narrow(0, 40, 4096)?.reshape((4, 1024))?;
++        assert_exact(&a8, &g8)?;
++        assert_eq!(
++            X8_CALLS.load(std::sync::atomic::Ordering::Relaxed),
++            calls + 1
++        );
+         let strided =
+             activation.narrow(0, 15401, 1024)?.reshape((32, 32))?.t()?;
+         assert_exact(&strided, &strided)?;
+@@ -220,4 +277,14 @@
+     fn paired_vector_latency() -> anyhow::Result<()> {
+         crate::geglu_bench::run_paired(&REFERENCE_VECTOR)
+     }
++
++    #[cfg(feature = "flash-attn")]
++    #[test]
++    #[ignore = "requires CUDA and the Laya checkpoint; run alone"]
++    fn paired_geglu_x8() -> anyhow::Result<()> {
++        crate::model::batch_bench::run_paired_cases(
++            &REFERENCE_X8,
++            crate::model::batch_bench::cases(),
++        )
++    }
+ }

@@ -1,0 +1,149 @@
+diff --git a/crates/vs1/src/rope_cuda.rs b/crates/vs1/src/rope_cuda.rs
+index ac8682b043..d2b01c8b2d 100644
+--- a/crates/vs1/src/rope_cuda.rs
++++ b/crates/vs1/src/rope_cuda.rs
+@@ -21,6 +21,15 @@
+ pub(crate) static REFERENCE_ROPE: std::sync::atomic::AtomicBool =
+     std::sync::atomic::AtomicBool::new(false);
+ 
++/// Test-only switch from the 8-column kernel back to one pair per thread.
++#[cfg(test)]
++pub(crate) static REFERENCE_X8: std::sync::atomic::AtomicBool =
++    std::sync::atomic::AtomicBool::new(false);
++
++#[cfg(test)]
++static X8_CALLS: std::sync::atomic::AtomicUsize =
++    std::sync::atomic::AtomicUsize::new(0);
++
+ struct RopePair {
+     sin: Tensor,
+ }
+@@ -65,8 +74,22 @@
+         let (tokens, heads, dim) = ql.shape().dims3()?;
+         let count = ql.shape().elem_count();
+         let dev = q.device();
++        let x8 = (dim / 2).is_multiple_of(8)
++            && [ql, kl, cl, sl]
++                .iter()
++                .all(|l| l.start_offset().is_multiple_of(8));
++        #[cfg(test)]
++        let x8 = x8 && !REFERENCE_X8.load(std::sync::atomic::Ordering::Relaxed);
++        #[cfg(test)]
++        if x8 {
++            X8_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
++        }
+         let func = dev.get_or_load_custom_func(
+-            "rope_pair_bf16",
++            if x8 {
++                "rope_pair_x8_bf16"
++            } else {
++                "rope_pair_bf16"
++            },
+             "vs1_rope_pair",
+             include_str!(concat!(env!("OUT_DIR"), "/rope_pair.ptx")),
+         )?;
+@@ -88,8 +111,9 @@
+             .arg(&n)
+             .arg(&h)
+             .arg(&d);
++        let threads = if x8 { n / 16 } else { n / 2 };
+         let config = LaunchConfig {
+-            grid_dim: ((n / 2).div_ceil(256), 1, 1),
++            grid_dim: (threads.div_ceil(256), 1, 1),
+             block_dim: (256, 1, 1),
+             shared_mem_bytes: 0,
+         };
+@@ -139,7 +163,15 @@
+     #[ignore = "requires CUDA"]
+     fn rotary_matches_candle_bits() -> Result<()> {
+         let device = candle_core::Device::new_cuda(0)?;
+-        for (t, h, d) in [(1, 1, 16), (7, 3, 80), (129, 12, 64), (85, 12, 64)] {
++        X8_CALLS.store(0, std::sync::atomic::Ordering::Relaxed);
++        // Width 20 has a 10-column half and takes the pairwise kernel.
++        for (t, h, d) in [
++            (1, 1, 16),
++            (7, 3, 80),
++            (129, 12, 64),
++            (85, 12, 64),
++            (5, 2, 20),
++        ] {
+             let n = t * h * d;
+             let values: Vec<f32> = if t == 85 {
+                 (0u32..=65535)
+@@ -201,8 +233,18 @@
+                 }
+             }
+         }
++        assert_eq!(X8_CALLS.load(std::sync::atomic::Ordering::Relaxed), 4);
+         Ok(())
+     }
++
++    #[test]
++    #[ignore = "requires CUDA and the Laya checkpoint; run alone"]
++    fn paired_rope_x8() -> anyhow::Result<()> {
++        crate::model::batch_bench::run_paired_cases(
++            &REFERENCE_X8,
++            crate::model::batch_bench::cases(),
++        )
++    }
+     #[test]
+     #[ignore = "requires CUDA and checkpoint; run alone"]
+     fn paired_rope_latency() -> anyhow::Result<()> {
+diff --git a/crates/vs1/src/rope_pair.cu b/crates/vs1/src/rope_pair.cu
+index 8e721f7af6..778f47824b 100644
+--- a/crates/vs1/src/rope_pair.cu
++++ b/crates/vs1/src/rope_pair.cu
+@@ -34,3 +34,53 @@
+     out[count + a] = sub(mul(k0, c), mul(k1, s));
+     out[count + b] = add(mul(k0, s), mul(k1, c));
+ }
++
++// Eight consecutive columns per thread with 16-byte accesses; identical
++// per-value arithmetic to rope_pair_bf16. Requires dim / 2 % 8 == 0 and
++// 8-aligned views.
++__device__ __forceinline__ unsigned short lo16(unsigned int v) { return v & 0xffff; }
++__device__ __forceinline__ unsigned short hi16(unsigned int v) { return v >> 16; }
++extern "C" __global__ void rope_pair_x8_bf16(
++    const uint4 *__restrict__ q, const uint4 *__restrict__ k,
++    const uint4 *__restrict__ cos, const uint4 *__restrict__ sin,
++    uint4 *__restrict__ out, unsigned int count, unsigned int heads, unsigned int dim
++) {
++    const unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
++    const unsigned int groups = dim / 16;  // uint4 groups per half row
++    if (i >= count / 16) return;
++    const unsigned int row = i / groups, group = i % groups;
++    const unsigned int a = (row * dim) / 8 + group, b = a + groups;
++    const unsigned int cs = (row / heads) * groups + group;
++    const unsigned int count8 = count / 8;
++    const uint4 c4 = cos[cs], s4 = sin[cs];
++    const uint4 q0 = q[a], q1 = q[b], k0 = k[a], k1 = k[b];
++    const unsigned int c[4] = {c4.x, c4.y, c4.z, c4.w}, s[4] = {s4.x, s4.y, s4.z, s4.w};
++    const unsigned int qa[4] = {q0.x, q0.y, q0.z, q0.w}, qb[4] = {q1.x, q1.y, q1.z, q1.w};
++    const unsigned int ka[4] = {k0.x, k0.y, k0.z, k0.w}, kb[4] = {k1.x, k1.y, k1.z, k1.w};
++    unsigned int oqa[4], oqb[4], oka[4], okb[4];
++#pragma unroll
++    for (int j = 0; j < 4; ++j) {
++        unsigned short r[8];
++#pragma unroll
++        for (int h = 0; h < 2; ++h) {
++            const unsigned short cc = h ? hi16(c[j]) : lo16(c[j]);
++            const unsigned short ss = h ? hi16(s[j]) : lo16(s[j]);
++            const unsigned short x0 = h ? hi16(qa[j]) : lo16(qa[j]);
++            const unsigned short x1 = h ? hi16(qb[j]) : lo16(qb[j]);
++            const unsigned short y0 = h ? hi16(ka[j]) : lo16(ka[j]);
++            const unsigned short y1 = h ? hi16(kb[j]) : lo16(kb[j]);
++            r[h] = sub(mul(x0, cc), mul(x1, ss));
++            r[2 + h] = add(mul(x0, ss), mul(x1, cc));
++            r[4 + h] = sub(mul(y0, cc), mul(y1, ss));
++            r[6 + h] = add(mul(y0, ss), mul(y1, cc));
++        }
++        oqa[j] = r[0] | (static_cast<unsigned int>(r[1]) << 16);
++        oqb[j] = r[2] | (static_cast<unsigned int>(r[3]) << 16);
++        oka[j] = r[4] | (static_cast<unsigned int>(r[5]) << 16);
++        okb[j] = r[6] | (static_cast<unsigned int>(r[7]) << 16);
++    }
++    out[a] = make_uint4(oqa[0], oqa[1], oqa[2], oqa[3]);
++    out[b] = make_uint4(oqb[0], oqb[1], oqb[2], oqb[3]);
++    out[count8 + a] = make_uint4(oka[0], oka[1], oka[2], oka[3]);
++    out[count8 + b] = make_uint4(okb[0], okb[1], okb[2], okb[3]);
++}

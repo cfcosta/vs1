@@ -247,3 +247,54 @@ activations' outlier channels make that visible where the benign synthetic
 products did not. A row whitelist would depend on cuBLAS heuristics, so the
 extension was reverted (`04b-dual-small.patch`). The existing 2048-row guard
 remains.
+
+## 5a. Eight-wide GeGLU kernel — rejected
+
+The standalone rounded GeGLU kernel now runs only below 2048 rows (the large
+path is fused into the dual GEMM). The candidate processes eight values per
+thread with 16-byte loads/stores, using exactly the pairwise kernel's
+per-value `normcdff`, rounding and BF16x2 products; 8-aligned inputs use it,
+others keep the pairwise/scalar kernels. The existing exhaustive test (every
+finite BF16 activation with five shifted gate sweeps and special gates)
+passed, plus an 8-aligned offset view with a dispatch-count assertion.
+
+| Workload      | First paired change | Faster | Repeat | Faster |
+| ------------- | ------------------: | -----: | -----: | -----: |
+| 1             |              +0.19% |  10/40 | +0.25% |   8/40 |
+| 8             |              +0.01% |  19/40 | +0.04% |  16/40 |
+| 32            |              +0.13% |  16/40 | -0.12% |  24/40 |
+| 64            |              +0.05% |  18/40 | -0.02% |  20/40 |
+| 128           |              -0.19% |  25/40 | -0.18% |  28/40 |
+| mixed128      |              -0.08% |  21/40 | -0.05% |  22/40 |
+| shared128     |              +0.16% |  19/40 | +0.37% |  15/40 |
+| browser_call3 |              -0.12% |  26/40 | -0.12% |  23/40 |
+| browser_call5 |              -0.12% |  25/40 | -0.02% |  22/40 |
+
+No workload moved beyond noise, and the single-question control was slower
+in both runs. The kernel is dominated by `normcdff`, not memory access, at
+these sizes. Reverted; `05a-geglu-x8.patch`.
+
+## 5b. Eight-column rotary kernel — rejected
+
+`rope_pair_x8_bf16` gives each thread eight consecutive columns of one Q/K
+row half (16-byte loads of Q, K, cos and sin; four 16-byte stores), with
+the same BF16 multiply/add/subtract rounding as `rope_pair_bf16`. Head
+halves that are not multiples of eight, or unaligned views, keep the
+pairwise kernel. `rotary_matches_candle_bits` passed for all shapes (every
+finite BF16 value at 85x12x64), including a width-20 fallback case.
+
+| Workload      | First paired change | Faster | Repeat | Faster |
+| ------------- | ------------------: | -----: | -----: | -----: |
+| 1             |              +0.02% |  17/40 | +0.59% |  16/40 |
+| 8             |              -0.27% |  33/40 | -0.09% |  21/40 |
+| 32            |              +0.15% |  17/40 | -0.05% |  21/40 |
+| 64            |              +0.01% |  19/40 | -0.09% |  22/40 |
+| 128           |              -0.42% |  26/40 | +0.14% |  18/40 |
+| mixed128      |              -0.13% |  22/40 | +0.02% |  19/40 |
+| shared128     |              -0.80% |  24/40 | +0.27% |  18/40 |
+| browser_call3 |              -0.06% |  23/40 | -0.42% |  28/40 |
+| browser_call5 |              -0.33% |  24/40 | +0.15% |  19/40 |
+
+Changes stay within ±0.8% and flip sign between runs. The old trace put this
+kernel near its bandwidth floor already, so this was expected to be small.
+Reverted; `05b-rope-x8.patch`.
