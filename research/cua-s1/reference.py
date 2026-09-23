@@ -281,7 +281,7 @@ def main():
     command.add_argument("--output", type=Path, default=ROOT / "probabilities-f32.json")
     command.add_argument("--layers", type=Path, default=ARTIFACTS / "layers-f32.safetensors")
     command.add_argument("--device", choices=["cpu"], default="cpu")
-    command.add_argument("--dtype", choices=["float32"], default="float32")
+    command.add_argument("--dtype", choices=["float32", "bfloat16"], default="float32")
     command.add_argument("--threads", type=int, default=4)
     command.set_defaults(run=run)
     args = parser.parse_args()

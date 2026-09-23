@@ -95,6 +95,29 @@ The highest-probability letters are A, A, C, D, F, and B in case order. In
 `search_portuguese`, the model favors clicking `Pesquisar` (69.3724%) over filling
 the empty field (30.6127%); the fixture records that behavior without correction.
 
+`probabilities-bf16.json` records the same six cases on CPU with
+`--dtype bfloat16`, matching `FourBModel`'s default dtype, with the same pinned
+revisions, package versions, prompts, and four threads. To regenerate it, use the
+shell wrapper above and replace the `run` arguments with `run --device cpu --dtype
+bfloat16 --output research/cua-s1/probabilities-bf16.json --layers
+artifacts/cua-s1/layers-bf16.safetensors`; both F32 files remain unchanged. The
+separate, gitignored BF16 layer dump contains the same 111 keys, stored as float32
+activations and int64 input IDs. All six input-ID, single-forward-pass, and exact
+float32 option-logit softmax assertions passed. BF16 preserves all six top
+options; the largest absolute probability difference is 0.017742388 (1.774239
+percentage points), for option B in `reset_password`. The table lists probabilities
+in letter order (A onward), with the maximum absolute difference across all
+options in each case. These CPU fixtures do not establish CUDA parity.
+
+| Case                    | F32 probabilities (A onward)                                                 | BF16 probabilities (A onward)                                                | Top option, both | Max absolute difference |
+| ----------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------- | ----------------------- |
+| `save_note`             | 0.999515653, 0.000484310                                                     | 0.999447167, 0.000552779                                                     | A                | 0.000068486             |
+| `reset_password`        | 0.909905910, 0.088813774, 0.001280418                                        | 0.892183781, 0.106556162, 0.001260076                                        | A                | 0.017742388             |
+| `decline_invitation`    | 0.000101538, 0.000013200, 0.999640584, 0.000244682                           | 0.000102272, 0.000014734, 0.999621749, 0.000261160                           | C                | 0.000018835             |
+| `download_invoice`      | 0.000089708, 0.000347091, 0.000092337, 0.978663445, 0.020807469              | 0.000083052, 0.000328478, 0.000088409, 0.979177892, 0.020322189              | D                | 0.000514448             |
+| `notification_settings` | 0.000153660, 0.000056130, 0.000316314, 0.000261375, 0.000090138, 0.999122441 | 0.000148737, 0.000045362, 0.000295799, 0.000261042, 0.000079613, 0.999169469 | F                | 0.000047028             |
+| `search_portuguese`     | 0.306126863, 0.693724453, 0.000148637                                        | 0.294169992, 0.705677152, 0.000152843                                        | B                | 0.011956871             |
+
 ## Layer dump
 
 Only the first case (`save_note`, 171 tokens) gets intermediate hooks. The file
