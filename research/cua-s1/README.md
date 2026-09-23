@@ -1,5 +1,8 @@
 # Cua-S1 text reference
 
+See [the 2026-09-23 benchmark comparison](benchmarks.md) for email, browser replay
+and live-task results against Jev, Laya and OpenJev.
+
 Regenerate from the repository root:
 
 ```sh
