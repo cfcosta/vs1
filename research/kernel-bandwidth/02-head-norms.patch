@@ -1,0 +1,687 @@
+diff --git a/crates/vs1/src/head.rs b/crates/vs1/src/head.rs
+index c20638ad10..799cfdea1a 100644
+--- a/crates/vs1/src/head.rs
++++ b/crates/vs1/src/head.rs
+@@ -49,10 +49,34 @@
+     linear2: Linear,
+     norm1: LayerNorm,
+     norm2: LayerNorm,
++    /// `[weight; bias]` of `norm1` and `norm2`, stacked for the fused
++    /// residual LayerNorm on width-1024 CUDA BF16.
++    #[cfg(feature = "flash-attn")]
++    stacked_norms: Option<(Tensor, Tensor)>,
+     num_heads: usize,
+     head_dim: usize,
+ }
+ 
++/// Test-only switch back to separate adds and Candle LayerNorms.
++#[cfg(all(test, feature = "flash-attn"))]
++pub(crate) static REFERENCE_HEAD_NORM: std::sync::atomic::AtomicBool =
++    std::sync::atomic::AtomicBool::new(false);
++
++#[cfg(feature = "flash-attn")]
++fn stack_norm(norm: &LayerNorm) -> Result<Option<Tensor>> {
++    let weight = norm.weight();
++    let Some(bias) = norm.bias() else {
++        return Ok(None);
++    };
++    if !weight.device().is_cuda()
++        || weight.dtype() != DType::BF16
++        || weight.dims() != [1024]
++    {
++        return Ok(None);
++    }
++    Tensor::stack(&[weight, bias], 0)?.contiguous().map(Some)
++}
++
+ impl HeadLayer {
+     /// Loads `head.layers.<i>.*`.
+     pub fn load(vb: VarBuilder, hidden: usize) -> Result<Self> {
+@@ -82,6 +106,11 @@
+         let linear2 = linear(4 * hidden, hidden, vb.pp("linear2"))?;
+         let norm1 = torch_layer_norm(hidden, vb.pp("norm1"))?;
+         let norm2 = torch_layer_norm(hidden, vb.pp("norm2"))?;
++        #[cfg(feature = "flash-attn")]
++        let stacked_norms = match (stack_norm(&norm1)?, stack_norm(&norm2)?) {
++            (Some(n1), Some(n2)) => Some((n1, n2)),
++            _ => None,
++        };
+         Ok(Self {
+             q,
+             k,
+@@ -91,6 +120,8 @@
+             linear2,
+             norm1,
+             norm2,
++            #[cfg(feature = "flash-attn")]
++            stacked_norms,
+             num_heads,
+             head_dim,
+         })
+@@ -136,15 +167,80 @@
+         seqlens: &Tensor,
+         max_seq_len: usize,
+     ) -> Result<Tensor> {
+-        let (total, d) = xs.dims2()?;
+         let h = xs.apply(&self.norm1)?;
++        let ctx = self.attention_packed(&h, seqlens, max_seq_len)?;
++        let xs = (xs + ctx)?;
++        self.ffn(&xs)
++    }
++
++    /// `forward_packed` on `base + pending`, leaving the last residual
++    /// add to the caller: the layer output is `residual + ffn`. On
++    /// width-1024 CUDA BF16 each residual add is fused into the
++    /// LayerNorm that follows it, with Candle's rounding.
++    #[cfg(feature = "flash-attn")]
++    pub fn forward_packed_deferred(
++        &self,
++        base: &Tensor,
++        pending: &Tensor,
++        seqlens: &Tensor,
++        max_seq_len: usize,
++    ) -> Result<(Tensor, Tensor)> {
++        let stacked = self.stacked_norms.as_ref().filter(|_| {
++            crate::residual_norm_cuda::wide_eligible(base, &[pending])
++        });
++        #[cfg(test)]
++        let stacked = stacked.filter(|_| {
++            !REFERENCE_HEAD_NORM.load(std::sync::atomic::Ordering::Relaxed)
++        });
++        let (xs, h) = match stacked {
++            Some((norm1, _)) => crate::residual_norm_cuda::forward_bias(
++                base,
++                pending,
++                norm1,
++                self.norm1.eps(),
++            )?,
++            None => {
++                let xs = (base + pending)?;
++                let h = xs.apply(&self.norm1)?;
++                (xs, h)
++            }
++        };
++        let ctx = self.attention_packed(&h, seqlens, max_seq_len)?;
++        let (xs, h) = match stacked
++            .filter(|_| crate::residual_norm_cuda::wide_eligible(&xs, &[&ctx]))
++        {
++            Some((_, norm2)) => crate::residual_norm_cuda::forward_bias(
++                &xs,
++                &ctx,
++                norm2,
++                self.norm2.eps(),
++            )?,
++            None => {
++                let xs = (xs + ctx)?;
++                let h = xs.apply(&self.norm2)?;
++                (xs, h)
++            }
++        };
++        let ffn = h.apply(&self.linear1)?.relu()?.apply(&self.linear2)?;
++        Ok((xs, ffn))
++    }
++
++    /// Packed self-attention of normalized states `h`, through `out_proj`.
++    #[cfg(feature = "flash-attn")]
++    fn attention_packed(
++        &self,
++        h: &Tensor,
++        seqlens: &Tensor,
++        max_seq_len: usize,
++    ) -> Result<Tensor> {
++        let (total, d) = h.dims2()?;
+         let shape = (total, self.num_heads, self.head_dim);
+         let q = h.apply(&self.q)?.reshape(shape)?;
+         let k = h.apply(&self.k)?.reshape(shape)?;
+         let v = h.apply(&self.v)?.reshape(shape)?;
+         let orig_dtype = q.dtype();
+         let flash_dtype = crate::modernbert::flash_compat_dtype(orig_dtype);
+-        let ctx = candle_flash_attn::flash_attn_varlen(
++        candle_flash_attn::flash_attn_varlen(
+             &q.to_dtype(flash_dtype)?,
+             &k.to_dtype(flash_dtype)?,
+             &v.to_dtype(flash_dtype)?,
+@@ -157,9 +253,7 @@
+         )?
+         .to_dtype(orig_dtype)?
+         .reshape((total, d))?
+-        .apply(&self.out_proj)?;
+-        let xs = (xs + ctx)?;
+-        self.ffn(&xs)
++        .apply(&self.out_proj)
+     }
+ 
+     fn ffn(&self, xs: &Tensor) -> Result<Tensor> {
+diff --git a/crates/vs1/src/model.rs b/crates/vs1/src/model.rs
+index 4968a9df61..6c7dc8e9c5 100644
+--- a/crates/vs1/src/model.rs
++++ b/crates/vs1/src/model.rs
+@@ -541,14 +541,22 @@
+             .flat_map(|(&kind, &len)| std::iter::repeat_n(kind, len))
+             .collect();
+         let token_kinds = Tensor::from_vec(token_kinds, total, &self.device)?;
+-        let mut hidden =
+-            (hidden + self.type_emb.index_select(&token_kinds, 0)?)?;
++        let type_rows = self.type_emb.index_select(&token_kinds, 0)?;
+ 
+         let (seqlens, max_seq_len) =
+             crate::modernbert::cumulative_seqlens(lens, &self.device)?;
++        // Each layer returns its output as `residual + pending` so the
++        // add can fuse into the next layer's first LayerNorm.
++        let (mut hidden, mut pending) = (hidden, type_rows);
+         for layer in &self.head {
+-            hidden = layer.forward_packed(&hidden, &seqlens, max_seq_len)?;
++            (hidden, pending) = layer.forward_packed_deferred(
++                &hidden,
++                &pending,
++                &seqlens,
++                max_seq_len,
++            )?;
+         }
++        let hidden = (hidden + pending)?;
+ 
+         // Marker positions are per sequence; offset them into the
+         // packed layout. Slots past an item's option count point at
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index f7a8dc781c..1d560b9e8f 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -1218,8 +1218,25 @@
+         // the window and must be hidden, exactly as the masked path's
+         // `|i - j| > local_window` bias hides them.
+         let full_attention_threshold = local_window + 1;
+-        let mut packed_xs =
+-            pack_varlen_bsd(&xs, valid_lens)?.apply(&self.norm)?;
++        let packed = pack_varlen_bsd(&xs, valid_lens)?;
++        // `self.norm` carries layer_norm_no_bias_fused's +0 bias on CUDA.
++        let wide_norm = crate::residual_norm_cuda::wide_eligible(
++            &packed,
++            &[self.norm.weight()],
++        );
++        #[cfg(test)]
++        let wide_norm = wide_norm
++            && !crate::head::REFERENCE_HEAD_NORM
++                .load(std::sync::atomic::Ordering::Relaxed);
++        let mut packed_xs = if wide_norm {
++            crate::residual_norm_cuda::layer_norm(
++                &packed,
++                self.norm.weight(),
++                self.norm.eps(),
++            )?
++        } else {
++            packed.apply(&self.norm)?
++        };
+         // Fuse each final residual addition with the next normalization while
+         // preserving the BF16 sum as a separate rounding boundary.
+         let deferred = packed_xs.device().is_cuda()
+diff --git a/crates/vs1/src/residual_norm.cu b/crates/vs1/src/residual_norm.cu
+index ac7ee8ad4d..6bba449a5b 100644
+--- a/crates/vs1/src/residual_norm.cu
++++ b/crates/vs1/src/residual_norm.cu
+@@ -77,9 +77,13 @@
+ // the first fold happens in registers with identical operand pairs and the
+ // second is the same shuffle sequence. Float addition is commutative, so
+ // every intermediate matches bit for bit while loads become 16 bytes wide.
+-extern "C" __global__ void residual_norm_1024_bf16(
++// `wb` holds the weight row, followed by the bias row when `bias` is set;
++// otherwise the bias is Candle's persistent +0. Without `residual`, `x` is
++// normalized directly and only the normalized rows are written.
++template <bool residual, bool bias>
++__device__ __forceinline__ void norm_1024(
+     const uint4 *__restrict__ x, const uint4 *__restrict__ y,
+-    const uint4 *__restrict__ weight, uint4 *__restrict__ out,
++    const uint4 *__restrict__ wb, uint4 *__restrict__ out,
+     unsigned int rows, float eps
+ ) {
+     const unsigned int row = blockIdx.x * blockDim.y + threadIdx.y;
+@@ -90,16 +94,26 @@
+     unsigned int sum[16];
+ #pragma unroll
+     for (int v = 0; v < 4; ++v) {
+-        const uint4 a = x[base + v], b = y[base + v];
+-        sum[4 * v] = add_pair(a.x, b.x);
+-        sum[4 * v + 1] = add_pair(a.y, b.y);
+-        sum[4 * v + 2] = add_pair(a.z, b.z);
+-        sum[4 * v + 3] = add_pair(a.w, b.w);
++        const uint4 a = x[base + v];
++        if (residual) {
++            const uint4 b = y[base + v];
++            sum[4 * v] = add_pair(a.x, b.x);
++            sum[4 * v + 1] = add_pair(a.y, b.y);
++            sum[4 * v + 2] = add_pair(a.z, b.z);
++            sum[4 * v + 3] = add_pair(a.w, b.w);
++        } else {
++            sum[4 * v] = a.x;
++            sum[4 * v + 1] = a.y;
++            sum[4 * v + 2] = a.z;
++            sum[4 * v + 3] = a.w;
++        }
+     }
++    if (residual) {
+ #pragma unroll
+-    for (int v = 0; v < 4; ++v) {
+-        out[base + v] = make_uint4(
+-            sum[4 * v], sum[4 * v + 1], sum[4 * v + 2], sum[4 * v + 3]);
++        for (int v = 0; v < 4; ++v) {
++            out[base + v] = make_uint4(
++                sum[4 * v], sum[4 * v + 1], sum[4 * v + 2], sum[4 * v + 3]);
++        }
+     }
+     float s[32], q[32];
+ #pragma unroll
+@@ -133,11 +147,13 @@
+     const float mean = __fmul_rn(mean_var.x, 0.0009765625f);
+     const float var = __fmaf_rn(-mean, mean, __fmul_rn(mean_var.y, 0.0009765625f));
+     const float inv_std = rsqrtf(__fadd_rn(var, eps));
+-    const unsigned int count4 = rows * 128;
++    uint4 *normalized = residual ? out + rows * 128 : out;
+ #pragma unroll
+     for (int v = 0; v < 4; ++v) {
+-        const uint4 w4 = weight[lane * 4 + v];
++        const uint4 w4 = wb[lane * 4 + v];
++        const uint4 b4 = bias ? wb[128 + lane * 4 + v] : make_uint4(0, 0, 0, 0);
+         const unsigned int w[4] = {w4.x, w4.y, w4.z, w4.w};
++        const unsigned int b[4] = {b4.x, b4.y, b4.z, b4.w};
+         unsigned int packed[4];
+ #pragma unroll
+         for (int j = 0; j < 4; ++j) {
+@@ -145,12 +161,39 @@
+             unsigned short lo, hi;
+             const float l0 = __fmul_rn(__fsub_rn(__uint_as_float(pair << 16), mean), inv_std);
+             const float l1 = __fmul_rn(__fsub_rn(__uint_as_float(pair & 0xffff0000u), mean), inv_std);
+-            const float v0 = __fmaf_rn(l0, __uint_as_float(w[j] << 16), 0.f);
+-            const float v1 = __fmaf_rn(l1, __uint_as_float(w[j] & 0xffff0000u), 0.f);
++            // Candle: FMA(lhs, alpha, beta), beta = +0 for the trunk norms.
++            const float v0 = __fmaf_rn(l0, __uint_as_float(w[j] << 16), __uint_as_float(b[j] << 16));
++            const float v1 = __fmaf_rn(l1, __uint_as_float(w[j] & 0xffff0000u), __uint_as_float(b[j] & 0xffff0000u));
+             asm("cvt.rn.bf16.f32 %0,%1;" : "=h"(lo) : "f"(v0));
+             asm("cvt.rn.bf16.f32 %0,%1;" : "=h"(hi) : "f"(v1));
+             packed[j] = lo | (static_cast<unsigned int>(hi) << 16);
+         }
+-        out[count4 + base + v] = make_uint4(packed[0], packed[1], packed[2], packed[3]);
++        normalized[base + v] = make_uint4(packed[0], packed[1], packed[2], packed[3]);
+     }
+ }
++
++extern "C" __global__ void residual_norm_1024_bf16(
++    const uint4 *__restrict__ x, const uint4 *__restrict__ y,
++    const uint4 *__restrict__ weight, uint4 *__restrict__ out,
++    unsigned int rows, float eps
++) {
++    norm_1024<true, false>(x, y, weight, out, rows, eps);
++}
++
++// Residual add followed by a LayerNorm with a real bias (`wb` is 2 x 1024).
++extern "C" __global__ void residual_norm_bias_1024_bf16(
++    const uint4 *__restrict__ x, const uint4 *__restrict__ y,
++    const uint4 *__restrict__ wb, uint4 *__restrict__ out,
++    unsigned int rows, float eps
++) {
++    norm_1024<true, true>(x, y, wb, out, rows, eps);
++}
++
++// LayerNorm alone with Candle's persistent +0 bias; `y` is unused.
++extern "C" __global__ void layer_norm_1024_bf16(
++    const uint4 *__restrict__ x, const uint4 *__restrict__ y,
++    const uint4 *__restrict__ weight, uint4 *__restrict__ out,
++    unsigned int rows, float eps
++) {
++    norm_1024<false, false>(x, y, weight, out, rows, eps);
++}
+diff --git a/crates/vs1/src/residual_norm_cuda.rs b/crates/vs1/src/residual_norm_cuda.rs
+index 8312b66fe9..6fe892878f 100644
+--- a/crates/vs1/src/residual_norm_cuda.rs
++++ b/crates/vs1/src/residual_norm_cuda.rs
+@@ -80,45 +80,14 @@
+         let wide =
+             wide && !REFERENCE_WIDE.load(std::sync::atomic::Ordering::Relaxed);
+         if wide {
+-            #[cfg(test)]
+-            WIDE_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+-            let func = dev.get_or_load_custom_func(
++            return launch_wide(
+                 "residual_norm_1024_bf16",
+-                "vs1_residual_norm",
+-                include_str!(concat!(env!("OUT_DIR"), "/residual_norm.ptx")),
+-            )?;
+-            let x = xs.slice(xl.start_offset()..xl.start_offset() + count);
+-            let y = ys.slice(yl.start_offset()..yl.start_offset() + count);
+-            let weight = ws.slice(wl.start_offset()..wl.start_offset() + cols);
+-            // SAFETY: every output element is written by the kernel.
+-            let mut out = unsafe { dev.alloc(2 * count)? };
+-            let (r, eps) = (rows as u32, self.eps);
+-            let mut launch = func.builder();
+-            launch
+-                .arg(&x)
+-                .arg(&y)
+-                .arg(&weight)
+-                .arg(&mut out)
+-                .arg(&r)
+-                .arg(&eps);
+-            const ROWS_PER_BLOCK: u32 = 4;
+-            // SAFETY: forward validates shapes, devices and contiguous BF16
+-            // storage; alignment is checked above.
+-            unsafe {
+-                launch.launch(LaunchConfig {
+-                    grid_dim: (r.div_ceil(ROWS_PER_BLOCK), 1, 1),
+-                    block_dim: (32, ROWS_PER_BLOCK, 1),
+-                    shared_mem_bytes: 0,
+-                })
+-            }
+-            .w()?;
+-            return Ok((
+-                CudaStorage {
+-                    slice: CudaStorageSlice::BF16(out),
+-                    device: dev.clone(),
+-                },
+-                (2, rows, cols).into(),
+-            ));
++                (x, xl),
++                (y, yl),
++                (weight, wl, cols),
++                self.eps,
++                true,
++            );
+         }
+         let func = dev.get_or_load_custom_func(
+             "residual_norm_bf16",
+@@ -159,6 +128,185 @@
+     }
+ }
+ 
++/// Launches one of the warp-per-row width-1024 kernels. `wb` holds
++/// `wb_len` values: the weight row, then the bias row when present.
++/// Callers have checked shapes, contiguity and 8-value alignment.
++fn launch_wide(
++    kernel: &'static str,
++    (x, xl): (&CudaStorage, &Layout),
++    (y, yl): (&CudaStorage, &Layout),
++    (wb, wl, wb_len): (&CudaStorage, &Layout, usize),
++    eps: f32,
++    residual: bool,
++) -> Result<(CudaStorage, Shape)> {
++    let (
++        CudaStorageSlice::BF16(xs),
++        CudaStorageSlice::BF16(ys),
++        CudaStorageSlice::BF16(ws),
++    ) = (&x.slice, &y.slice, &wb.slice)
++    else {
++        candle_core::bail!("wide norm requires BF16")
++    };
++    let (rows, cols) = xl.shape().dims2()?;
++    if cols != 1024 || [xl, yl, wl].iter().any(|l| l.start_offset() % 8 != 0) {
++        candle_core::bail!("wide norm requires aligned width-1024 rows")
++    }
++    #[cfg(test)]
++    WIDE_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
++    let count = rows * cols;
++    let dev = x.device();
++    let func = dev.get_or_load_custom_func(
++        kernel,
++        "vs1_residual_norm",
++        include_str!(concat!(env!("OUT_DIR"), "/residual_norm.ptx")),
++    )?;
++    let x = xs.slice(xl.start_offset()..xl.start_offset() + count);
++    let y = ys.slice(yl.start_offset()..yl.start_offset() + count);
++    let wb = ws.slice(wl.start_offset()..wl.start_offset() + wb_len);
++    let outputs = if residual { 2 } else { 1 };
++    // SAFETY: every output element is written by the kernel.
++    let mut out = unsafe { dev.alloc(outputs * count)? };
++    let r = rows as u32;
++    let mut launch = func.builder();
++    launch
++        .arg(&x)
++        .arg(&y)
++        .arg(&wb)
++        .arg(&mut out)
++        .arg(&r)
++        .arg(&eps);
++    const ROWS_PER_BLOCK: u32 = 4;
++    // SAFETY: shapes, dtype and alignment are checked above and by callers.
++    unsafe {
++        launch.launch(LaunchConfig {
++            grid_dim: (r.div_ceil(ROWS_PER_BLOCK), 1, 1),
++            block_dim: (32, ROWS_PER_BLOCK, 1),
++            shared_mem_bytes: 0,
++        })
++    }
++    .w()?;
++    let shape: Shape = if residual {
++        (2, rows, cols).into()
++    } else {
++        (rows, cols).into()
++    };
++    Ok((
++        CudaStorage {
++            slice: CudaStorageSlice::BF16(out),
++            device: dev.clone(),
++        },
++        shape,
++    ))
++}
++
++/// Residual add plus biased LayerNorm, or a +0-bias LayerNorm alone.
++struct WideNorm {
++    eps: f32,
++    residual: bool,
++}
++
++impl CustomOp3 for WideNorm {
++    fn name(&self) -> &'static str {
++        "vs1_wide_norm"
++    }
++    fn cpu_fwd(
++        &self,
++        _: &CpuStorage,
++        _: &Layout,
++        _: &CpuStorage,
++        _: &Layout,
++        _: &CpuStorage,
++        _: &Layout,
++    ) -> Result<(CpuStorage, Shape)> {
++        candle_core::bail!("wide norm requires CUDA")
++    }
++    fn cuda_fwd(
++        &self,
++        x: &CudaStorage,
++        xl: &Layout,
++        y: &CudaStorage,
++        yl: &Layout,
++        wb: &CudaStorage,
++        wl: &Layout,
++    ) -> Result<(CudaStorage, Shape)> {
++        let (kernel, wb_len) = if self.residual {
++            ("residual_norm_bias_1024_bf16", 2048)
++        } else {
++            ("layer_norm_1024_bf16", 1024)
++        };
++        launch_wide(
++            kernel,
++            (x, xl),
++            (y, yl),
++            (wb, wl, wb_len),
++            self.eps,
++            self.residual,
++        )
++    }
++}
++
++/// True when every tensor is contiguous CUDA BF16 on `x`'s device and
++/// starts on an 8-value boundary, `x` is `(rows, 1024)` and the element
++/// count fits the kernels' 32-bit indexing.
++pub(crate) fn wide_eligible(x: &Tensor, others: &[&Tensor]) -> bool {
++    x.device().is_cuda()
++        && x.dims().len() == 2
++        && x.dim(1).is_ok_and(|c| c == 1024)
++        && x.dim(0).is_ok_and(|r| r > 0)
++        && x.elem_count() <= u32::MAX as usize / 2
++        && std::iter::once(x).chain(others.iter().copied()).all(|t| {
++            t.is_contiguous()
++                && t.dtype() == DType::BF16
++                && t.device().same_device(x.device())
++                && t.layout().start_offset() % 8 == 0
++        })
++}
++
++/// `x + y` rounded to BF16, then LayerNorm with weight `wb[0]` and bias
++/// `wb[1]`. Returns `(sum, normalized)`, matching Candle's add followed by
++/// its fused LayerNorm bit for bit.
++pub(crate) fn forward_bias(
++    x: &Tensor,
++    y: &Tensor,
++    wb: &Tensor,
++    eps: f64,
++) -> Result<(Tensor, Tensor)> {
++    if !wide_eligible(x, &[y, wb])
++        || x.dims() != y.dims()
++        || wb.dims() != [2, 1024]
++    {
++        candle_core::bail!("invalid BF16 biased residual norm inputs")
++    }
++    let out = x.apply_op3_no_bwd(
++        y,
++        wb,
++        &WideNorm {
++            eps: eps as f32,
++            residual: true,
++        },
++    )?;
++    Ok((out.get(0)?, out.get(1)?))
++}
++
++/// LayerNorm whose bias is all positive zero, on width-1024 BF16 rows.
++pub(crate) fn layer_norm(
++    x: &Tensor,
++    weight: &Tensor,
++    eps: f64,
++) -> Result<Tensor> {
++    if !wide_eligible(x, &[weight]) || weight.dims() != [1024] {
++        candle_core::bail!("invalid BF16 layer norm inputs")
++    }
++    x.apply_op3_no_bwd(
++        x,
++        weight,
++        &WideNorm {
++            eps: eps as f32,
++            residual: false,
++        },
++    )
++}
++
+ /// The weight belongs to a LayerNorm whose bias is all positive zero.
+ pub(crate) fn forward(
+     x: &Tensor,
+@@ -338,6 +486,113 @@
+         Ok(())
+     }
+ 
++    fn bits(t: &Tensor) -> Result<Vec<u32>> {
++        Ok(t.flatten_all()?
++            .to_dtype(DType::F32)?
++            .to_vec1::<f32>()?
++            .iter()
++            .map(|v| v.to_bits())
++            .collect())
++    }
++
++    fn assert_bits(
++        name: &str,
++        actual: &Tensor,
++        expected: &Tensor,
++    ) -> Result<()> {
++        for (i, (a, e)) in
++            bits(actual)?.iter().zip(&bits(expected)?).enumerate()
++        {
++            assert_eq!(a, e, "{name}, element {i}");
++        }
++        Ok(())
++    }
++
++    #[test]
++    #[ignore = "requires CUDA"]
++    fn biased_and_plain_wide_norms_match_candle_bits() -> Result<()> {
++        let device = candle_core::Device::new_cuda(0)?;
++        let mut state = 0x2545_f491_4f6c_dd1du64;
++        let mut next = move || {
++            state ^= state << 13;
++            state ^= state >> 7;
++            state ^= state << 17;
++            (state >> 40) as f32 / (1u64 << 24) as f32 - 0.5
++        };
++        let rows = 1031;
++        let mut matrix = |rows: usize, scale: bool| -> Result<Tensor> {
++            let values: Vec<f32> = (0..rows * 1024)
++                .map(|i| {
++                    let band = [1.0, 1e-3, 1e-20, 64.0, 3e4][(i / 1024) % 5];
++                    let offset = if (i / 1024) % 7 == 3 { 50.0 } else { 0.0 };
++                    if scale {
++                        next() * band + offset
++                    } else {
++                        next()
++                    }
++                })
++                .collect();
++            Tensor::from_vec(values, (rows, 1024), &device)?
++                .to_dtype(DType::BF16)
++        };
++        let x = matrix(rows, true)?;
++        let y = matrix(rows, true)?;
++        let weight = (matrix(1, false)?.squeeze(0)? * 3.0)?;
++        let bias = matrix(1, false)?.squeeze(0)?;
++        let wb = Tensor::stack(&[&weight, &bias], 0)?;
++        // Every finite BF16 value, twice, as residual inputs too.
++        let all: Vec<f32> = (0u32..=65535)
++            .map(|v| {
++                if v & 0x7f80 == 0x7f80 {
++                    0.0
++                } else {
++                    f32::from_bits(v << 16)
++                }
++            })
++            .collect();
++        let sweep = Tensor::from_vec(all, (64, 1024), &device)?
++            .to_dtype(DType::BF16)?;
++        WIDE_CALLS.store(0, std::sync::atomic::Ordering::Relaxed);
++        for (x, y) in [(&x, &y), (&sweep, &sweep), (&sweep, &sweep.flip(&[0])?)]
++        {
++            let y = &y.contiguous()?;
++            for eps in [1e-5, 1e-12] {
++                let sum = (x + y)?;
++                let norm = candle_nn::LayerNorm::new(
++                    weight.clone(),
++                    bias.clone(),
++                    eps,
++                );
++                let (actual_sum, actual_norm) = forward_bias(x, y, &wb, eps)?;
++                assert_bits("biased sum", &actual_sum, &sum)?;
++                assert_bits("biased norm", &actual_norm, &sum.apply(&norm)?)?;
++                let zero = candle_nn::LayerNorm::new(
++                    weight.clone(),
++                    weight.zeros_like()?,
++                    eps,
++                );
++                assert_bits(
++                    "plain norm",
++                    &layer_norm(x, &weight, eps)?,
++                    &x.apply(&zero)?,
++                )?;
++            }
++        }
++        assert_eq!(WIDE_CALLS.load(std::sync::atomic::Ordering::Relaxed), 12);
++        Ok(())
++    }
++
++    #[test]
++    #[ignore = "requires CUDA and checkpoint; run alone"]
++    fn paired_head_norm() -> anyhow::Result<()> {
++        WIDE_CALLS.store(0, std::sync::atomic::Ordering::Relaxed);
++        REFERENCE_WIDE.store(false, std::sync::atomic::Ordering::Relaxed);
++        crate::model::batch_bench::run_paired_cases(
++            &crate::head::REFERENCE_HEAD_NORM,
++            crate::model::batch_bench::cases(),
++        )
++    }
++
+     #[test]
+     #[ignore = "requires CUDA and checkpoint; run alone"]
+     fn paired_wide_norm() -> anyhow::Result<()> {

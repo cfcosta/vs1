@@ -96,3 +96,38 @@ nix develop -c bash -c '
     paired_wide_norm -- --ignored --nocapture --test-threads=1
 '
 ```
+
+## 2. Warp-per-row norms for the head and embeddings — rejected
+
+The experiment-1 kernel was templated for an optional residual input and
+an optional real bias (weight and bias stacked as one `2 x 1024` tensor).
+It replaced the decision head's `x + attn -> norm2` and `x + ffn -> norm1`
+pairs (the head layer output was deferred, like the encoder's MLP
+residual, so the next layer's `norm1` absorbs its add; the type-embedding
+add fuses into layer 0's `norm1`) and the encoder's embedding LayerNorm.
+Candle computes `FMA(lhs, alpha, beta)` for biased norms, reproduced with
+`__fmaf_rn`.
+
+`biased_and_plain_wide_norms_match_candle_bits` passed: 1031 random rows
+across five magnitude bands and cancellation rows, plus every finite BF16
+value as both operands, for biased residual and plain +0-bias norms at two
+epsilons. A dispatch count confirmed five extra fused calls per batch
+(61 vs 56 at 32 questions).
+
+| Workload      | First paired change | Faster | Repeat | Faster |
+| ------------- | ------------------: | -----: | -----: | -----: |
+| 1             |              -0.58% |  35/40 | -0.28% |  27/40 |
+| 8             |              -0.44% |  29/40 | -0.59% |  26/40 |
+| 32            |              +0.56% |  18/40 | +0.98% |  15/40 |
+| 64            |              +0.96% |  15/40 | +0.45% |  19/40 |
+| 128           |              -0.45% |  22/40 | +0.34% |  18/40 |
+| mixed128      |              -0.11% |  20/40 | +0.23% |  18/40 |
+| shared128     |              -0.50% |  23/40 | -0.43% |  24/40 |
+| browser_call3 |              -1.07% |  32/40 | -0.44% |  27/40 |
+| browser_call5 |              -0.55% |  23/40 | -0.43% |  25/40 |
+
+All outputs were exact, but the changes straddle zero and flip sign between
+runs. Five norm/add pairs per batch are too little work relative to 28
+encoder layers to show above noise. Reverted; the prototype and tests are
+archived in `02-head-norms.patch` (applies on top of experiment 1), with
+reports `02-paired.json` and `02-paired-repeat.json`.
