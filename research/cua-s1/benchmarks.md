@@ -135,6 +135,82 @@ failure; it does not isolate the model's ability with its native option format.
 
 Follow-ups:
 
-1. Add a Cua-S1-native browser policy with combined (element, action) options.
-2. Implemented: [balanced option tournaments](README.md#rust-option-tournaments)
-   over groups of at most 26 candidates. The live tasks above have not been rerun.
+1. Done: add a Cua-S1-native browser policy with combined (element, action) options.
+2. Done: [balanced option tournaments](README.md#rust-option-tournaments)
+   over groups of at most 26 candidates, with live-task reruns recorded below.
+
+## Follow-up results — 2026-09-23
+
+### Native browser policy
+
+`vs1-browser --backend cua-s1` now defaults to `--policy native`: one question
+over concrete (element, action) options, with tournaments above 26 options.
+The earlier sections retain the original questions-policy results. These reruns
+use the native policy before and after the kernel changes below. Passes require
+status `done` and passing independent checks. Statuses, actions and decision
+medians are in run order, with the same timing exclusions as above.
+
+| Build          | Task      | Passes | Status per run   | Actions per run | Median decision ms per run |
+| -------------- | --------- | -----: | ---------------- | --------------- | -------------------------- |
+| Before kernels | Hotel     |    0/3 | done, done, done | 3, 3, 3         | 221.596, 222.693, 221.980  |
+| Before kernels | Wikipedia |    2/2 | done, done       | 11, 9           | 1961.946, 1933.833         |
+| Final          | Hotel     |    0/3 | done, done, done | 3, 3, 3         | 148.050, 148.142, 149.524  |
+| Final          | Wikipedia |    1/2 | done, error      | 11, 15          | 1299.283, 1348.941         |
+
+In every native hotel run, before and after the kernel changes, Cua-S1 checks
+“Free cancellation”, selects “Design”, opens Casa Flora, then chooses DONE.
+It never types the destination. Jev's hotel run 1 types “Lisbon”, selects
+“Design”, checks “Free cancellation”, opens Casa Flora, then chooses DONE.
+Neither submits “Find stays”; both pass the `property` check and fail `filters`.
+
+Final Wikipedia run 2 passed the `article` check but ended with status `error`
+after hitting the 15-action limit without choosing DONE. The recorded error is
+`model-call budget exhausted`; this run is not counted as a pass.
+
+Sources: `artifacts/browser-bench-20260923/live-cua-s1-{native,final}-{hotel,wikipedia}/summary.json`
+and their `run-*/trace.json`; Jev sequence:
+`artifacts/browser-bench-20260923/live-jev-hotel/run-01/trace.json`.
+
+### Kernel speed progression
+
+The dispatcher's measurements repeat replay request `call5` four times and
+report per-question latency, using alternating A/B pairs against the previous
+build for each step. The desktop shares the GPU, so absolute values drift
+between sessions; this is why each step was measured in alternating pairs.
+
+| Change                         | Previous → new ms per question | Validation                         |
+| ------------------------------ | -----------------------------: | ---------------------------------- |
+| Fused zero-centered RMSNorm    |                      533 → 497 |                                    |
+| Fused causal conv + SiLU       |                      504 → 442 | Bit-identical to the previous path |
+| Fused gated RMSNorm            |                442 → about 412 | Faster in all five pairs           |
+| Parallel delta-rule recurrence |                about 412 → 370 |                                    |
+
+All six BF16 reference cases kept their top option after every step. These
+paired timings and validation results are dispatcher-reported measurements.
+
+### Final email and replay re-measurement
+
+The final email build processed the same 200 messages in 216 chunks at
+`context_tokens=4096`. Only aggregate counts and timings are reported.
+
+| Build       | Correct / labeled | Accuracy | Labeled abstentions | Load seconds |  Run seconds |
+| ----------- | ----------------: | -------: | ------------------: | -----------: | -----------: |
+| `20260923b` |           126/156 |    80.8% |                   0 |  2.035681718 | 97.819919938 |
+| `20260923c` |           127/156 |    81.4% |                   0 |  1.997534872 | 62.747356051 |
+
+Sources: `~/.local/state/vs1-email/three-backends-200-20260921/20260923{b,c}-cua-s1.summary.json`.
+Both use the cold-inference timing boundary documented above, with loading
+separate from run time.
+
+Replay retains `--policy questions`, with 10 timed repeats per call and loading
+and warmup excluded. These are whole-request medians, not the per-question
+kernel timings above. Every returned answer stayed unchanged, including the
+unused click target on call 5.
+
+| Call | Original median ms | Final median ms | Operation | Click target | Type-text target |
+| ---: | -----------------: | --------------: | --------- | ------------ | ---------------- |
+|    3 |            471.545 |         305.755 | CLICK     | 2            | —                |
+|    5 |           1683.485 |        1075.101 | TYPE_TEXT | 6            | 16               |
+
+Sources: `artifacts/browser-bench-20260923/replay-cua-s1/replay.json` and
+`artifacts/browser-bench-20260923/replay-cua-s1-final/replay.json`.
