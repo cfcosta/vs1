@@ -3,19 +3,21 @@
 extern "C" __global__ void apply_delta_rule_f32(
     const float *__restrict__ query, const float *__restrict__ key,
     const float *__restrict__ value, const float *__restrict__ beta,
-    const float *__restrict__ decay, float *__restrict__ output,
-    unsigned int seq, unsigned int heads, unsigned int value_dim
+    const float *__restrict__ decay, const float *__restrict__ initial_state,
+    float *__restrict__ output, unsigned int seq, unsigned int heads,
+    unsigned int value_dim, unsigned int should_save_state
 ) {
     constexpr unsigned int key_dim = 128;
     // Reload keys for the update instead of keeping a second column in registers.
     __shared__ volatile float token_key[key_dim];
     __shared__ volatile float token_query[key_dim];
     float state[key_dim];
-    #pragma unroll
-    for (unsigned int i = 0; i < key_dim; ++i) state[i] = 0.0f;
-
     const unsigned int head = blockIdx.x;
     const unsigned int j = threadIdx.x;
+    #pragma unroll
+    for (unsigned int i = 0; i < key_dim; ++i) {
+        state[i] = initial_state ? initial_state[(head * key_dim + i) * value_dim + j] : 0.0f;
+    }
     for (unsigned int t = 0; t < seq; ++t) {
         const unsigned int token_head = t * heads + head;
         for (unsigned int i = j; i < key_dim; i += blockDim.x) {
@@ -47,6 +49,12 @@ extern "C" __global__ void apply_delta_rule_f32(
         // All columns must finish reading before loading the next token.
         __syncthreads();
     }
+    if (should_save_state) {
+        #pragma unroll
+        for (unsigned int i = 0; i < key_dim; ++i) {
+            output[seq * heads * value_dim + (head * key_dim + i) * value_dim + j] = state[i];
+        }
+    }
 }
 
 // Eight adjacent lanes share a state column; each block handles 32 columns.
@@ -54,8 +62,9 @@ extern "C" __global__ void apply_delta_rule_f32(
 extern "C" __global__ void __launch_bounds__(256) apply_delta_rule_parallel_f32(
     const float *__restrict__ query, const float *__restrict__ key,
     const float *__restrict__ value, const float *__restrict__ beta,
-    const float *__restrict__ decay, float *__restrict__ output,
-    unsigned int seq, unsigned int heads, unsigned int value_dim
+    const float *__restrict__ decay, const float *__restrict__ initial_state,
+    float *__restrict__ output, unsigned int seq, unsigned int heads,
+    unsigned int value_dim, unsigned int should_save_state
 ) {
     constexpr unsigned int key_dim = 128;
     constexpr unsigned int lanes_per_column = 8;
@@ -63,12 +72,14 @@ extern "C" __global__ void __launch_bounds__(256) apply_delta_rule_parallel_f32(
     __shared__ float token_key[key_dim];
     __shared__ float token_query[key_dim];
     float state[rows_per_lane];
-    #pragma unroll
-    for (unsigned int i = 0; i < rows_per_lane; ++i) state[i] = 0.0f;
-
     const unsigned int head = blockIdx.x;
     const unsigned int lane = threadIdx.x % lanes_per_column;
     const unsigned int j = blockIdx.y * 32 + threadIdx.x / lanes_per_column;
+    #pragma unroll
+    for (unsigned int i = 0; i < rows_per_lane; ++i) {
+        const unsigned int row = i * lanes_per_column + lane;
+        state[i] = initial_state ? initial_state[(head * key_dim + row) * value_dim + j] : 0.0f;
+    }
     for (unsigned int t = 0; t < seq; ++t) {
         const unsigned int token_head = t * heads + head;
         if (threadIdx.x < key_dim) {
@@ -107,5 +118,12 @@ extern "C" __global__ void __launch_bounds__(256) apply_delta_rule_parallel_f32(
         }
         if (lane == 0) output[offset] = out;
         __syncthreads();
+    }
+    if (should_save_state) {
+        #pragma unroll
+        for (unsigned int i = 0; i < rows_per_lane; ++i) {
+            const unsigned int row = i * lanes_per_column + lane;
+            output[seq * heads * value_dim + (head * key_dim + row) * value_dim + j] = state[i];
+        }
     }
 }

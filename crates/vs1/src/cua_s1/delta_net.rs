@@ -12,7 +12,16 @@ use super::{
 };
 use crate::SystemOneError;
 
-/// Gated delta-rule attention for one sequence, without a cache.
+/// Saved left context and recurrence for one DeltaNet sequence.
+#[derive(Debug, Clone)]
+pub struct DeltaNetState {
+    /// Last `kernel - 1` pre-convolution rows, with missing rows zero-filled.
+    pub conv_input: Tensor,
+    /// F32 memory with shape `[value_heads, key_dim, value_dim]`.
+    pub recurrent: Tensor,
+}
+
+/// Gated delta-rule attention for one sequence.
 pub struct GatedDeltaNet {
     in_proj_qkv: Linear,
     in_proj_z: Linear,
@@ -99,8 +108,82 @@ impl GatedDeltaNet {
     }
 
     fn mix(&self, mixed: &Tensor, a: &Tensor, b: &Tensor) -> Result<Tensor> {
-        let seq = mixed.dim(0)?;
         let mixed = convolve_causally_with_silu(mixed, &self.conv_weight)?;
+        let (query, key, value, beta, decay) =
+            self.normalize_delta_inputs(&mixed, a, b)?;
+        #[cfg(feature = "cuda")]
+        if mixed.device().is_cuda() {
+            return super::delta_rule_cuda::apply_delta_rule(
+                &query.contiguous()?,
+                &key.contiguous()?,
+                &value,
+                &beta.contiguous()?,
+                &decay.contiguous()?,
+            )?
+            .to_dtype(mixed.dtype());
+        }
+        apply_delta_rule(&query, &key, &value, &beta, &decay)?
+            .to_dtype(mixed.dtype())
+    }
+
+    fn mix_with_state(
+        &self,
+        mixed: &Tensor,
+        a: &Tensor,
+        b: &Tensor,
+        state: Option<&DeltaNetState>,
+    ) -> Result<(Tensor, DeltaNetState)> {
+        let (mixed, conv_input) = convolve_causally_with_silu_with_state(
+            mixed,
+            &self.conv_weight,
+            state.map(|state| &state.conv_input),
+        )?;
+        let (query, key, value, beta, decay) =
+            self.normalize_delta_inputs(&mixed, a, b)?;
+        let initial_state = state.map(|state| &state.recurrent);
+        #[cfg(feature = "cuda")]
+        if mixed.device().is_cuda() {
+            let (output, recurrent) =
+                super::delta_rule_cuda::apply_delta_rule_with_state(
+                    &query.contiguous()?,
+                    &key.contiguous()?,
+                    &value,
+                    &beta.contiguous()?,
+                    &decay.contiguous()?,
+                    initial_state,
+                )?;
+            return Ok((
+                output.to_dtype(mixed.dtype())?,
+                DeltaNetState {
+                    conv_input,
+                    recurrent,
+                },
+            ));
+        }
+        let (output, recurrent) = apply_delta_rule_with_state(
+            &query,
+            &key,
+            &value,
+            &beta,
+            &decay,
+            initial_state,
+        )?;
+        Ok((
+            output.to_dtype(mixed.dtype())?,
+            DeltaNetState {
+                conv_input,
+                recurrent,
+            },
+        ))
+    }
+
+    fn normalize_delta_inputs(
+        &self,
+        mixed: &Tensor,
+        a: &Tensor,
+        b: &Tensor,
+    ) -> Result<(Tensor, Tensor, Tensor, Tensor, Tensor)> {
+        let seq = mixed.dim(0)?;
         let key_dim = self.num_key_heads * self.key_head_dim;
         let value_dim = self.num_value_heads * self.value_head_dim;
         let query = mixed.narrow(1, 0, key_dim)?.reshape((
@@ -128,19 +211,35 @@ impl GatedDeltaNet {
         let beta = ops::sigmoid(b)?.to_dtype(DType::F32)?;
         let g = compute_log_decay(a, &self.a_log, &self.dt_bias)?;
         let decay = g.exp()?;
-        #[cfg(feature = "cuda")]
-        if mixed.device().is_cuda() {
-            return super::delta_rule_cuda::apply_delta_rule(
-                &query.contiguous()?,
-                &key.contiguous()?,
-                &value,
-                &beta.contiguous()?,
-                &decay.contiguous()?,
-            )?
-            .to_dtype(mixed.dtype());
+        Ok((query, key, value, beta, decay))
+    }
+
+    /// Continues an unpadded `[seq, hidden_size]` sequence from saved state.
+    pub fn forward_with_state(
+        &self,
+        x: &Tensor,
+        state: Option<&DeltaNetState>,
+    ) -> Result<(Tensor, DeltaNetState)> {
+        let (seq, _) = x.dims2()?;
+        if seq == 0 {
+            candle_core::bail!("DeltaNet requires a nonempty sequence")
         }
-        apply_delta_rule(&query, &key, &value, &beta, &decay)?
-            .to_dtype(mixed.dtype())
+        let mixed = self.in_proj_qkv.forward(x)?;
+        let a = self.in_proj_a.forward(x)?;
+        let b = self.in_proj_b.forward(x)?;
+        let (output, state) = self.mix_with_state(&mixed, &a, &b, state)?;
+        let gate = self.in_proj_z.forward(x)?.reshape(output.shape())?;
+        let output = normalize_rms_gated(
+            &output,
+            &self.norm_weight,
+            &gate,
+            self.rms_norm_eps,
+        )?;
+        let output = self.out_proj.forward(
+            &output
+                .reshape((seq, self.num_value_heads * self.value_head_dim))?,
+        )?;
+        Ok((output, state))
     }
 }
 
@@ -179,6 +278,23 @@ fn convolve_causally_with_silu(x: &Tensor, weight: &Tensor) -> Result<Tensor> {
     convolve_causally(x, weight)?.silu()
 }
 
+fn convolve_causally_with_silu_with_state(
+    x: &Tensor,
+    weight: &Tensor,
+    state: Option<&Tensor>,
+) -> Result<(Tensor, Tensor)> {
+    #[cfg(feature = "cuda")]
+    if let Some(output) =
+        super::causal_conv_cuda::convolve_causally_with_silu_with_state(
+            x, weight, state,
+        )?
+    {
+        return Ok(output);
+    }
+    let (output, state) = convolve_causally_with_state(x, weight, state)?;
+    Ok((output.silu()?, state))
+}
+
 pub(super) fn convolve_causally(x: &Tensor, weight: &Tensor) -> Result<Tensor> {
     let (seq, channels) = x.dims2()?;
     let (weight_channels, channels_per_group, kernel) = weight.dims3()?;
@@ -197,6 +313,53 @@ pub(super) fn convolve_causally(x: &Tensor, weight: &Tensor) -> Result<Tensor> {
         output = (output + product)?;
     }
     output.to_dtype(x.dtype())
+}
+
+pub(super) fn convolve_causally_with_state(
+    x: &Tensor,
+    weight: &Tensor,
+    state: Option<&Tensor>,
+) -> Result<(Tensor, Tensor)> {
+    let (seq, channels) = x.dims2()?;
+    let (weight_channels, channels_per_group, kernel) = weight.dims3()?;
+    if weight_channels != channels || channels_per_group != 1 || kernel == 0 {
+        candle_core::bail!(
+            "causal depthwise convolution requires [channels, 1, kernel] weights"
+        )
+    }
+    if let Some(state) = state {
+        validate_state(state, &[kernel - 1, channels], x.dtype(), x.device())?;
+    }
+    let padded = match state {
+        Some(state) => Tensor::cat(&[state, x], 0)?,
+        None => x.pad_with_zeros(0, kernel - 1, 0)?,
+    };
+    let output = match state {
+        Some(_) => {
+            convolve_causally(&padded, weight)?.narrow(0, kernel - 1, seq)?
+        }
+        None => convolve_causally(x, weight)?,
+    };
+    // Copy only the tail so saved state does not retain the entire sequence.
+    let final_state = padded.narrow(0, seq, kernel - 1)?.copy()?;
+    Ok((output, final_state))
+}
+
+pub(super) fn validate_state(
+    state: &Tensor,
+    dims: &[usize],
+    dtype: DType,
+    device: &Device,
+) -> Result<()> {
+    if state.dims() != dims
+        || state.dtype() != dtype
+        || !state.device().same_device(device)
+    {
+        candle_core::bail!(
+            "DeltaNet state must have shape {dims:?}, dtype {dtype:?} and the input device"
+        )
+    }
+    Ok(())
 }
 
 fn repeat_key_heads(x: &Tensor, groups: usize) -> Result<Tensor> {
@@ -230,6 +393,18 @@ pub(crate) fn apply_delta_rule(
     beta: &Tensor,
     decay: &Tensor,
 ) -> Result<Tensor> {
+    apply_delta_rule_with_state(query, key, value, beta, decay, None)
+        .map(|(output, _)| output)
+}
+
+pub(crate) fn apply_delta_rule_with_state(
+    query: &Tensor,
+    key: &Tensor,
+    value: &Tensor,
+    beta: &Tensor,
+    decay: &Tensor,
+    initial_state: Option<&Tensor>,
+) -> Result<(Tensor, Tensor)> {
     let (seq, heads, key_dim) = query.dims3()?;
     let (value_seq, value_heads, value_dim) = value.dims3()?;
     if key.shape() != query.shape()
@@ -241,6 +416,18 @@ pub(crate) fn apply_delta_rule(
             "delta-rule query, key, value and gate dimensions do not match"
         )
     }
+    let mut state = match initial_state {
+        Some(state) => {
+            validate_state(
+                state,
+                &[heads, key_dim, value_dim],
+                DType::F32,
+                query.device(),
+            )?;
+            state.flatten_all()?.to_vec1::<f32>()?
+        }
+        None => vec![0f32; heads * key_dim * value_dim],
+    };
     let query = query.to_vec3::<f32>()?;
     let key = key.to_vec3::<f32>()?;
     let value = value.to_vec3::<f32>()?;
@@ -248,10 +435,11 @@ pub(crate) fn apply_delta_rule(
     let decay = decay.to_vec2::<f32>()?;
     let mut output = vec![0f32; seq * heads * value_dim];
     for head in 0..heads {
-        let mut state = vec![0f32; key_dim * value_dim];
+        let offset = head * key_dim * value_dim;
+        let state = &mut state[offset..offset + key_dim * value_dim];
         let mut delta = vec![0f32; value_dim];
         for t in 0..seq {
-            for entry in &mut state {
+            for entry in state.iter_mut() {
                 *entry *= decay[t][head];
             }
             delta.fill(0.);
@@ -280,17 +468,271 @@ pub(crate) fn apply_delta_rule(
             }
         }
     }
-    Tensor::from_vec(output, (seq, heads, value_dim), &Device::Cpu)
+    Ok((
+        Tensor::from_vec(output, (seq, heads, value_dim), &Device::Cpu)?,
+        Tensor::from_vec(state, (heads, key_dim, value_dim), &Device::Cpu)?,
+    ))
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use std::path::Path;
 
     use candle_core::safetensors::MmapedSafetensors;
 
     use super::*;
     use crate::cua_s1::normalize_rms;
+
+    pub(in crate::cua_s1) fn assert_same_bits(
+        output: &Tensor,
+        expected: &Tensor,
+    ) -> Result<()> {
+        assert_eq!(output.dtype(), expected.dtype());
+        assert_eq!(output.shape(), expected.shape());
+        let output = output
+            .to_dtype(DType::F32)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let expected = expected
+            .to_dtype(DType::F32)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        for (i, (actual, expected)) in output.iter().zip(&expected).enumerate()
+        {
+            assert!(actual.is_finite() && expected.is_finite(), "element {i}");
+            assert_eq!(
+                actual.to_bits(),
+                expected.to_bits(),
+                "element {i}: {actual} vs {expected}"
+            );
+        }
+        Ok(())
+    }
+
+    fn sample_layer(kernel: usize) -> Result<GatedDeltaNet> {
+        let mut seed = 0x9e37_79b9_7f4a_7c15u64;
+        let mut sample = |dims: &[usize]| -> Result<Tensor> {
+            let values = (0..dims.iter().product())
+                .map(|_| {
+                    seed ^= seed << 13;
+                    seed ^= seed >> 7;
+                    seed ^= seed << 17;
+                    (seed >> 40) as f32 / (1u64 << 24) as f32 - 0.5
+                })
+                .collect::<Vec<_>>();
+            Tensor::from_vec(values, dims, &Device::Cpu)
+        };
+        Ok(GatedDeltaNet {
+            in_proj_qkv: Linear::new(sample(&[28, 8])?, None),
+            in_proj_z: Linear::new(sample(&[12, 8])?, None),
+            in_proj_b: Linear::new(sample(&[4, 8])?, None),
+            in_proj_a: Linear::new(sample(&[4, 8])?, None),
+            out_proj: Linear::new(sample(&[8, 12])?, None),
+            conv_weight: sample(&[28, 1, kernel])?,
+            a_log: sample(&[4])?,
+            dt_bias: sample(&[4])?,
+            norm_weight: sample(&[3])?,
+            num_key_heads: 2,
+            num_value_heads: 4,
+            key_head_dim: 4,
+            value_head_dim: 3,
+            rms_norm_eps: 1e-6,
+        })
+    }
+
+    #[test]
+    fn continues_delta_net_with_output_and_state_within_f32_tolerance()
+    -> Result<()> {
+        let seq = 11;
+        let x = Tensor::arange(0f32, (seq * 8) as f32, &Device::Cpu)?
+            .affine(0.03125, -1.)?
+            .reshape((seq, 8))?;
+        for kernel in [1, 4, 7] {
+            // Split projections can round differently because GEMM row counts change.
+            let assert_continuation_close = |name: &str,
+                                             output: &Tensor,
+                                             expected: &Tensor|
+             -> Result<()> {
+                assert_eq!(output.dtype(), DType::F32);
+                assert_eq!(output.shape(), expected.shape());
+                let output = output.flatten_all()?.to_vec1::<f32>()?;
+                let expected = expected.flatten_all()?.to_vec1::<f32>()?;
+                let mut max_absolute_difference = 0f32;
+                for (actual, expected) in output.iter().zip(&expected) {
+                    assert!(actual.is_finite() && expected.is_finite());
+                    max_absolute_difference =
+                        max_absolute_difference.max((actual - expected).abs());
+                }
+                println!(
+                    "kernel={kernel}, {name}: max absolute difference {max_absolute_difference:e}"
+                );
+                assert!(
+                    max_absolute_difference <= 1e-5,
+                    "kernel={kernel}, {name}: exceeds atol=1e-5"
+                );
+                Ok(())
+            };
+            let layer = sample_layer(kernel)?;
+            let (whole, whole_state) = layer.forward_with_state(&x, None)?;
+            assert_same_bits(&whole, &layer.forward(&x)?)?;
+            assert_eq!(whole_state.recurrent.dtype(), DType::F32);
+            assert_eq!(whole_state.recurrent.dims(), [4, 4, 3]);
+            assert_same_bits(
+                &whole_state.conv_input,
+                &layer.in_proj_qkv.forward(&x)?.narrow(
+                    0,
+                    seq - (kernel - 1),
+                    kernel - 1,
+                )?,
+            )?;
+            let zero = DeltaNetState {
+                conv_input: Tensor::zeros(
+                    (kernel - 1, 28),
+                    DType::F32,
+                    &Device::Cpu,
+                )?,
+                recurrent: Tensor::zeros((4, 4, 3), DType::F32, &Device::Cpu)?,
+            };
+            let (output, state) = layer.forward_with_state(&x, Some(&zero))?;
+            assert_same_bits(&output, &whole)?;
+            assert_same_bits(&state.conv_input, &whole_state.conv_input)?;
+            assert_same_bits(&state.recurrent, &whole_state.recurrent)?;
+            for split in [1, 2, 3, 6, seq - 1] {
+                let prefix = x.narrow(0, 0, split)?;
+                let suffix = x.narrow(0, split, seq - split)?;
+                let (prefix_output, prefix_state) =
+                    layer.forward_with_state(&prefix, None)?;
+                let saved_conv = prefix_state.conv_input.copy()?;
+                let saved_recurrent = prefix_state.recurrent.copy()?;
+                if split < kernel - 1 {
+                    assert_same_bits(
+                        &prefix_state.conv_input,
+                        &layer.in_proj_qkv.forward(&prefix)?.pad_with_zeros(
+                            0,
+                            kernel - 1 - split,
+                            0,
+                        )?,
+                    )?;
+                }
+                for _ in 0..2 {
+                    let (suffix_output, state) = layer
+                        .forward_with_state(&suffix, Some(&prefix_state))?;
+                    assert_continuation_close(
+                        &format!("split={split} output"),
+                        &Tensor::cat(&[&prefix_output, &suffix_output], 0)?,
+                        &whole,
+                    )?;
+                    assert_continuation_close(
+                        &format!("split={split} convolution state"),
+                        &state.conv_input,
+                        &whole_state.conv_input,
+                    )?;
+                    assert_continuation_close(
+                        &format!("split={split} recurrent state"),
+                        &state.recurrent,
+                        &whole_state.recurrent,
+                    )?;
+                }
+                assert_same_bits(&prefix_state.conv_input, &saved_conv)?;
+                assert_same_bits(&prefix_state.recurrent, &saved_recurrent)?;
+            }
+            let mut state = None;
+            for t in 0..seq {
+                let (output, next_state) = layer
+                    .forward_with_state(&x.narrow(0, t, 1)?, state.as_ref())?;
+                assert_continuation_close(
+                    &format!("token={t} output"),
+                    &output,
+                    &whole.narrow(0, t, 1)?,
+                )?;
+                state = Some(next_state);
+            }
+            let state = state.unwrap();
+            assert_continuation_close(
+                "token-by-token convolution state",
+                &state.conv_input,
+                &whole_state.conv_input,
+            )?;
+            assert_continuation_close(
+                "token-by-token recurrent state",
+                &state.recurrent,
+                &whole_state.recurrent,
+            )?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn continues_projected_tokens_with_identical_output_and_state() -> Result<()>
+    {
+        let seq = 11;
+        let x = Tensor::arange(0f32, (seq * 8) as f32, &Device::Cpu)?
+            .affine(0.03125, -1.)?
+            .reshape((seq, 8))?;
+        for kernel in [1, 4, 7] {
+            let layer = sample_layer(kernel)?;
+            let mixed = layer.in_proj_qkv.forward(&x)?;
+            let a = layer.in_proj_a.forward(&x)?;
+            let b = layer.in_proj_b.forward(&x)?;
+            let (whole, whole_state) =
+                layer.mix_with_state(&mixed, &a, &b, None)?;
+            assert_same_bits(&whole, &layer.mix(&mixed, &a, &b)?)?;
+            for split in [1, 2, 3, 6, seq - 1] {
+                let (prefix, state) = layer.mix_with_state(
+                    &mixed.narrow(0, 0, split)?,
+                    &a.narrow(0, 0, split)?,
+                    &b.narrow(0, 0, split)?,
+                    None,
+                )?;
+                let (suffix, state) = layer.mix_with_state(
+                    &mixed.narrow(0, split, seq - split)?,
+                    &a.narrow(0, split, seq - split)?,
+                    &b.narrow(0, split, seq - split)?,
+                    Some(&state),
+                )?;
+                assert_same_bits(
+                    &Tensor::cat(&[&prefix, &suffix], 0)?,
+                    &whole,
+                )?;
+                assert_same_bits(&state.conv_input, &whole_state.conv_input)?;
+                assert_same_bits(&state.recurrent, &whole_state.recurrent)?;
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_mismatched_delta_net_state() -> Result<()> {
+        let layer = sample_layer(4)?;
+        let x = Tensor::ones((2, 8), DType::F32, &Device::Cpu)?;
+        let (_, state) = layer.forward_with_state(&x, None)?;
+        for invalid in [
+            DeltaNetState {
+                conv_input: state.conv_input.narrow(0, 0, 2)?,
+                ..state.clone()
+            },
+            DeltaNetState {
+                conv_input: state.conv_input.to_dtype(DType::BF16)?,
+                ..state.clone()
+            },
+            DeltaNetState {
+                recurrent: state.recurrent.narrow(0, 0, 1)?,
+                ..state.clone()
+            },
+            DeltaNetState {
+                recurrent: state.recurrent.to_dtype(DType::BF16)?,
+                ..state.clone()
+            },
+        ] {
+            assert!(layer.forward_with_state(&x, Some(&invalid)).is_err());
+        }
+        assert!(
+            layer
+                .forward_with_state(&x.narrow(0, 0, 0)?, Some(&state))
+                .is_err()
+        );
+        Ok(())
+    }
 
     fn assert_close(
         name: &str,

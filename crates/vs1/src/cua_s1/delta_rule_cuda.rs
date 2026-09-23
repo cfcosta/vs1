@@ -21,6 +21,8 @@ struct DeltaRule {
     beta: Tensor,
     decay: Tensor,
     is_parallel: bool,
+    initial_state: Option<Tensor>,
+    should_save_state: bool,
 }
 
 impl CustomOp3 for DeltaRule {
@@ -100,8 +102,32 @@ impl CustomOp3 for DeltaRule {
             vs.slice(vl.start_offset()..vl.start_offset() + value_count);
         let beta = bs.slice(bl.start_offset()..bl.start_offset() + gate_count);
         let decay = ds.slice(dl.start_offset()..dl.start_offset() + gate_count);
-        // SAFETY: every output element is written by the kernel.
-        let mut output = unsafe { dev.alloc(value_count)? };
+        let initial_storage =
+            self.initial_state.as_ref().map(Tensor::storage_and_layout);
+        let initial_state = match initial_storage.as_ref() {
+            Some((storage, layout)) => {
+                let Storage::Cuda(storage) = &**storage else {
+                    candle_core::bail!("delta-rule state requires CUDA")
+                };
+                let CudaStorageSlice::F32(slice) = &storage.slice else {
+                    candle_core::bail!("delta-rule state requires F32")
+                };
+                Some(slice.slice(
+                    layout.start_offset()
+                        ..layout.start_offset() + heads * key_dim * value_dim,
+                ))
+            }
+            None => None,
+        };
+        let state_count = if self.should_save_state {
+            heads * key_dim * value_dim
+        } else {
+            0
+        };
+        // SAFETY: every output and requested final-state element is written.
+        let mut output = unsafe { dev.alloc(value_count + state_count)? };
+        let should_save_state = u32::from(self.should_save_state);
+        let null = 0u64;
         let (seq, heads, value_dim) =
             (seq as u32, heads as u32, value_dim as u32);
         let mut launch = func.builder();
@@ -110,11 +136,17 @@ impl CustomOp3 for DeltaRule {
             .arg(&key)
             .arg(&value)
             .arg(&beta)
-            .arg(&decay)
+            .arg(&decay);
+        match &initial_state {
+            Some(state) => launch.arg(state),
+            None => launch.arg(&null),
+        };
+        launch
             .arg(&mut output)
             .arg(&seq)
             .arg(&heads)
-            .arg(&value_dim);
+            .arg(&value_dim)
+            .arg(&should_save_state);
         // SAFETY: apply_delta_rule checks shapes, devices, dtype and contiguity;
         // parallel blocks cover complete groups of 32 value columns, and the
         // kernel's block limit is checked above.
@@ -131,7 +163,11 @@ impl CustomOp3 for DeltaRule {
                 slice: CudaStorageSlice::F32(output),
                 device: dev.clone(),
             },
-            vl.shape().clone(),
+            if self.should_save_state {
+                Shape::from(value_count + state_count)
+            } else {
+                vl.shape().clone()
+            },
         ))
     }
 }
@@ -145,44 +181,103 @@ pub(crate) fn apply_delta_rule(
     beta: &Tensor,
     decay: &Tensor,
 ) -> Result<Tensor> {
-    let (seq, heads, key_dim) = query.dims3()?;
-    let (value_seq, value_heads, value_dim) = value.dims3()?;
-    if seq == 0
-        || heads == 0
-        || key_dim != 128
-        || value_dim == 0
-        || value_dim > 1024
-        || key.shape() != query.shape()
-        || (value_seq, value_heads) != (seq, heads)
-        || beta.dims() != [seq, heads]
-        || decay.dims() != [seq, heads]
-        || query.elem_count() > u32::MAX as usize
-        || value.elem_count() > u32::MAX as usize
-    {
-        candle_core::bail!(
-            "delta-rule kernel requires matching nonempty dimensions, key_dim 128 and value_dim fitting one block"
-        )
+    DeltaRule {
+        beta: beta.clone(),
+        decay: decay.clone(),
+        is_parallel: value.dim(2)? == 128,
+        initial_state: None,
+        should_save_state: false,
     }
-    if !query.device().is_cuda()
-        || [query, key, value, beta, decay].iter().any(|t| {
-            !t.is_contiguous()
-                || t.dtype() != DType::F32
-                || !t.device().same_device(query.device())
-        })
-    {
-        candle_core::bail!(
-            "delta-rule kernel requires contiguous F32 inputs on one CUDA device"
-        )
+    .apply(query, key, value)
+}
+
+pub(crate) fn apply_delta_rule_with_state(
+    query: &Tensor,
+    key: &Tensor,
+    value: &Tensor,
+    beta: &Tensor,
+    decay: &Tensor,
+    initial_state: Option<&Tensor>,
+) -> Result<(Tensor, Tensor)> {
+    let output = DeltaRule {
+        beta: beta.clone(),
+        decay: decay.clone(),
+        is_parallel: value.dim(2)? == 128,
+        initial_state: initial_state.cloned(),
+        should_save_state: true,
     }
-    query.apply_op3_no_bwd(
-        key,
-        value,
-        &DeltaRule {
-            beta: beta.clone(),
-            decay: decay.clone(),
-            is_parallel: value_dim == 128,
-        },
-    )
+    .apply(query, key, value)?;
+    split_output_and_state(&output, value, query.dim(2)?)
+}
+
+fn split_output_and_state(
+    output: &Tensor,
+    value: &Tensor,
+    key_dim: usize,
+) -> Result<(Tensor, Tensor)> {
+    let (_, heads, value_dim) = value.dims3()?;
+    let state = output
+        .narrow(0, value.elem_count(), heads * key_dim * value_dim)?
+        .reshape((heads, key_dim, value_dim))?
+        .copy()?;
+    Ok((
+        output
+            .narrow(0, 0, value.elem_count())?
+            .reshape(value.shape())?,
+        state,
+    ))
+}
+
+impl DeltaRule {
+    fn apply(
+        &self,
+        query: &Tensor,
+        key: &Tensor,
+        value: &Tensor,
+    ) -> Result<Tensor> {
+        let (seq, heads, key_dim) = query.dims3()?;
+        let (value_seq, value_heads, value_dim) = value.dims3()?;
+        if seq == 0
+            || heads == 0
+            || key_dim != 128
+            || value_dim == 0
+            || value_dim > 1024
+            || (self.is_parallel && value_dim != 128)
+            || key.shape() != query.shape()
+            || (value_seq, value_heads) != (seq, heads)
+            || self.beta.dims() != [seq, heads]
+            || self.decay.dims() != [seq, heads]
+            || query.elem_count() > u32::MAX as usize
+            || (seq + key_dim) * heads * value_dim > u32::MAX as usize
+        {
+            candle_core::bail!(
+                "delta-rule kernel requires matching nonempty dimensions, key_dim 128 and value_dim fitting one block"
+            )
+        }
+        if let Some(state) = &self.initial_state {
+            super::delta_net::validate_state(
+                state,
+                &[heads, key_dim, value_dim],
+                DType::F32,
+                query.device(),
+            )?;
+        }
+        if !query.device().is_cuda()
+            || [query, key, value, &self.beta, &self.decay]
+                .into_iter()
+                .chain(self.initial_state.as_ref())
+                .any(|t| {
+                    !t.is_contiguous()
+                        || t.dtype() != DType::F32
+                        || !t.device().same_device(query.device())
+                })
+        {
+            candle_core::bail!(
+                "delta-rule kernel requires contiguous F32 inputs on one CUDA device"
+            )
+        }
+        query.apply_op3_no_bwd(key, value, self)
+    }
 }
 
 #[cfg(test)]
@@ -191,6 +286,86 @@ mod tests {
 
     use super::*;
     use crate::cua_s1::{delta_net, normalize_l2};
+
+    #[test]
+    #[ignore = "requires CUDA"]
+    fn continues_both_delta_rule_kernels_with_identical_output_and_state()
+    -> Result<()> {
+        use delta_net::tests::assert_same_bits;
+
+        let device = Device::new_cuda(0)?;
+        device.set_seed(42)?;
+        let (seq, heads, dim) = (1860, 32, 128);
+        let sample = |shape: &[usize]| -> Result<Tensor> {
+            Tensor::rand(-1f32, 1., shape, &device)?
+                .to_dtype(DType::BF16)?
+                .to_dtype(DType::F32)
+        };
+        let query = (normalize_l2(
+            &sample(&[seq + 1, heads, dim])?.narrow(0, 1, seq)?,
+        )? * (dim as f64).sqrt().recip())?;
+        let key =
+            normalize_l2(&sample(&[seq + 2, heads, dim])?.narrow(0, 2, seq)?)?;
+        let value = sample(&[seq + 3, heads, dim])?.narrow(0, 3, seq)?;
+        let beta = candle_nn::ops::sigmoid(&sample(&[seq, heads])?)?;
+        let decay = sample(&[seq, heads])?.abs()?.neg()?.exp()?;
+        let zero = Tensor::zeros((heads, dim, dim), DType::F32, &device)?;
+        for is_parallel in [false, true] {
+            let apply = |start,
+                         len,
+                         state: Option<&Tensor>,
+                         should_save_state|
+             -> Result<Tensor> {
+                DeltaRule {
+                    beta: beta.narrow(0, start, len)?,
+                    decay: decay.narrow(0, start, len)?,
+                    is_parallel,
+                    initial_state: state.cloned(),
+                    should_save_state,
+                }
+                .apply(
+                    &query.narrow(0, start, len)?,
+                    &key.narrow(0, start, len)?,
+                    &value.narrow(0, start, len)?,
+                )
+            };
+            let (whole, whole_state) = split_output_and_state(
+                &apply(0, seq, None, true)?,
+                &value,
+                dim,
+            )?;
+            assert_same_bits(&whole, &apply(0, seq, None, false)?)?;
+            let (output, state) = split_output_and_state(
+                &apply(0, seq, Some(&zero), true)?,
+                &value,
+                dim,
+            )?;
+            assert_same_bits(&output, &whole)?;
+            assert_same_bits(&state, &whole_state)?;
+            for split in [1, 2, 930, seq - 1] {
+                let (prefix_output, prefix_state) = split_output_and_state(
+                    &apply(0, split, None, true)?,
+                    &value.narrow(0, 0, split)?,
+                    dim,
+                )?;
+                let prefix_state = Tensor::cat(&[&zero, &prefix_state], 0)?
+                    .narrow(0, heads, heads)?;
+                let saved_state = prefix_state.copy()?;
+                let (suffix_output, state) = split_output_and_state(
+                    &apply(split, seq - split, Some(&prefix_state), true)?,
+                    &value.narrow(0, split, seq - split)?,
+                    dim,
+                )?;
+                assert_same_bits(
+                    &Tensor::cat(&[&prefix_output, &suffix_output], 0)?,
+                    &whole,
+                )?;
+                assert_same_bits(&state, &whole_state)?;
+                assert_same_bits(&prefix_state, &saved_state)?;
+            }
+        }
+        Ok(())
+    }
 
     #[test]
     #[ignore = "requires CUDA"]
@@ -270,6 +445,8 @@ mod tests {
                     beta: to_cuda(&beta, 4)?,
                     decay: to_cuda(&decay, 5)?,
                     is_parallel: false,
+                    initial_state: None,
+                    should_save_state: false,
                 },
             )?;
             assert_eq!(actual.dims(), expected.dims());

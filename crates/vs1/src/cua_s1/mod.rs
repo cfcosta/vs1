@@ -31,7 +31,7 @@ pub use api::{
 };
 pub use attention::FullAttention;
 pub use config::{LayerType, TextConfig};
-pub use delta_net::GatedDeltaNet;
+pub use delta_net::{DeltaNetState, GatedDeltaNet};
 pub use lora::LoraAdapter;
 pub use model::{CuaS1Prediction, TextModel};
 pub use ops::{Mlp, normalize_l2, normalize_rms, normalize_rms_gated};
