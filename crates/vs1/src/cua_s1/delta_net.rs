@@ -131,7 +131,7 @@ impl GatedDeltaNet {
         let key = normalize_l2(&key)?;
         let beta = ops::sigmoid(b)?;
         let g = compute_log_decay(a, &self.a_log, &self.dt_bias)?;
-        apply_delta_rule(&query, &key, &value, &beta, &g)
+        apply_delta_rule(&query, &key, &value, &beta, &g.exp()?)
     }
 }
 
@@ -208,19 +208,20 @@ fn compute_log_decay(
     softplus.broadcast_mul(&a_log.exp()?.neg()?)
 }
 
-fn apply_delta_rule(
+/// Applies the recurrence from a zero state with precomputed `exp(g)` decay.
+pub(crate) fn apply_delta_rule(
     query: &Tensor,
     key: &Tensor,
     value: &Tensor,
     beta: &Tensor,
-    g: &Tensor,
+    decay: &Tensor,
 ) -> Result<Tensor> {
     let (seq, heads, key_dim) = query.dims3()?;
     let (value_seq, value_heads, value_dim) = value.dims3()?;
     if key.shape() != query.shape()
         || (value_seq, value_heads) != (seq, heads)
         || beta.dims() != [seq, heads]
-        || g.dims() != [seq, heads]
+        || decay.dims() != [seq, heads]
     {
         candle_core::bail!(
             "delta-rule query, key, value and gate dimensions do not match"
@@ -230,7 +231,7 @@ fn apply_delta_rule(
     let key = key.to_vec3::<f32>()?;
     let value = value.to_vec3::<f32>()?;
     let beta = beta.to_vec2::<f32>()?;
-    let decay = g.exp()?.to_vec2::<f32>()?;
+    let decay = decay.to_vec2::<f32>()?;
     let mut output = vec![0f32; seq * heads * value_dim];
     for head in 0..heads {
         let mut state = vec![0f32; key_dim * value_dim];
@@ -425,6 +426,7 @@ mod tests {
             &Device::Cpu,
         )
         .unwrap();
+        let decay = g.exp().unwrap();
         let expected = Tensor::new(
             &[
                 [[1f32, 2., 3.], [8., 6., 4.]],
@@ -443,7 +445,7 @@ mod tests {
                     &prefix(&key),
                     &prefix(&value),
                     &prefix(&beta),
-                    &prefix(&g),
+                    &prefix(&decay),
                 )
                 .unwrap(),
                 &prefix(&expected),

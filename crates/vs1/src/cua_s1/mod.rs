@@ -4,6 +4,8 @@ mod api;
 mod attention;
 mod config;
 mod delta_net;
+#[cfg(feature = "cuda")]
+mod delta_rule_cuda;
 mod lora;
 mod model;
 mod ops;
