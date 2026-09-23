@@ -1,0 +1,133 @@
+{
+  "cua_s1_commit": "a5f18829df026d7b9ef80c339194b44b1c61f856",
+  "transformers_version": "5.17.0",
+  "tokenizer": "Qwen/Qwen3.5-4B",
+  "tokenizer_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "cases": [
+    {
+      "name": "save_note",
+      "chat_text": "<|im_start|>system\nYou are a one-pass computer-use decision model. You are shown the current state of a screen and a fixed, closed list of candidate (element, action) options, each given a single letter. Choose exactly one option: the single best next action to take. Answer with ONLY that option's letter -- no words, no punctuation, no explanation.<|im_end|>\n<|im_start|>user\nApp: Notes\nTask family: save_document\n\nAccessibility tree:\n[12] dialog \"Unsaved changes\"\n  [8] text \"Save your meeting notes before closing.\"\n  [9] button \"Save\"\n  [3] button \"Discard\"\n\nOptions:\nA. button \"Save\" -> click\nB. button \"Discard\" -> click\n\nAnswer with a single letter.<|im_end|>\n<|im_start|>assistant\n<think>\n",
+      "input_ids": [
+        248045, 8678, 198, 2523, 513, 264, 799, 45398, 6165, 23895, 5307, 1558, 13, 1394, 513, 6625,
+        279, 1428, 1528, 314, 264, 4034, 321, 264, 8097, 11, 7629, 1103, 314, 8871, 318, 5911, 11,
+        1852, 8, 2519, 11, 1754, 2574, 264, 3074, 6321, 13, 21513, 6681, 799, 2904, 25, 279, 3074,
+        1786, 1727, 1852, 310, 1831, 13, 21134, 440, 25835, 421, 2904, 579, 6321, 1137, 874, 4105,
+        11, 874, 59429, 11, 874, 15673, 13, 248046, 198, 248045, 846, 198, 2095, 25, 17529, 198,
+        6065, 2902, 25, 3462, 25395, 271, 82418, 4757, 25, 198, 58, 16, 17, 60, 7027, 328, 1743,
+        31617, 4203, 1, 198, 220, 498, 23, 60, 1414, 328, 8519, 678, 6236, 8129, 1518, 14870, 1149,
+        198, 220, 498, 24, 60, 3037, 328, 8519, 1, 198, 220, 498, 18, 60, 3037, 328, 22744, 552, 1,
+        271, 3670, 25, 198, 32, 13, 3037, 328, 8519, 1, 1411, 4066, 198, 33, 13, 3037, 328, 22744,
+        552, 1, 1411, 4066, 271, 15666, 440, 264, 3074, 6321, 13, 248046, 198, 248045, 74455, 198,
+        248068, 198
+      ],
+      "letters": ["A", "B"],
+      "letter_ids": [32, 33]
+    },
+    {
+      "name": "reset_password",
+      "chat_text": "<|im_start|>system\nYou are a one-pass computer-use decision model. You are shown the current state of a screen and a fixed, closed list of candidate (element, action) options, each given a single letter. Choose exactly one option: the single best next action to take. Answer with ONLY that option's letter -- no words, no punctuation, no explanation.<|im_end|>\n<|im_start|>user\nGoal: Request a password reset for the account email.\n\nApp: Account portal\nTask family: password_reset\n\nAccessibility tree:\n[1] heading \"Reset your password\"\n[7] textbox \"Email\" value=\"\"\n[4] button \"Send reset link\" disabled\n[2] link \"Back to sign in\"\n\nOptions:\nA. textbox \"Email\" -> fill (with entity 'account_email')\nB. button \"Send reset link\" -> click\nC. link \"Back to sign in\" -> click\n\nAnswer with a single letter.<|im_end|>\n<|im_start|>assistant\n<think>\n",
+      "input_ids": [
+        248045, 8678, 198, 2523, 513, 264, 799, 45398, 6165, 23895, 5307, 1558, 13, 1394, 513, 6625,
+        279, 1428, 1528, 314, 264, 4034, 321, 264, 8097, 11, 7629, 1103, 314, 8871, 318, 5911, 11,
+        1852, 8, 2519, 11, 1754, 2574, 264, 3074, 6321, 13, 21513, 6681, 799, 2904, 25, 279, 3074,
+        1786, 1727, 1852, 310, 1831, 13, 21134, 440, 25835, 421, 2904, 579, 6321, 1137, 874, 4105,
+        11, 874, 59429, 11, 874, 15673, 13, 248046, 198, 248045, 846, 198, 38663, 25, 5952, 264,
+        3435, 7345, 364, 279, 2605, 2469, 13, 271, 2095, 25, 8352, 22411, 198, 6065, 2902, 25, 3435,
+        18410, 271, 82418, 4757, 25, 198, 58, 16, 60, 14081, 328, 14398, 678, 3435, 1, 198, 58, 22,
+        60, 71482, 328, 4628, 1, 869, 8147, 198, 58, 19, 60, 3037, 328, 11174, 7345, 2569, 1, 8127,
+        198, 58, 17, 60, 2569, 328, 3581, 310, 1777, 303, 1, 271, 3670, 25, 198, 32, 13, 71482, 328,
+        4628, 1, 1411, 4990, 318, 4058, 5219, 359, 4459, 8899, 837, 198, 33, 13, 3037, 328, 11174,
+        7345, 2569, 1, 1411, 4066, 198, 34, 13, 2569, 328, 3581, 310, 1777, 303, 1, 1411, 4066, 271,
+        15666, 440, 264, 3074, 6321, 13, 248046, 198, 248045, 74455, 198, 248068, 198
+      ],
+      "letters": ["A", "B", "C"],
+      "letter_ids": [32, 33, 34]
+    },
+    {
+      "name": "decline_invitation",
+      "chat_text": "<|im_start|>system\nYou are a one-pass computer-use decision model. You are shown the current state of a screen and a fixed, closed list of candidate (element, action) options, each given a single letter. Choose exactly one option: the single best next action to take. Answer with ONLY that option's letter -- no words, no punctuation, no explanation.<|im_end|>\n<|im_start|>user\nGoal: Decline the design review invitation because I am away on Friday.\n\nApp: Calendar\nTask family: respond_to_invitation\n\nAccessibility tree:\n[5] heading \"Design review, Friday 10:00\"\n[18] button \"Accept\"\n[11] button \"Maybe\"\n[23] button \"Decline\"\n[6] button \"Propose a new time\"\n\nOptions:\nA. button \"Accept\" -> click\nB. button \"Maybe\" -> click\nC. button \"Decline\" -> click\nD. button \"Propose a new time\" -> click\n\nAnswer with a single letter.<|im_end|>\n<|im_start|>assistant\n<think>\n",
+      "input_ids": [
+        248045, 8678, 198, 2523, 513, 264, 799, 45398, 6165, 23895, 5307, 1558, 13, 1394, 513, 6625,
+        279, 1428, 1528, 314, 264, 4034, 321, 264, 8097, 11, 7629, 1103, 314, 8871, 318, 5911, 11,
+        1852, 8, 2519, 11, 1754, 2574, 264, 3074, 6321, 13, 21513, 6681, 799, 2904, 25, 279, 3074,
+        1786, 1727, 1852, 310, 1831, 13, 21134, 440, 25835, 421, 2904, 579, 6321, 1137, 874, 4105,
+        11, 874, 59429, 11, 874, 15673, 13, 248046, 198, 248045, 846, 198, 38663, 25, 30586, 472,
+        279, 2790, 3286, 27749, 1521, 353, 1044, 3023, 383, 6394, 13, 271, 2095, 25, 16349, 198,
+        6065, 2902, 25, 5707, 2270, 19387, 7317, 271, 82418, 4757, 25, 198, 58, 20, 60, 14081, 328,
+        19846, 3286, 11, 6394, 220, 16, 15, 25, 15, 15, 1, 198, 58, 16, 23, 60, 3037, 328, 16156, 1,
+        198, 58, 16, 16, 60, 3037, 328, 20734, 1, 198, 58, 17, 18, 60, 3037, 328, 20966, 472, 1,
+        198, 58, 21, 60, 3037, 328, 1941, 930, 264, 491, 854, 1, 271, 3670, 25, 198, 32, 13, 3037,
+        328, 16156, 1, 1411, 4066, 198, 33, 13, 3037, 328, 20734, 1, 1411, 4066, 198, 34, 13, 3037,
+        328, 20966, 472, 1, 1411, 4066, 198, 35, 13, 3037, 328, 1941, 930, 264, 491, 854, 1, 1411,
+        4066, 271, 15666, 440, 264, 3074, 6321, 13, 248046, 198, 248045, 74455, 198, 248068, 198
+      ],
+      "letters": ["A", "B", "C", "D"],
+      "letter_ids": [32, 33, 34, 35]
+    },
+    {
+      "name": "download_invoice",
+      "chat_text": "<|im_start|>system\nYou are a one-pass computer-use decision model. You are shown the current state of a screen and a fixed, closed list of candidate (element, action) options, each given a single letter. Choose exactly one option: the single best next action to take. Answer with ONLY that option's letter -- no words, no punctuation, no explanation.<|im_end|>\n<|im_start|>user\nApp: Billing\nTask family: download_invoice\n\nAccessibility tree:\n[2] heading \"Invoice INV-1042: paid\"\n[20] button \"Download PDF\"\n[14] link \"View payment\"\n[8] button \"Print\"\n[31] button \"Send receipt\"\n[3] link \"All invoices\"\n\nOptions:\nA. link \"View payment\" -> click\nB. button \"Print\" -> click\nC. button \"Send receipt\" -> click\nD. button \"Download PDF\" -> click\nE. link \"All invoices\" -> click\n\nAnswer with a single letter.<|im_end|>\n<|im_start|>assistant\n<think>\n",
+      "input_ids": [
+        248045, 8678, 198, 2523, 513, 264, 799, 45398, 6165, 23895, 5307, 1558, 13, 1394, 513, 6625,
+        279, 1428, 1528, 314, 264, 4034, 321, 264, 8097, 11, 7629, 1103, 314, 8871, 318, 5911, 11,
+        1852, 8, 2519, 11, 1754, 2574, 264, 3074, 6321, 13, 21513, 6681, 799, 2904, 25, 279, 3074,
+        1786, 1727, 1852, 310, 1831, 13, 21134, 440, 25835, 421, 2904, 579, 6321, 1137, 874, 4105,
+        11, 874, 59429, 11, 874, 15673, 13, 248046, 198, 248045, 846, 198, 2095, 25, 69991, 198,
+        6065, 2902, 25, 4003, 37927, 271, 82418, 4757, 25, 198, 58, 17, 60, 14081, 328, 33526,
+        64663, 12, 16, 15, 19, 17, 25, 6945, 1, 198, 58, 17, 15, 60, 3037, 328, 11049, 11030, 1,
+        198, 58, 16, 19, 60, 2569, 328, 825, 7903, 1, 198, 58, 23, 60, 3037, 328, 8723, 1, 198, 58,
+        18, 16, 60, 3037, 328, 11174, 21867, 1, 198, 58, 18, 60, 2569, 328, 2324, 61893, 1, 271,
+        3670, 25, 198, 32, 13, 2569, 328, 825, 7903, 1, 1411, 4066, 198, 33, 13, 3037, 328, 8723, 1,
+        1411, 4066, 198, 34, 13, 3037, 328, 11174, 21867, 1, 1411, 4066, 198, 35, 13, 3037, 328,
+        11049, 11030, 1, 1411, 4066, 198, 36, 13, 2569, 328, 2324, 61893, 1, 1411, 4066, 271, 15666,
+        440, 264, 3074, 6321, 13, 248046, 198, 248045, 74455, 198, 248068, 198
+      ],
+      "letters": ["A", "B", "C", "D", "E"],
+      "letter_ids": [32, 33, 34, 35, 36]
+    },
+    {
+      "name": "notification_settings",
+      "chat_text": "<|im_start|>system\nYou are a one-pass computer-use decision model. You are shown the current state of a screen and a fixed, closed list of candidate (element, action) options, each given a single letter. Choose exactly one option: the single best next action to take. Answer with ONLY that option's letter -- no words, no punctuation, no explanation.<|im_end|>\n<|im_start|>user\nGoal: Open notification preferences to change email alerts.\n\nApp: Workspace settings\nTask family: navigate_settings\n\nAccessibility tree:\n[1] navigation \"Settings\"\n  [10] link \"Profile\"\n  [20] link \"Security\"\n  [30] link \"Notifications\"\n  [40] link \"Appearance\"\n  [50] link \"Integrations\"\n  [60] link \"Billing\"\n\nOptions:\nA. link \"Billing\" -> click\nB. link \"Profile\" -> click\nC. link \"Integrations\" -> click\nD. link \"Security\" -> click\nE. link \"Appearance\" -> click\nF. link \"Notifications\" -> click\n\nAnswer with a single letter.<|im_end|>\n<|im_start|>assistant\n<think>\n",
+      "input_ids": [
+        248045, 8678, 198, 2523, 513, 264, 799, 45398, 6165, 23895, 5307, 1558, 13, 1394, 513, 6625,
+        279, 1428, 1528, 314, 264, 4034, 321, 264, 8097, 11, 7629, 1103, 314, 8871, 318, 5911, 11,
+        1852, 8, 2519, 11, 1754, 2574, 264, 3074, 6321, 13, 21513, 6681, 799, 2904, 25, 279, 3074,
+        1786, 1727, 1852, 310, 1831, 13, 21134, 440, 25835, 421, 2904, 579, 6321, 1137, 874, 4105,
+        11, 874, 59429, 11, 874, 15673, 13, 248046, 198, 248045, 846, 198, 38663, 25, 5097, 11208,
+        18738, 310, 2222, 2469, 28293, 13, 271, 2095, 25, 68527, 4842, 198, 6065, 2902, 25, 20239,
+        10536, 271, 82418, 4757, 25, 198, 58, 16, 60, 10331, 328, 5896, 1, 198, 220, 498, 16, 15,
+        60, 2569, 328, 8264, 1, 198, 220, 498, 17, 15, 60, 2569, 328, 14906, 1, 198, 220, 498, 18,
+        15, 60, 2569, 328, 33587, 1, 198, 220, 498, 19, 15, 60, 2569, 328, 28271, 1, 198, 220, 498,
+        20, 15, 60, 2569, 328, 1037, 13999, 778, 1, 198, 220, 498, 21, 15, 60, 2569, 328, 79177, 1,
+        271, 3670, 25, 198, 32, 13, 2569, 328, 79177, 1, 1411, 4066, 198, 33, 13, 2569, 328, 8264,
+        1, 1411, 4066, 198, 34, 13, 2569, 328, 1037, 13999, 778, 1, 1411, 4066, 198, 35, 13, 2569,
+        328, 14906, 1, 1411, 4066, 198, 36, 13, 2569, 328, 28271, 1, 1411, 4066, 198, 37, 13, 2569,
+        328, 33587, 1, 1411, 4066, 271, 15666, 440, 264, 3074, 6321, 13, 248046, 198, 248045, 74455,
+        198, 248068, 198
+      ],
+      "letters": ["A", "B", "C", "D", "E", "F"],
+      "letter_ids": [32, 33, 34, 35, 36, 37]
+    },
+    {
+      "name": "search_portuguese",
+      "chat_text": "<|im_start|>system\nYou are a one-pass computer-use decision model. You are shown the current state of a screen and a fixed, closed list of candidate (element, action) options, each given a single letter. Choose exactly one option: the single best next action to take. Answer with ONLY that option's letter -- no words, no punctuation, no explanation.<|im_end|>\n<|im_start|>user\nApp: Biblioteca\nTask family: search_catalog\n\nAccessibility tree:\n[1] heading \"Buscar livros sobre café em São Paulo\"\n[4] textbox \"Título ou autor\" value=\"\"\n[9] button \"Pesquisar\"\n[2] link \"Coleção: edição especial\"\n\nOptions:\nA. textbox \"Título ou autor\" -> fill (with entity 'search_query')\nB. button \"Pesquisar\" -> click\nC. link \"Coleção: edição especial\" -> click\n\nAnswer with a single letter.<|im_end|>\n<|im_start|>assistant\n<think>\n",
+      "input_ids": [
+        248045, 8678, 198, 2523, 513, 264, 799, 45398, 6165, 23895, 5307, 1558, 13, 1394, 513, 6625,
+        279, 1428, 1528, 314, 264, 4034, 321, 264, 8097, 11, 7629, 1103, 314, 8871, 318, 5911, 11,
+        1852, 8, 2519, 11, 1754, 2574, 264, 3074, 6321, 13, 21513, 6681, 799, 2904, 25, 279, 3074,
+        1786, 1727, 1852, 310, 1831, 13, 21134, 440, 25835, 421, 2904, 579, 6321, 1137, 874, 4105,
+        11, 874, 59429, 11, 874, 15673, 13, 248046, 198, 248045, 846, 198, 2095, 25, 183110, 198,
+        6065, 2902, 25, 2624, 45734, 271, 82418, 4757, 25, 198, 58, 16, 60, 14081, 328, 46340,
+        183648, 14690, 50203, 945, 46101, 35702, 1, 198, 58, 19, 60, 71482, 328, 51, 48574, 5724,
+        25913, 1, 869, 8147, 198, 58, 24, 60, 3037, 328, 87397, 91949, 1, 198, 58, 17, 60, 2569,
+        328, 94795, 5720, 25, 178043, 31232, 1, 271, 3670, 25, 198, 32, 13, 71482, 328, 51, 48574,
+        5724, 25913, 1, 1411, 4990, 318, 4058, 5219, 359, 1773, 5560, 837, 198, 33, 13, 3037, 328,
+        87397, 91949, 1, 1411, 4066, 198, 34, 13, 2569, 328, 94795, 5720, 25, 178043, 31232, 1,
+        1411, 4066, 271, 15666, 440, 264, 3074, 6321, 13, 248046, 198, 248045, 74455, 198, 248068,
+        198
+      ],
+      "letters": ["A", "B", "C"],
+      "letter_ids": [32, 33, 34]
+    }
+  ]
+}

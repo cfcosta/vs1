@@ -1,0 +1,88 @@
+[
+  {
+    "name": "save_note",
+    "app": "Notes",
+    "task_family": "save_document",
+    "ax_tree": "[12] dialog \"Unsaved changes\"\n  [8] text \"Save your meeting notes before closing.\"\n  [9] button \"Save\"\n  [3] button \"Discard\"",
+    "options": [
+      { "element_id": "9", "role": "button", "label": "Save", "action": "click" },
+      { "element_id": "3", "role": "button", "label": "Discard", "action": "click" }
+    ]
+  },
+  {
+    "name": "reset_password",
+    "app": "Account portal",
+    "task_family": "password_reset",
+    "ax_tree": "[1] heading \"Reset your password\"\n[7] textbox \"Email\" value=\"\"\n[4] button \"Send reset link\" disabled\n[2] link \"Back to sign in\"",
+    "goal": "Request a password reset for the account email.",
+    "options": [
+      {
+        "element_id": "7",
+        "role": "textbox",
+        "label": "Email",
+        "action": "fill",
+        "entity_id": "account_email"
+      },
+      { "element_id": "4", "role": "button", "label": "Send reset link", "action": "click" },
+      { "element_id": "2", "role": "link", "label": "Back to sign in", "action": "click" }
+    ]
+  },
+  {
+    "name": "decline_invitation",
+    "app": "Calendar",
+    "task_family": "respond_to_invitation",
+    "ax_tree": "[5] heading \"Design review, Friday 10:00\"\n[18] button \"Accept\"\n[11] button \"Maybe\"\n[23] button \"Decline\"\n[6] button \"Propose a new time\"",
+    "goal": "Decline the design review invitation because I am away on Friday.",
+    "options": [
+      { "element_id": "18", "role": "button", "label": "Accept", "action": "click" },
+      { "element_id": "11", "role": "button", "label": "Maybe", "action": "click" },
+      { "element_id": "23", "role": "button", "label": "Decline", "action": "click" },
+      { "element_id": "6", "role": "button", "label": "Propose a new time", "action": "click" }
+    ]
+  },
+  {
+    "name": "download_invoice",
+    "app": "Billing",
+    "task_family": "download_invoice",
+    "ax_tree": "[2] heading \"Invoice INV-1042: paid\"\n[20] button \"Download PDF\"\n[14] link \"View payment\"\n[8] button \"Print\"\n[31] button \"Send receipt\"\n[3] link \"All invoices\"",
+    "options": [
+      { "element_id": "14", "role": "link", "label": "View payment", "action": "click" },
+      { "element_id": "8", "role": "button", "label": "Print", "action": "click" },
+      { "element_id": "31", "role": "button", "label": "Send receipt", "action": "click" },
+      { "element_id": "20", "role": "button", "label": "Download PDF", "action": "click" },
+      { "element_id": "3", "role": "link", "label": "All invoices", "action": "click" }
+    ]
+  },
+  {
+    "name": "notification_settings",
+    "app": "Workspace settings",
+    "task_family": "navigate_settings",
+    "ax_tree": "[1] navigation \"Settings\"\n  [10] link \"Profile\"\n  [20] link \"Security\"\n  [30] link \"Notifications\"\n  [40] link \"Appearance\"\n  [50] link \"Integrations\"\n  [60] link \"Billing\"",
+    "goal": "Open notification preferences to change email alerts.",
+    "options": [
+      { "element_id": "60", "role": "link", "label": "Billing", "action": "click" },
+      { "element_id": "10", "role": "link", "label": "Profile", "action": "click" },
+      { "element_id": "50", "role": "link", "label": "Integrations", "action": "click" },
+      { "element_id": "20", "role": "link", "label": "Security", "action": "click" },
+      { "element_id": "40", "role": "link", "label": "Appearance", "action": "click" },
+      { "element_id": "30", "role": "link", "label": "Notifications", "action": "click" }
+    ]
+  },
+  {
+    "name": "search_portuguese",
+    "app": "Biblioteca",
+    "task_family": "search_catalog",
+    "ax_tree": "[1] heading \"Buscar livros sobre café em São Paulo\"\n[4] textbox \"Título ou autor\" value=\"\"\n[9] button \"Pesquisar\"\n[2] link \"Coleção: edição especial\"",
+    "options": [
+      {
+        "element_id": "4",
+        "role": "textbox",
+        "label": "Título ou autor",
+        "action": "fill",
+        "entity_id": "search_query"
+      },
+      { "element_id": "9", "role": "button", "label": "Pesquisar", "action": "click" },
+      { "element_id": "2", "role": "link", "label": "Coleção: edição especial", "action": "click" }
+    ]
+  }
+]
