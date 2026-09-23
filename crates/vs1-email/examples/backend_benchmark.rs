@@ -1,4 +1,4 @@
-//! Read-only three-backend benchmark. Output files contain private mail.
+//! Read-only backend benchmark. Output files contain private mail.
 use std::{collections::BTreeMap, fs, path::Path, time::Instant};
 
 use anyhow::{Context, Result, ensure};
@@ -90,6 +90,23 @@ fn default_audit(backend: &str) -> &'static str {
         "original"
     }
 }
+fn resolve_audit_budget(backend: &str, mode: &str) -> Result<Option<usize>> {
+    if backend == "cua-s1" {
+        // Cua-S1 accepts up to 26 candidates and has no fixed token budget.
+        // Keep full descriptions and whole emails; budgeted audits are OpenJev-only.
+        ensure!(
+            mode == "original",
+            "cua-s1 supports only original audit mode"
+        );
+        return Ok(None);
+    }
+    let budget = audit_budget(mode)?;
+    ensure!(
+        mode == "original" || backend.starts_with("openjev"),
+        "audit modes are OpenJev-only"
+    );
+    Ok(Some(budget))
+}
 fn audit_request(
     config: &Config,
     email: &Email,
@@ -171,7 +188,7 @@ fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     ensure!(
         (4..=6).contains(&args.len()),
-        "ROOT export|laya|jev|openjev|openjev-bf16 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]"
+        "ROOT export|laya|jev|openjev|openjev-bf16|cua-s1 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]\ncua-s1: original only (default), full descriptions and whole emails, at most 26 candidates, no fixed token budget; prepare is OpenJev-only"
     );
     let root = Path::new(&args[1]);
     let backend = args[2].as_str();
@@ -216,11 +233,7 @@ fn main() -> Result<()> {
         200
     };
     ensure!(count > 0, "empty benchmark");
-    let budget = audit_budget(audit_mode)?;
-    ensure!(
-        audit_mode == "original" || backend.starts_with("openjev"),
-        "audit modes are OpenJev-only"
-    );
+    let budget = resolve_audit_budget(backend, audit_mode)?;
     let total = Instant::now();
     let config = Config::parse(&fs::read_to_string(root.join("email.toml"))?)?;
     let mailbox = vs1_email::read_maildir(&root.join("sample"), count)?;
@@ -367,6 +380,7 @@ fn main() -> Result<()> {
             records.push(serde_json::to_value(report)?);
         }
         "openjev" | "openjev-bf16" => {
+            let budget = budget.context("OpenJev requires a token budget")?;
             let (dtype, batch_size) = openjev_settings(backend);
             // One extra token makes truncation detectable.
             let model: vs1::OpenJev =
@@ -527,6 +541,73 @@ fn main() -> Result<()> {
             }
             run_seconds = run.elapsed().as_secs_f64();
         }
+        "cua-s1" => {
+            ensure!(
+                config.rules().len() <= 26,
+                "cua-s1 supports at most 26 categories"
+            );
+            let model: vs1::CuaS1 =
+                vs1::CuaS1::from(vs1::cua_s1::DEFAULT_REPO_ID)
+                    .with_device(candle_core::Device::new_cuda(0)?)
+                    .with_dtype(candle_core::DType::BF16)
+                    .try_into()?;
+            eprintln!(
+                "{} {:?} {:?}",
+                model.model_name(),
+                model.device(),
+                model.dtype()
+            );
+            load_seconds = load.elapsed().as_secs_f64();
+            let run = Instant::now();
+            for emails in mailbox.emails.chunks(16) {
+                let requests = emails
+                    .iter()
+                    .map(|email| {
+                        let r = audit_request(&config, email, audit_mode)?;
+                        retrieval_request(&r, &examples, retrieval_mode)
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                let responses = metrics.measure(&requests, || {
+                    Ok(model.system_one_batch(&requests)?)
+                })?;
+                ensure!(
+                    responses.len() == requests.len(),
+                    "unexpected cua-s1 response count"
+                );
+                chunks += responses.len();
+                for ((email, request), response) in
+                    emails.iter().zip(&requests).zip(responses)
+                {
+                    let (prediction, probabilities) = match response
+                        .answers
+                        .get("category")
+                        .context("missing cua-s1 category answer")?
+                    {
+                        vs1::Answer::Choice(a) => {
+                            (Some(a.choice.clone()), &a.probabilities)
+                        }
+                        vs1::Answer::Abstain(a) => (None, &a.probabilities),
+                        _ => anyhow::bail!("expected cua-s1 choice answer"),
+                    };
+                    chunk_abstentions += usize::from(prediction.is_none());
+                    let id = email
+                        .path
+                        .file_name()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_owned();
+                    predictions.insert(id.clone(), prediction);
+                    records.push(json!({"id":id,"probabilities":probabilities,"chunks":[response]}));
+                    let mut state = serde_json::to_value(&request.state)?;
+                    if let Some(o) = state.as_object_mut() {
+                        o.remove("labeled_examples");
+                    }
+                    chunk_states.push(state);
+                }
+            }
+            run_seconds = run.elapsed().as_secs_f64();
+        }
         _ => anyhow::bail!("unknown backend"),
     }
     ensure!(predictions.len() == count, "missing predictions");
@@ -591,6 +672,38 @@ fn compact_audit_preserves_category_ids_and_rejects_unknown_rules() {
     assert_eq!(default_audit("openjev-bf16"), "compact512");
     assert_eq!(default_audit("laya"), "original");
     assert_eq!(default_audit("jev"), "original");
+}
+
+#[test]
+fn cua_s1_defaults_to_original_without_a_token_budget() {
+    assert_eq!(default_audit("cua-s1"), "original");
+    assert_eq!(
+        resolve_audit_budget("cua-s1", default_audit("cua-s1")).unwrap(),
+        None
+    );
+    assert_eq!(resolve_audit_budget("cua-s1", "original").unwrap(), None);
+    for mode in ["compact1024", "compact512", "plain512", "typo"] {
+        assert!(resolve_audit_budget("cua-s1", mode).is_err(), "{mode}");
+    }
+}
+
+#[test]
+fn audit_modes_preserve_existing_backend_budgets() {
+    for backend in ["laya", "jev", "export", "openjev", "openjev-bf16"] {
+        assert_eq!(
+            resolve_audit_budget(backend, "original").unwrap(),
+            Some(1024)
+        );
+        for mode in ["compact1024", "compact512", "plain512"] {
+            let budget = resolve_audit_budget(backend, mode);
+            if backend.starts_with("openjev") {
+                assert_eq!(budget.unwrap(), Some(audit_budget(mode).unwrap()));
+            } else {
+                assert!(budget.is_err(), "{backend} {mode}");
+            }
+        }
+        assert!(resolve_audit_budget(backend, "typo").is_err());
+    }
 }
 
 fn retrieval_request(
