@@ -2,6 +2,7 @@
 
 mod attention;
 mod config;
+mod delta_net;
 mod lora;
 mod ops;
 mod prompt;
@@ -9,6 +10,7 @@ mod weights;
 
 pub use attention::FullAttention;
 pub use config::{LayerType, TextConfig};
+pub use delta_net::GatedDeltaNet;
 pub use lora::LoraAdapter;
 pub use ops::{Mlp, normalize_l2, normalize_rms, normalize_rms_gated};
 pub use prompt::{CuaS1Input, CuaS1Option};
