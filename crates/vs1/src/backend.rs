@@ -4,6 +4,7 @@ use crate::{Result, SystemOne, SystemOneRequest, SystemOneResponse};
 pub enum DecisionModel {
     Laya(Box<SystemOne>),
     OpenJev(Box<crate::OpenJev>),
+    CuaS1(Box<crate::CuaS1>),
     #[cfg(feature = "jev")]
     Jev(Box<crate::JevClient>),
 }
@@ -17,6 +18,11 @@ impl From<crate::OpenJev> for DecisionModel {
         Self::OpenJev(Box::new(model))
     }
 }
+impl From<crate::CuaS1> for DecisionModel {
+    fn from(model: crate::CuaS1) -> Self {
+        Self::CuaS1(Box::new(model))
+    }
+}
 #[cfg(feature = "jev")]
 impl From<crate::JevClient> for DecisionModel {
     fn from(model: crate::JevClient) -> Self {
@@ -28,6 +34,7 @@ impl DecisionModel {
         match self {
             Self::Laya(m) => m.model_name(),
             Self::OpenJev(m) => m.model_name(),
+            Self::CuaS1(m) => m.model_name(),
             #[cfg(feature = "jev")]
             Self::Jev(m) => m.model_name(),
         }
@@ -39,6 +46,7 @@ impl DecisionModel {
         match self {
             Self::Laya(m) => m.system_one(request),
             Self::OpenJev(m) => m.system_one(request),
+            Self::CuaS1(m) => m.system_one(request),
             #[cfg(feature = "jev")]
             Self::Jev(m) => m.system_one(request),
         }
@@ -50,15 +58,17 @@ impl DecisionModel {
         match self {
             Self::Laya(m) => m.system_one_batch(requests),
             Self::OpenJev(m) => m.system_one_batch(requests),
+            Self::CuaS1(m) => m.system_one_batch(requests),
             #[cfg(feature = "jev")]
             Self::Jev(m) => m.system_one_batch(requests),
         }
     }
-    /// Access Laya-specific tokenizer/device facilities. OpenJev is also local.
+    /// Access Laya-specific tokenizer/device facilities.
     pub fn local(&self) -> Option<&SystemOne> {
         match self {
             Self::Laya(m) => Some(m),
             Self::OpenJev(_) => None,
+            Self::CuaS1(_) => None,
             #[cfg(feature = "jev")]
             Self::Jev(_) => None,
         }

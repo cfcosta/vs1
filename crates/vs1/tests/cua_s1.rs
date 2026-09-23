@@ -7,7 +7,10 @@ use vs1::{
     CuaS1Builder,
     CuaS1Option,
     CuaS1OptionPrediction,
+    DecisionModel,
+    Question,
     SystemOneError,
+    SystemOneRequest,
     cua_s1::{
         ADAPTER_REVISION,
         BASE_REPO_ID,
@@ -93,6 +96,54 @@ fn reports_missing_local_files_without_downloading() {
         CuaS1::from("unused/repo").with_local_directories(&missing, &missing),
     );
     assert!(matches!(result, Err(SystemOneError::Io(_))));
+}
+
+#[test]
+#[ignore = "requires pinned artifacts/cua-s1 weights, about 20 GB RAM"]
+fn answers_system_one_from_local_checkpoints_on_cpu() {
+    let root =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../artifacts/cua-s1");
+    let model: CuaS1 = CuaS1::from(DEFAULT_REPO_ID)
+        .with_device(Device::Cpu)
+        .with_local_directories(
+            root.join("base").join(BASE_REVISION),
+            root.join("adapter").join(ADAPTER_REVISION).join("text"),
+        )
+        .try_into()
+        .unwrap();
+    assert!(model.device().is_cpu());
+    assert_eq!(model.dtype(), DType::F32);
+    let request = SystemOneRequest::new("The invoice is marked PAID.")
+        .question(
+            "status",
+            Question::choice(
+                "What is the invoice status?",
+                [("paid", "paid invoice"), ("unpaid", "unpaid invoice")],
+            ),
+        );
+    let response = model.system_one(&request).unwrap();
+    assert_eq!(response.model, MODEL_NAME);
+    assert_eq!(response.answers.len(), 1);
+    assert!(response.usage.input_tokens > 0);
+    let vs1::Answer::Choice(answer) = &response.answers["status"] else {
+        panic!("choice")
+    };
+    assert!(answer.probabilities.contains_key(&answer.choice));
+    assert!((answer.probabilities.values().sum::<f32>() - 1.0).abs() < 1e-6);
+    assert!((0.0..=1.0).contains(&answer.confidence));
+    assert!(answer.action.is_none());
+
+    let model: DecisionModel = model.into();
+    assert_eq!(model.model_name(), MODEL_NAME);
+    assert!(model.local().is_none());
+    assert!(model.system_one_batch(&[]).unwrap().is_empty());
+    let empty = SystemOneRequest::new("No questions.");
+    assert!(model.system_one(&empty).unwrap().answers.is_empty());
+    let responses = model.system_one_batch(&[empty, request]).unwrap();
+    assert_eq!(responses.len(), 2);
+    assert!(responses[0].answers.is_empty());
+    assert_eq!(responses[0].usage.input_tokens, 0);
+    assert_eq!(responses[1], response);
 }
 
 #[test]

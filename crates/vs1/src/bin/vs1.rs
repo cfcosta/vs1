@@ -47,7 +47,7 @@ fn main() -> anyhow::Result<()> {
             "--backend" => {
                 backend = args
                     .next()
-                    .context("--backend needs laya, openjev or jev")?
+                    .context("--backend needs laya, openjev, cua-s1 or jev")?
             }
             "--model" => {
                 model_id = Some(args.next().context("--model needs a value")?)
@@ -78,7 +78,7 @@ fn main() -> anyhow::Result<()> {
         }
     }
     let path = path.context(
-        "usage: vs1 [--backend laya|openjev|jev] [--model MODEL] [--dump-ids] [--device cpu|cuda] request.json",
+        "usage: vs1 [--backend laya|openjev|cua-s1|jev] [--model MODEL] [--dump-ids] [--device cpu|cuda] request.json",
     )?;
     let raw = fs::read_to_string(&path)?;
     let (requests, single): (Vec<SystemOneRequest>, bool) =
@@ -137,6 +137,29 @@ fn main() -> anyhow::Result<()> {
             );
             model.into()
         }
+        "cua-s1" => {
+            anyhow::ensure!(
+                !dump_ids && subfolder.is_empty() && batch_size.is_none(),
+                "Cua-S1 does not use --dump-ids, --subfolder or --batch-size"
+            );
+            let started = Instant::now();
+            let mut builder = vs1::CuaS1::from(
+                model_id.as_deref().unwrap_or(vs1::cua_s1::DEFAULT_REPO_ID),
+            )
+            .with_device(device(&device_name)?);
+            if let Some(dtype) = dtype {
+                builder = builder.with_dtype(dtype);
+            }
+            let model: vs1::CuaS1 = builder.try_into()?;
+            eprintln!(
+                "loaded {} on {:?} as {:?} in {:.1?}",
+                model.model_name(),
+                model.device(),
+                model.dtype(),
+                started.elapsed()
+            );
+            model.into()
+        }
         "laya" => {
             let started = Instant::now();
             let mut builder = SystemOne::from(
@@ -160,7 +183,7 @@ fn main() -> anyhow::Result<()> {
             );
             model.into()
         }
-        _ => bail!("--backend must be laya, openjev or jev"),
+        _ => bail!("--backend must be laya, openjev, cua-s1 or jev"),
     };
 
     let started = Instant::now();
