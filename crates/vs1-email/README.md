@@ -136,9 +136,9 @@ is summed across chunks. Disagreement between chunks is retained for inspection.
 Chunking ensures coverage; it does not establish classification accuracy. Review
 results on representative, labeled messages before trusting folder assignments.
 
-Cargo forwards `jev` and the same acceleration features as `vs1`: `cuda`, `flash-attn`,
+Cargo forwards `jev` and the same acceleration features as `vs1`: `cuda`,
 `metal`, `mkl`, and `accelerate`. CPU works without features. The flake exposes
-`vs1-email`, `vs1-email-cuda`, `vs1-email-flash-attn`, and `vs1-email-metal`,
+`vs1-email`, `vs1-email-cuda`, and `vs1-email-metal`,
 following the existing package conventions and platform requirements.
 
 ```bash

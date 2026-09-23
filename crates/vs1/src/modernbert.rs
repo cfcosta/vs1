@@ -2,10 +2,8 @@
 //!
 //! Vendored from docbert's `docbert-pylate` crate (a fork of LightOn's
 //! pylate-rs, MIT; see `LICENSE-PYLATE`), which adapted it from
-//! candle's `modernbert` model. The masked forward pass is the one
-//! vs1 uses; the packed and windowed flash-attention paths behind the
-//! `flash-attn` feature come along unchanged for CUDA builds that
-//! want them.
+//! candle's `modernbert` model. CUDA builds run the packed and windowed
+//! flash-attention paths; CPU and Metal use the masked forward pass.
 
 use core::f32;
 use std::{
@@ -30,14 +28,14 @@ use serde::Deserialize;
 
 // Test-only cuBLASLt experiment; ordinary builds use the original Linear.
 fn encoder_linear(xs: &Tensor, linear: &Linear) -> Result<Tensor> {
-    #[cfg(all(test, feature = "flash-attn"))]
+    #[cfg(all(test, feature = "cuda"))]
     if let Some(output) = crate::gemm_cuda::bench::linear(xs, linear) {
         return output;
     }
     xs.apply(linear)
 }
 
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 fn packed_linear(
     xs: &Tensor,
     linear: &Linear,
@@ -126,14 +124,14 @@ impl<K, V: Clone> LastUsedCache<K, V> {
 
 /// Cache of the last-used packed cos/sin tables keyed by the list of
 /// valid sequence lengths.
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 type PackedCosSinCache = Arc<LastUsedCache<Vec<usize>, (Tensor, Tensor)>>;
 
 #[derive(Debug, Clone)]
 struct RotaryEmbedding {
     sin: Tensor,
     cos: Tensor,
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     packed_cos_sin: PackedCosSinCache,
 }
 
@@ -163,7 +161,7 @@ impl RotaryEmbedding {
         Ok(Self {
             sin: freqs.sin()?.to_dtype(dtype)?,
             cos: freqs.cos()?.to_dtype(dtype)?,
-            #[cfg(feature = "flash-attn")]
+            #[cfg(feature = "cuda")]
             packed_cos_sin: Arc::new(LastUsedCache::new()),
         })
     }
@@ -186,7 +184,7 @@ impl RotaryEmbedding {
         Ok((q_embed, k_embed))
     }
 
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     fn apply_rotary_emb_thd(
         &self,
         q: &Tensor,
@@ -216,7 +214,7 @@ impl RotaryEmbedding {
     /// gathered into the same packed order first — that gather is what
     /// `positions` encodes, and the gathered tables are cached because
     /// every layer of a forward pass shares them.
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     fn apply_rotary_emb_packed(
         &self,
         q: &Tensor,
@@ -269,7 +267,7 @@ impl RotaryEmbedding {
 /// F16. The F16 round-trip is safe even though a full F16 *trunk*
 /// overflows: attention inputs are post-LayerNorm and its outputs are
 /// convex combinations of V rows, so values stay far from ±65504.
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 pub(crate) fn flash_compat_dtype(dtype: DType) -> DType {
     match dtype {
         DType::F16 | DType::BF16 => dtype,
@@ -367,7 +365,7 @@ impl ModernBertAttention {
         Ok(xs)
     }
 
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     fn forward_unmasked(
         &self,
         hidden_states: &Tensor,
@@ -417,7 +415,7 @@ impl ModernBertAttention {
     /// `rope_thd` fast path and the window, when present, is handled
     /// inside the flash kernel. Nothing is unpacked or repacked per
     /// layer.
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     #[allow(clippy::too_many_arguments)]
     fn forward_varlen_fully_packed(
         &self,
@@ -503,7 +501,7 @@ impl ModernBertAttention {
     /// MaxSim), but only each sequence's valid prefix serves as
     /// keys/values — mirroring the eager path's additive mask, which
     /// only masks key columns.
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     fn forward_query_varlen(
         &self,
         hidden_states: &Tensor,
@@ -614,7 +612,6 @@ impl ModernBertMLP {
                 let gate = xs.apply(&self.wi_gate)?;
                 return output(&(act * gate)?, &self.wo);
             }
-            #[cfg(feature = "flash-attn")]
             if crate::cutlass_geglu::enabled(xs, self.wi_act.weight())
                 && crate::cutlass_geglu::dual_enabled()
             {
@@ -632,7 +629,6 @@ impl ModernBertMLP {
                 )?;
                 return output(&fused, &self.wo);
             }
-            #[cfg(feature = "flash-attn")]
             if crate::cutlass_geglu::enabled(xs, self.wi_act.weight()) {
                 let gate = encoder_linear(xs, &self.wi_gate)?;
                 let fused = crate::cutlass_geglu::forward(
@@ -642,7 +638,6 @@ impl ModernBertMLP {
                 )?;
                 return output(&fused, &self.wo);
             }
-            #[cfg(feature = "flash-attn")]
             if crate::parallel_cuda::enabled("ffn", xs) {
                 let pair = crate::parallel_cuda::project(
                     xs,
@@ -745,7 +740,7 @@ impl ModernBertLayer {
         Ok(xs)
     }
 
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     fn forward_unmasked(
         &self,
         xs: &Tensor,
@@ -764,7 +759,7 @@ impl ModernBertLayer {
         Ok(xs)
     }
 
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     #[allow(clippy::too_many_arguments)]
     fn forward_varlen_packed_input(
         &self,
@@ -841,7 +836,7 @@ impl ModernBertLayer {
         Ok((xs, mlp_out))
     }
 
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     fn forward_query_varlen(
         &self,
         xs: &Tensor,
@@ -961,7 +956,7 @@ fn prepare_4d_attention_mask(
     (inverted_mask * min_value)?.to_dtype(dtype)
 }
 
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 pub(crate) fn cumulative_seqlens(
     valid_lens: &[usize],
     device: &Device,
@@ -981,7 +976,7 @@ pub(crate) fn cumulative_seqlens(
     ))
 }
 
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 fn packed_position_ids(
     valid_lens: &[usize],
     device: &Device,
@@ -994,7 +989,7 @@ fn packed_position_ids(
     Tensor::from_vec(positions, total_tokens, device)
 }
 
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 fn pack_varlen_bsd(xs: &Tensor, valid_lens: &[usize]) -> Result<Tensor> {
     let mut packed = Vec::with_capacity(valid_lens.len());
     for (batch_idx, &len) in valid_lens.iter().enumerate() {
@@ -1006,7 +1001,7 @@ fn pack_varlen_bsd(xs: &Tensor, valid_lens: &[usize]) -> Result<Tensor> {
 /// Packs `(batch, seq, heads, head_dim)` rows into flash varlen's
 /// `(total_tokens, heads, head_dim)` layout, keeping each sequence's
 /// valid prefix only.
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 fn pack_varlen_thd(xs: &Tensor, valid_lens: &[usize]) -> Result<Tensor> {
     let mut packed = Vec::with_capacity(valid_lens.len());
     for (batch_idx, &len) in valid_lens.iter().enumerate() {
@@ -1015,7 +1010,7 @@ fn pack_varlen_thd(xs: &Tensor, valid_lens: &[usize]) -> Result<Tensor> {
     Tensor::cat(&packed, 0)
 }
 
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 fn unpack_varlen_bsd(
     xs: &Tensor,
     valid_lens: &[usize],
@@ -1068,13 +1063,13 @@ pub struct ModernBert {
     final_norm: LayerNorm,
     local_attention_size: usize,
     local_attention_masks: Arc<LastUsedCache<usize, Tensor>>,
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     varlen_positions: Arc<LastUsedCache<Vec<usize>, Tensor>>,
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     retile: Arc<crate::gemm_cuda::Retile>,
 }
 
-#[cfg(all(test, feature = "flash-attn"))]
+#[cfg(all(test, feature = "cuda"))]
 pub(crate) static REFERENCE_DEFERRED: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
@@ -1132,9 +1127,9 @@ impl ModernBert {
             final_norm,
             local_attention_size: config.local_attention,
             local_attention_masks: Arc::new(LastUsedCache::new()),
-            #[cfg(feature = "flash-attn")]
+            #[cfg(feature = "cuda")]
             varlen_positions: Arc::new(LastUsedCache::new()),
-            #[cfg(feature = "flash-attn")]
+            #[cfg(feature = "cuda")]
             retile: Arc::new(crate::gemm_cuda::Retile::default()),
         })
     }
@@ -1168,7 +1163,7 @@ impl ModernBert {
         Ok(xs)
     }
 
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     pub fn forward_unmasked(&self, xs: &Tensor) -> Result<Tensor> {
         let mut xs = xs.apply(&self.word_embeddings)?.apply(&self.norm)?;
         let local_window = self.local_attention_size / 2;
@@ -1192,7 +1187,7 @@ impl ModernBert {
         Ok(xs)
     }
 
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     fn cached_packed_positions(
         &self,
         valid_lens: &[usize],
@@ -1203,7 +1198,7 @@ impl ModernBert {
         })
     }
 
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     pub fn forward_varlen_padded(
         &self,
         xs: &Tensor,
@@ -1218,7 +1213,7 @@ impl ModernBert {
     /// `(total_tokens, hidden)` states, sequence after sequence with
     /// no padding, and the final norm already applied. Callers that
     /// can index the packed layout skip the unpack copy.
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     pub fn forward_varlen_packed(
         &self,
         xs: &Tensor,
@@ -1300,7 +1295,7 @@ impl ModernBert {
     /// expansion rows into MaxSim) without serving as attention keys.
     /// Rows keep the padded layout end to end; only k/v are packed to
     /// each sequence's valid prefix per layer.
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     pub fn forward_query_varlen(
         &self,
         xs: &Tensor,

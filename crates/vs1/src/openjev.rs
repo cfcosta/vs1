@@ -197,7 +197,7 @@ impl OpenJevBuilder {
         self
     }
     /// Defaults to BF16 on CUDA with FlashAttention, F32 otherwise.
-    /// BF16 is approximate and requires CUDA and the `flash-attn` feature.
+    /// BF16 is approximate and requires CUDA.
     pub fn with_dtype(mut self, dtype: DType) -> Self {
         self.dtype = Some(dtype);
         self
@@ -215,7 +215,7 @@ impl TryFrom<OpenJevBuilder> for OpenJev {
     type Error = SystemOneError;
     fn try_from(builder: OpenJevBuilder) -> Result<Self> {
         let dtype = builder.dtype.unwrap_or_else(|| {
-            if builder.device.is_cuda() && cfg!(feature = "flash-attn") {
+            if builder.device.is_cuda() && cfg!(feature = "cuda") {
                 DType::BF16
             } else {
                 DType::F32
@@ -223,11 +223,9 @@ impl TryFrom<OpenJevBuilder> for OpenJev {
         });
         if !matches!(dtype, DType::F32 | DType::BF16)
             || (dtype == DType::BF16
-                && (!builder.device.is_cuda() || !cfg!(feature = "flash-attn")))
+                && (!builder.device.is_cuda() || !cfg!(feature = "cuda")))
         {
-            return Err(config_error(
-                "OpenJev supports f32, or bf16 on CUDA with the flash-attn feature",
-            ));
+            return Err(config_error("OpenJev supports f32, or bf16 on CUDA"));
         }
         if builder.batch_size == 0 || builder.max_len < 2 {
             return Err(config_error(
@@ -429,17 +427,17 @@ impl OpenJev {
                 mask[i * len..i * len + x.ids.len()].fill(1);
             }
             let ids = Tensor::from_vec(ids, (chunk.len(), len), &self.device)?;
-            #[cfg(feature = "flash-attn")]
+            #[cfg(feature = "cuda")]
             let packed = self.device.is_cuda() && self.dtype == DType::BF16;
-            #[cfg(not(feature = "flash-attn"))]
+            #[cfg(not(feature = "cuda"))]
             let packed = false;
             let lens: Vec<_> = chunk.iter().map(|x| x.ids.len()).collect();
             let hidden = if packed {
-                #[cfg(feature = "flash-attn")]
+                #[cfg(feature = "cuda")]
                 {
                     self.encoder.forward_varlen_packed(&ids, &lens)?
                 }
-                #[cfg(not(feature = "flash-attn"))]
+                #[cfg(not(feature = "cuda"))]
                 {
                     unreachable!()
                 }

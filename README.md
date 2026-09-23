@@ -192,10 +192,11 @@ revisiting.
 
 ## Backends
 
-Feature flags: `cuda`, `metal`, `mkl`, `accelerate`. `flash-attn`
-additionally builds the encoder's packed flash-attention paths (needs
-nvcc and cutlass); the masked path the decision head uses is fine
-without it.
+Feature flags: `cuda`, `metal`, `mkl`, `accelerate`. `cuda` builds the
+full CUDA runtime: packed flash attention plus vs1's own kernels and
+CUTLASS GEMMs. It needs nvcc, and fetches the pinned cutlass at build
+time (the Nix `-cuda` packages stage it offline). Without an accelerator
+feature, inference runs on the CPU.
 
 ## Command line
 
@@ -243,7 +244,7 @@ nix fmt
 
 The browser CLI defaults to Jev; local inference requires a build with the `local`
 Cargo feature and `--backend local`. Accelerator features imply `local`.
-Both CLIs have `-cuda`, `-flash-attn`, and `-metal` Nix package variants;
+Both CLIs have `-cuda` and `-metal` Nix package variants;
 select a backend supported by your host. The browser CLI connects to an external
 Chrome/Chromium instance through CDP; the package does not bundle a browser.
 

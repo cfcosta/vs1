@@ -39,7 +39,7 @@ Increasing context did not recover the expected decision. Different models and
 tokenizers mean their reported token totals should not be treated as equivalent
 compute workloads.
 
-The separately built `flash-attn` feature uses the library's packed attention
+The then-separate `flash-attn` feature (now part of `cuda`) uses the library's packed attention
 path. It reduces full-context latency from 640.07 to **108.27 ms**, making that
 local replay **3.09× faster than Jev**. Its full-context operation remains the
 incorrect DONE. Three additional hotel runs with this build also failed

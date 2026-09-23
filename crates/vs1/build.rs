@@ -36,7 +36,7 @@ fn main() {
             .expect("CUDA builds require nvcc (set NVCC or CUDA_PATH)");
         assert!(status.success(), "compiling {kernel} failed");
     }
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     {
         println!("cargo::rerun-if-changed=src/cutlass_geglu.cu");
         println!("cargo::rerun-if-changed=src/cutlass_dual");

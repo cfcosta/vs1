@@ -102,17 +102,17 @@ pub struct SystemOne {
     batch_size: usize,
     result_cache:
         Option<std::sync::Arc<std::sync::Mutex<prepared_cache::PreparedCache>>>,
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     batch_worker: Option<BatchWorker>,
 }
 
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 struct BatchWorker {
     model: Box<SystemOne>,
     pool: rayon::ThreadPool,
     lock: std::sync::Mutex<()>,
 }
-#[cfg(all(test, feature = "flash-attn"))]
+#[cfg(all(test, feature = "cuda"))]
 static REFERENCE_BATCHES: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
 
@@ -214,12 +214,12 @@ impl SystemOne {
             dtype,
             batch_size,
             result_cache: None,
-            #[cfg(feature = "flash-attn")]
+            #[cfg(feature = "cuda")]
             batch_worker: None,
         })
     }
 
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     pub(crate) fn with_batch_worker(mut self, worker: Self) -> Result<Self> {
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(2)
@@ -239,7 +239,7 @@ impl SystemOne {
             let cache = std::sync::Arc::new(std::sync::Mutex::new(
                 prepared_cache::PreparedCache::new(capacity),
             ));
-            #[cfg(feature = "flash-attn")]
+            #[cfg(feature = "cuda")]
             if let Some(worker) = self.batch_worker.as_mut() {
                 worker.model.result_cache = Some(cache.clone());
             }
@@ -324,13 +324,13 @@ impl SystemOne {
         order.sort_by_key(|&i| std::cmp::Reverse(items[i].2.ids.len()));
 
         let mut outputs: Vec<Option<ItemOutput>> = vec![None; items.len()];
-        #[cfg(feature = "flash-attn")]
+        #[cfg(feature = "cuda")]
         let worker = self.batch_worker.as_ref();
-        #[cfg(all(test, feature = "flash-attn"))]
+        #[cfg(all(test, feature = "cuda"))]
         let worker = worker.filter(|_| {
             !REFERENCE_BATCHES.load(std::sync::atomic::Ordering::Relaxed)
         });
-        #[cfg(feature = "flash-attn")]
+        #[cfg(feature = "cuda")]
         let _guard = self
             .batch_worker
             .as_ref()
@@ -341,7 +341,7 @@ impl SystemOne {
             model.forward_batch(&batch)
         };
         for pair in chunks.chunks(2) {
-            #[cfg(feature = "flash-attn")]
+            #[cfg(feature = "cuda")]
             if let Some(worker) = worker.filter(|_| pair.len() == 2) {
                 let (a, b) = worker.pool.install(|| {
                     rayon::join(
@@ -519,9 +519,8 @@ impl SystemOne {
     /// [`Self::marker_logits`] on packed tokens: the encoder, the type
     /// embedding, the head, and the marker gather all run over
     /// `(total_tokens, hidden)` with no padding anywhere, and each
-    /// attention is one varlen flash kernel. Used on CUDA when built
-    /// with `flash-attn`.
-    #[cfg(feature = "flash-attn")]
+    /// attention is one varlen flash kernel. Used on CUDA.
+    #[cfg(feature = "cuda")]
     fn marker_logits_packed(
         &self,
         collated: &Collated,
@@ -593,7 +592,7 @@ impl SystemOne {
         &self,
         collated: &Collated,
     ) -> Result<(Tensor, Vec<Vec<f32>>)> {
-        #[cfg(feature = "flash-attn")]
+        #[cfg(feature = "cuda")]
         if self.device.is_cuda() {
             return self.marker_logits_packed(collated);
         }
@@ -749,11 +748,11 @@ mod tests {
     }
 }
 
-#[cfg(all(test, feature = "flash-attn"))]
+#[cfg(all(test, feature = "cuda"))]
 #[path = "batch_bench.rs"]
 pub(crate) mod batch_bench;
 
-#[cfg(all(test, feature = "flash-attn"))]
+#[cfg(all(test, feature = "cuda"))]
 #[path = "followup_bench.rs"]
 mod followup_bench;
 
@@ -762,6 +761,6 @@ mod prepared_cache;
 #[cfg(test)]
 static REFERENCE_CACHE: std::sync::atomic::AtomicBool =
     std::sync::atomic::AtomicBool::new(false);
-#[cfg(all(test, feature = "flash-attn"))]
+#[cfg(all(test, feature = "cuda"))]
 #[path = "cache_bench.rs"]
 mod cache_bench;

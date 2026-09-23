@@ -129,7 +129,7 @@ impl HeadLayer {
     /// cumulative sequence starts (`batch + 1` entries) and
     /// `max_seq_len` the longest sequence. Attention is one varlen
     /// flash kernel, so padded keys never exist and nothing is masked.
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     pub fn forward_packed(
         &self,
         xs: &Tensor,

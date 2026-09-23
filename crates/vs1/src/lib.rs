@@ -53,17 +53,17 @@ pub mod types;
 #[cfg(feature = "cuda")]
 mod geglu_cuda;
 
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 mod bias_act_cuda;
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 mod residual_norm_cuda;
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 mod rope_cuda;
 
-#[cfg(all(test, feature = "flash-attn"))]
+#[cfg(all(test, feature = "cuda"))]
 mod geglu_bench;
 
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 mod gemm_cuda;
 
 pub use builder::{
@@ -107,8 +107,8 @@ pub mod openjev;
 pub use openjev::{OpenJev, OpenJevBuilder, OpenJevInput, OpenJevPrediction};
 pub use types::AbstentionAnswer;
 
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 mod parallel_cuda;
 
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 mod cutlass_geglu;

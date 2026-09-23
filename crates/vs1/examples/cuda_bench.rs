@@ -1,5 +1,5 @@
 //! Repeatable end-to-end CUDA timing and exact-output regression corpus.
-//! cargo run --release -p vs1 --features flash-attn --example cuda_bench -- OUT.json [ITERATIONS] [BASELINE.json]
+//! cargo run --release -p vs1 --features cuda --example cuda_bench -- OUT.json [ITERATIONS] [BASELINE.json]
 use std::{hint::black_box, time::Instant};
 
 use anyhow::{Result, ensure};
@@ -169,7 +169,7 @@ fn main() -> Result<()> {
         std::fs::write(
             &args[1],
             serde_json::to_vec_pretty(&json!({"dtype":format!("{dtype:?}"),
-            "flash_attn":cfg!(feature="flash-attn"),"iterations":iterations,"cases":results}))?,
+            "flash_attn":cfg!(feature="cuda"),"iterations":iterations,"cases":results}))?,
         )?;
     }
     let mut churn = vec![];

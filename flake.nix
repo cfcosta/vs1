@@ -11,7 +11,7 @@
     };
     # candle-flash-attn's build script (via cudaforge) clones this
     # exact commit of cutlass at build time. Pinning it as a flake
-    # input lets the sandboxed `vs1-flash-attn` build stage a copy
+    # input lets the sandboxed `-cuda` build stage a copy
     # instead of reaching for the network.
     nvidia-cutlass = {
       url = "github:NVIDIA/cutlass/7d49e6c7e2f8896c47f586706e67e1fb215529dc";
@@ -115,7 +115,7 @@
               # Builds one workspace CLI as a Nix package.
               # Pass `name` plus `buildFeatures` / `buildInputs` /
               # `extraEnv` / `extraPreBuild` to opt into `cuda` /
-              # `flash-attn` / `metal`.
+              # `metal`.
               mkPackage =
                 {
                   name,
@@ -193,9 +193,7 @@
           # cudaforge fetches NVIDIA/cutlass via git at build time.
           # Pre-stage a sandbox-resident copy with a stubbed `.git` so
           # the build doesn't need network and `git rev-parse HEAD`
-          # returns the pinned commit. Only the `flash-attn` build
-          # pulls candle-flash-attn, so the plain `cuda` output skips
-          # this.
+          # returns the pinned commit.
           cudaforgeEnv = cudaEnv // {
             CUDAFORGE_HOME = "/tmp/cudaforge-cache";
           };
@@ -230,14 +228,6 @@
                 name = "${crate}-cuda";
                 inherit crate;
                 buildFeatures = [ "cuda" ];
-                nativeBuildInputs = cudaNativeBuildInputs;
-                buildInputs = cudaBuildInputs;
-                extraEnv = cudaEnv;
-              };
-              "${crate}-flash-attn" = mkPackage {
-                name = "${crate}-flash-attn";
-                inherit crate;
-                buildFeatures = [ "flash-attn" ];
                 nativeBuildInputs = cudaNativeBuildInputs ++ [ pkgs.git ];
                 buildInputs = cudaBuildInputs;
                 extraEnv = cudaforgeEnv;

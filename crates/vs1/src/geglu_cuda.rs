@@ -214,7 +214,7 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     #[test]
     #[ignore = "requires CUDA and the Laya checkpoint; run alone"]
     fn paired_vector_latency() -> anyhow::Result<()> {

@@ -48,7 +48,7 @@ pub struct SystemOneBuilder {
     max_len: Option<usize>,
     head_max_len: Option<usize>,
     result_cache_capacity: usize,
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     parallel_cuda_batches: bool,
 }
 
@@ -64,7 +64,7 @@ impl SystemOneBuilder {
             max_len: None,
             head_max_len: None,
             result_cache_capacity: 0,
-            #[cfg(feature = "flash-attn")]
+            #[cfg(feature = "cuda")]
             parallel_cuda_batches: false,
         }
     }
@@ -109,7 +109,7 @@ impl SystemOneBuilder {
     /// useful for calls exceeding one batch when additional VRAM is available.
     /// Batch membership and result order are preserved. Calls on this model
     /// serialize access to its two workers.
-    #[cfg(feature = "flash-attn")]
+    #[cfg(feature = "cuda")]
     pub fn with_parallel_cuda_batches(mut self, enabled: bool) -> Self {
         self.parallel_cuda_batches = enabled;
         self
@@ -154,7 +154,7 @@ impl TryFrom<SystemOneBuilder> for SystemOne {
 
     fn try_from(builder: SystemOneBuilder) -> Result<Self> {
         let device = builder.device.clone().unwrap_or(Device::Cpu);
-        #[cfg(feature = "flash-attn")]
+        #[cfg(feature = "cuda")]
         let device = if builder.parallel_cuda_batches {
             if !device.is_cuda()
                 || builder.dtype.is_some_and(|d| d != DType::BF16)
@@ -175,7 +175,7 @@ impl TryFrom<SystemOneBuilder> for SystemOne {
         } else {
             load_hub_assets(&builder.repo_id, builder.subfolder.as_deref())?
         };
-        #[cfg(feature = "flash-attn")]
+        #[cfg(feature = "cuda")]
         let worker = if builder.parallel_cuda_batches {
             let stream_device =
                 Device::Cuda(candle_core::CudaDevice::new_with_stream(
@@ -202,7 +202,7 @@ impl TryFrom<SystemOneBuilder> for SystemOne {
             builder.max_len,
             builder.head_max_len,
         )?;
-        #[cfg(feature = "flash-attn")]
+        #[cfg(feature = "cuda")]
         let model = if let Some(worker) = worker {
             model.with_batch_worker(worker)?
         } else {

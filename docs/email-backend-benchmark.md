@@ -203,7 +203,7 @@ They are deliberately not committed.
 nix develop -c cargo test -p vs1-email --example backend_benchmark
 nix develop -c cargo clippy -p vs1-email --example backend_benchmark -- -D warnings
 nix develop -c cargo build --release -p vs1-email \
-  --features cuda,flash-attn --example backend_benchmark
+  --features cuda --example backend_benchmark
 
 # Repeat for laya, jev, openjev and openjev-bf16; choose a fresh run name.
 # OpenJev now defaults to compact512; append "original" for the old setup.

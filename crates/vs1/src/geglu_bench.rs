@@ -1,5 +1,5 @@
 //! Opt-in paired model benchmark; run alone with --test-threads=1.
-//! cargo test --release -p vs1 --features flash-attn paired_model_latency -- --ignored --nocapture --test-threads=1
+//! cargo test --release -p vs1 --features cuda paired_model_latency -- --ignored --nocapture --test-threads=1
 use std::{
     sync::atomic::{AtomicBool, Ordering},
     time::Instant,

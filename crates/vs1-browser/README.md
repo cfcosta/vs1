@@ -26,11 +26,10 @@ driver is not otherwise discoverable. For local CPU inference, build with
 and `--backend local --device metal`. Accelerator features enable `local` automatically.
 Even builds with local support default to hosted Jev.
 
-For the faster packed attention path, build with `--features flash-attn` instead
-of `--features cuda`; this additionally needs NVCC and Cutlass, as described in
-the root README. The measured full-context replay took 108 ms with Flash Attention
-and 640 ms with plain CUDA on the test GPU. See the performance report for the
-separate task-success results.
+The `cuda` feature includes the packed flash-attention path and needs NVCC and
+Cutlass, as described in the root README. The measured full-context replay took
+108 ms with it, against 640 ms for the earlier CUDA build without flash attention,
+on the test GPU. See the performance report for the separate task-success results.
 
 Connect to Chrome's existing debugging endpoint with `--cdp http://127.0.0.1:9222`
 (the default). Chrome must already permit remote debugging. The agent opens and
@@ -188,7 +187,7 @@ nix run .#vs1-browser -- --help
 nix build .#vs1-browser-cuda
 ```
 
-`vs1-browser-flash-attn` and `vs1-browser-metal` are also available for compatible
+`vs1-browser-metal` is also available for compatible
 hosts. Connect Chrome/Chromium separately as described above; it is not bundled.
 
 ## JSON scenarios

@@ -1,6 +1,6 @@
 //! Warmed model trace: VS1_PROFILE_NSYS=1 for Nsight's cudaProfilerApi range,
 //! or preload kernel_trace.cpp's collector for a standalone CUPTI trace.
-#[cfg(feature = "flash-attn")]
+#[cfg(feature = "cuda")]
 fn main() -> anyhow::Result<()> {
     use std::ffi::{CString, c_char, c_void};
 
@@ -82,7 +82,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[cfg(not(feature = "flash-attn"))]
+#[cfg(not(feature = "cuda"))]
 fn main() {
-    eprintln!("kernel_profile requires --features flash-attn");
+    eprintln!("kernel_profile requires --features cuda");
 }

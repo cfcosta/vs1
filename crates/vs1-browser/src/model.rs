@@ -92,7 +92,7 @@ impl Backend {
         let metadata = json!({"backend":"local","checkpoint":args.checkpoint,"subfolder":args.subfolder,
             "device":args.device,"dtype":format!("{:?}",model.dtype()),"max_len":model.config().max_len,
             "head_max_len":model.config().head_max_len,"load_ms":started.elapsed().as_secs_f64()*1000.0,
-            "features":{"cuda":cfg!(feature="cuda"),"flash_attn":cfg!(feature="flash-attn"),"metal":cfg!(feature="metal")}});
+            "features":{"cuda":cfg!(feature="cuda"),"metal":cfg!(feature="metal")}});
         Ok(Self {
             model: Some(model),
             hosted: None,

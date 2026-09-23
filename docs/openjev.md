@@ -16,7 +16,7 @@ be passed instead. Custom repository IDs use their `main` revision.
 cargo run --release -p vs1 -- \
   --backend openjev research/openjev/request.json
 
-cargo run --release -p vs1 --features flash-attn -- \
+cargo run --release -p vs1 --features cuda -- \
   --backend openjev --device cuda research/openjev/request.json
 
 # Use an already downloaded checkpoint and inspect the exact model inputs.
@@ -26,10 +26,10 @@ target/release/vs1 --backend openjev --device cuda \
 
 This selector is available in the core `vs1` CLI. `--model` accepts a local
 directory or Hugging Face repository; `--batch-size` controls questions per
-forward pass. No API key or Python runtime is required. CUDA builds with
-`flash-attn` default to BF16 weights and packed FlashAttention. CPU and builds
-without `flash-attn` default to F32. `--dtype f32` selects reference precision;
-explicit `--dtype bf16` requires CUDA and `flash-attn`.
+forward pass. No API key or Python runtime is required. CUDA builds default
+to BF16 weights and packed FlashAttention; CPU and Metal default to F32.
+`--dtype f32` selects reference precision; explicit `--dtype bf16` requires
+CUDA.
 
 BF16 is approximate: in the 95-case validation it preserved every choice and
 abstention outcome, with maximum expected-score error 0.0234 on a 0–4 scale and

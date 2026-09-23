@@ -293,7 +293,7 @@ content were not scored individually by this structural audit.
 
 The TDD-tested replay executable is `crates/vs1/examples/native_category_replay.rs`;
 it reads JSONL dataset rows and writes predictions separately from references.
-Run with release features `cuda,flash-attn`; arguments are input JSONL and a new
+Run with the release `cuda` feature (earlier `cuda,flash-attn`); arguments are input JSONL and a new
 output JSON path. Aggregate measurements: [laya-native-diagnostics.json](laya-native-diagnostics.json).
 
 The follow-up [semantic-routing experiment](email-experiments.md#17-native-task-diagnostics-and-semantic-routing)

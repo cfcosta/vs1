@@ -53,12 +53,12 @@ fn main() -> anyhow::Result<()> {
         }
         results.push(serde_json::json!({"scenario":name,"pairs":40,
             "f32_median_ms":times[0][20],"bf16_median_ms":times[1][20],
-            "speedup":times[0][20]/times[1][20],"flash_attn":cfg!(feature="flash-attn")}));
+            "speedup":times[0][20]/times[1][20],"flash_attn":cfg!(feature="cuda")}));
     }
     println!("{}", serde_json::to_string_pretty(&results)?);
     Ok(())
 }
 #[cfg(not(feature = "cuda"))]
 fn main() -> anyhow::Result<()> {
-    anyhow::bail!("requires --features cuda or flash-attn")
+    anyhow::bail!("requires --features cuda")
 }
