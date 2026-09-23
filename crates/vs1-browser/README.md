@@ -11,12 +11,14 @@ From the repository root:
 ```sh
 cargo build --release -p vs1-browser
 export TYPESAFE_API_KEY=... # Jev decision backend
-export TEXT_MODEL_API_KEY=... # only needed when the task requires typing
+export OPENROUTER_API_KEY=... # default text key; only needed when the task requires typing
 target/release/vs1-browser \
   --url https://en.wikipedia.org/wiki/Main_Page \
   --goal 'Find and open the Wikipedia article about Gödel’s incompleteness theorems.' \
   --output crates/vs1-browser/artifacts/wiki
 ```
+
+`TEXT_MODEL_API_KEY`, when set, overrides `OPENROUTER_API_KEY` for text generation.
 
 On NixOS, run the build through `direnv exec .` or inside `nix develop`.
 For CUDA execution, include `/run/opengl-driver/lib` in `LD_LIBRARY_PATH` if the
@@ -78,7 +80,11 @@ export TEXT_MODEL=inception/mercury-2.5
 export TEXT_MODEL_REASONING=none
 ```
 
-These are also the default text settings. Credentials stay in environment
+These are also the default text settings. The helper uses `OPENROUTER_API_KEY`
+by default; `TEXT_MODEL_API_KEY` overrides it when set, for example when
+`TEXT_MODEL_BASE_URL` points at another provider. If neither key is set,
+`TYPE_TEXT` fails before making a request; no field value is guessed.
+Credentials stay in environment
 variables and are never written into configuration metadata. `.env.example` lists
 the supported variables; this executable does not automatically load `.env`.
 

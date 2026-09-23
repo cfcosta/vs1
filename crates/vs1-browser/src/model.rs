@@ -254,9 +254,7 @@ impl Backend {
     }
 
     pub fn field_text(&self, context: &Value) -> Result<(String, Value)> {
-        let key = env::var("TEXT_MODEL_API_KEY").context(
-            "TYPE_TEXT needs TEXT_MODEL_API_KEY; no field value was guessed",
-        )?;
+        let key = read_text_model_api_key(|name| env::var(name).ok())?;
         let base = env::var("TEXT_MODEL_BASE_URL")
             .unwrap_or("https://openrouter.ai/api/v1".into());
         let model =
@@ -290,6 +288,16 @@ impl Backend {
             json!({"model":model,"latency_ms":started.elapsed().as_secs_f64()*1000.0,"usage":response["usage"]}),
         ))
     }
+}
+
+fn read_text_model_api_key(
+    lookup: impl Fn(&str) -> Option<String>,
+) -> Result<String> {
+    lookup("TEXT_MODEL_API_KEY")
+        .or_else(|| lookup("OPENROUTER_API_KEY"))
+        .context(
+            "TYPE_TEXT needs TEXT_MODEL_API_KEY or OPENROUTER_API_KEY; no field value was guessed",
+        )
 }
 
 #[cfg(any(feature = "local", test))]
@@ -354,6 +362,33 @@ impl Drop for Backend {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn text_model_key_override_wins() {
+        let key = read_text_model_api_key(|name| match name {
+            "TEXT_MODEL_API_KEY" => Some("override-key".into()),
+            "OPENROUTER_API_KEY" => Some("openrouter-key".into()),
+            _ => None,
+        })
+        .unwrap();
+        assert_eq!(key, "override-key");
+    }
+    #[test]
+    fn text_model_key_falls_back_to_openrouter() {
+        let key = read_text_model_api_key(|name| match name {
+            "OPENROUTER_API_KEY" => Some("openrouter-key".into()),
+            _ => None,
+        })
+        .unwrap();
+        assert_eq!(key, "openrouter-key");
+    }
+    #[test]
+    fn text_model_key_rejects_missing_credentials() {
+        let error = read_text_model_api_key(|_| None).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "TYPE_TEXT needs TEXT_MODEL_API_KEY or OPENROUTER_API_KEY; no field value was guessed",
+        );
+    }
     #[cfg(feature = "local")]
     #[test]
     fn local_backends_read_checkpoint_directories_without_downloading() {
