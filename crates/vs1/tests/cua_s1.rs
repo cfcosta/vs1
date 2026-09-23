@@ -60,6 +60,46 @@ fn parse_reference() -> Reference {
     .unwrap()
 }
 
+fn parse_wikipedia_case() -> Case {
+    #[derive(Deserialize)]
+    struct BrowserDecision {
+        app: String,
+        task_family: String,
+        ax_tree: String,
+        goal: Option<String>,
+        options: Vec<(CuaS1Option, serde::de::IgnoredAny)>,
+    }
+
+    let decision: BrowserDecision = serde_json::from_str(include_str!(
+        "../../../research/cua-s1/wikipedia-56-options.json"
+    ))
+    .unwrap();
+    Case {
+        name: "wikipedia-56-options".into(),
+        app: decision.app,
+        task_family: decision.task_family,
+        ax_tree: decision.ax_tree,
+        goal: decision.goal,
+        options: decision
+            .options
+            .into_iter()
+            .map(|(option, _)| option)
+            .collect(),
+    }
+}
+
+#[test]
+fn parses_wikipedia_browser_options() {
+    let case = parse_wikipedia_case();
+    assert_eq!(case.options.len(), 56);
+    assert_eq!(case.task_family, "web_navigation");
+    assert!(!case.ax_tree.is_empty());
+    assert!(case.goal.is_some());
+    assert_eq!(case.options[0].element_id, "e1");
+    assert_eq!(case.options[0].action, "click");
+    assert_eq!(case.options[55].element_id, "BLOCKED");
+}
+
 #[test]
 fn pins_revisions_to_the_reference() {
     let reference = parse_reference();
@@ -324,4 +364,105 @@ fn scores_all_bf16_reference_cases_on_cuda() {
         max_probability_difference <= 0.03,
         "probabilities exceed atol=0.03"
     );
+}
+
+#[test]
+#[ignore = "requires CUDA and the cua-s1 checkpoint"]
+fn measures_wikipedia_scoring_on_cuda() {
+    use std::{hint::black_box, time::Instant};
+
+    let iterations = std::env::var_os("VS1_CUA_S1_BENCH_ITERATIONS")
+        .map(|value| value.to_str().unwrap().parse::<usize>().unwrap())
+        .unwrap_or(10);
+    assert!(
+        iterations > 0,
+        "VS1_CUA_S1_BENCH_ITERATIONS must be positive"
+    );
+    let mut case = parse_wikipedia_case();
+    if let Some(value) = std::env::var_os("VS1_CUA_S1_BENCH_OPTIONS") {
+        let option_count = value.to_str().unwrap().parse::<usize>().unwrap();
+        assert!(
+            option_count > 0,
+            "VS1_CUA_S1_BENCH_OPTIONS must be positive"
+        );
+        case.options.truncate(option_count);
+    }
+
+    let device = Device::new_cuda(0).unwrap();
+    let root =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../artifacts/cua-s1");
+    let model: CuaS1 = CuaS1::from(DEFAULT_REPO_ID)
+        .with_device(device.clone())
+        .with_dtype(DType::BF16)
+        .with_local_directories(
+            root.join("base").join(BASE_REVISION),
+            root.join("adapter").join(ADAPTER_REVISION).join("text"),
+        )
+        .try_into()
+        .unwrap();
+    let score = || {
+        model
+            .score_options(
+                &case.app,
+                &case.task_family,
+                &case.ax_tree,
+                case.goal.as_deref(),
+                black_box(&case.options),
+            )
+            .unwrap()
+    };
+    let mut predictions = Vec::new();
+    for _ in 0..2 {
+        device.synchronize().unwrap();
+        predictions = score();
+        device.synchronize().unwrap();
+    }
+    let expected = serde_json::to_value(&predictions).unwrap();
+    let mut latencies_ms = Vec::with_capacity(iterations);
+    for _ in 0..iterations {
+        device.synchronize().unwrap();
+        let started = Instant::now();
+        let actual = score();
+        device.synchronize().unwrap();
+        latencies_ms.push(started.elapsed().as_secs_f64() * 1000.0);
+        assert_eq!(
+            serde_json::to_value(&actual).unwrap(),
+            expected,
+            "Wikipedia scoring changed between calls"
+        );
+    }
+    let mut sorted_latencies_ms = latencies_ms.clone();
+    sorted_latencies_ms.sort_by(f64::total_cmp);
+    let median_ms = (sorted_latencies_ms[(iterations - 1) / 2]
+        + sorted_latencies_ms[iterations / 2])
+        / 2.0;
+    predictions.sort_by(|a, b| b.probability.total_cmp(&a.probability));
+    let chosen = predictions.iter().find(|p| p.is_selected).unwrap();
+    let report = serde_json::json!({
+        "case": case.name,
+        "device": "cuda:0",
+        "dtype": "bf16",
+        "base_revision": BASE_REVISION,
+        "adapter_revision": ADAPTER_REVISION,
+        "max_len": model.max_len(),
+        "warmup_calls": 2,
+        "iterations": iterations,
+        "option_count": case.options.len(),
+        "median_ms": median_ms,
+        "latencies_ms": latencies_ms,
+        "forward_passes": chosen.forward_passes,
+        "chosen_option": chosen,
+        "top_options": predictions.iter().take(5).collect::<Vec<_>>(),
+    });
+    let json = serde_json::to_string_pretty(&report).unwrap();
+    println!("{json}");
+    if let Some(path) = std::env::var_os("VS1_CUA_S1_BENCH_OUTPUT") {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join(path);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        std::fs::write(path, format!("{json}\n")).unwrap();
+    }
 }

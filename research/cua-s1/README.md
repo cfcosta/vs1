@@ -27,6 +27,39 @@ tokens report the maximum across rounds for each question. `request_fits`
 checks first-round prompts; finalist prompts enforce `max_len` when scored.
 The low-level `CuaS1Input::encode` still accepts only 1–26 options per pass.
 
+## Large-page scoring benchmark
+
+`wikipedia-56-options.json` is a captured native browser decision with 56 options.
+The ignored test loads the pinned local checkpoints on `cuda:0` in BF16,
+runs two warmup calls, then times ten `score_options` calls. Device synchronization
+surrounds each call; timings include prompt construction and all tournament rounds,
+but exclude checkpoint loading and JSON serialization. Timed predictions must
+exactly match the final warmup prediction.
+
+```sh
+VS1_CUA_S1_BENCH_OUTPUT=artifacts/cua-s1/wikipedia-56-bench.json \
+  direnv exec . cargo test --release -p vs1 --features cuda --test cua_s1 \
+  measures_wikipedia_scoring_on_cuda -- --ignored --exact --nocapture
+```
+
+Set `VS1_CUA_S1_BENCH_ITERATIONS` to a positive number to change the timed call
+count. Set `VS1_CUA_S1_BENCH_OPTIONS=22` to score only the first 22 options in one
+pass, keeping the same tree and goal:
+
+```sh
+VS1_CUA_S1_BENCH_OPTIONS=22 VS1_CUA_S1_BENCH_ITERATIONS=10 \
+  VS1_CUA_S1_BENCH_OUTPUT=artifacts/cua-s1/wikipedia-22-bench.json \
+  direnv exec . cargo test --release -p vs1 --features cuda --test cua_s1 \
+  measures_wikipedia_scoring_on_cuda -- --ignored --exact --nocapture
+```
+
+JSON is printed and optionally written to `VS1_CUA_S1_BENCH_OUTPUT`. It records
+the median and latencies in call order (milliseconds), option count, forward-pass
+count per decision, selected option with its probability, and the five options
+with highest probabilities. The selected option uses `is_selected`, which need
+not be the first of those five in a tournament. Predictions retain their full
+option fields, first-round letters and logits, and dropped-state-token counts.
+
 ## Reference prompts
 
 Regenerate from the repository root:

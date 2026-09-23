@@ -1,0 +1,1261 @@
+{
+  "app": "Gödel's incompleteness theorems - Wikipedia",
+  "task_family": "web_navigation",
+  "goal": "Find and open the Wikipedia article about Gödel’s incompleteness theorems.",
+  "ax_tree": "Goal: Find and open the Wikipedia article about Gödel’s incompleteness theorems.\nPage: Gödel's incompleteness theorems - Wikipedia\nControls:\n[1] link Wikipedia \n\t\t The Free Encyclopedia value=\"\"\n[2] searchbox Search Wikipedia value=\"\"\n[3] button Search value=\"\"\n[4] link Donate value=\"\"\n[5] link Create account value=\"\"\n[6] link Log in value=\"\"\n[7] button Hide Contents value=\"\"\n[8] link (Top) value=\"\"\n[9] link 1 \n\t\t\t\t Formal systems value=\"\"\n[10] button Toggle Formal systems subsection value=\"\"\n[11] link 2 \n\t\t\t\t First incompleteness theorem value=\"\"\n[12] button Toggle First incompleteness theorem subsection value=\"\"\n[13] link 3 \n\t\t\t\t Second incompleteness theorem value=\"\"\n[14] button Toggle Second incompleteness theorem subsection value=\"\"\n[15] link 4 \n\t\t\t\t Examples of undecidable statements value=\"\"\n[16] button Toggle Examples of undecidable statements subsection value=\"\"\n[17] link 5 \n\t\t\t\t Relationship with computability value=\"\"\n[18] link 6 \n\t\t\t\t Proof sketch for the first theorem value=\"\"\n[19] button Toggle Proof sketch for the first theorem subsection value=\"\"\n[20] link 7 \n\t\t\t\t Proof sketch for the second theorem value=\"\"\n[21] link 8 \n\t\t\t\t Discussion and implications value=\"\"\n[22] button Toggle Discussion and implications subsection value=\"\"\n[23] link 9 \n\t\t\t\t History value=\"\"\n[24] button Toggle History subsection value=\"\"\n[25] link 10 \n\t\t\t\t See also value=\"\"\n[26] link 11 \n\t\t\t\t References value=\"\"\n[27] button Toggle References subsection value=\"\"\n[28] link 12 \n\t\t\t\t External links value=\"\"\n[29] link Article value=\"\"\n[30] link Talk value=\"\"\n[31] link Read value=\"\"\n[32] link Edit value=\"\"\n[33] link View history value=\"\"\n[34] button Hide Appearance value=\"\"\n[35] link Page protected with pending changes value=\"\"\n[36] link Gödel's completeness theorem value=\"\"\n[37] link theorems value=\"\"\n[38] link mathematical logic value=\"\"\n[39] link Kurt Gödel value=\"\"\n[40] link philosophy of mathematics value=\"\"\n[41] link Hilbert's program value=\"\"\n[42] link axioms value=\"\"\n[43] link mathematics value=\"\"\n[44] link [ 1 ] value=\"\"\n[45] link consistent system value=\"\"\n[46] link axioms value=\"\"\n[47] link effective procedure value=\"\"\n[48] link algorithm value=\"\"\n[49] link proving value=\"\"\n[50] link natural numbers value=\"\"\n[51] link diagonal argument value=\"\"\nRecent actions: [{\"action\":\"Search Wikipedia\",\"kind\":\"fill\",\"text\":\"Gödel’s incompleteness theorems\",\"page_changed\":true},{\"action\":\"Gödel's incompleteness theorems   Limitative results in mathematical logic\",\"kind\":\"click\",\"text\":null,\"page_changed\":true}]\nVisible text: Jump to content\nSearch\nDonate\nCreate account\nLog in\nContents\nhide\n(Top)\nFormal systems\nToggle Formal systems subsection\nFirst incompleteness theorem\nToggle First incompleteness theorem subsection\nSecond incompleteness theorem\nToggle Second incompleteness theorem subsection\nExamples of undecidable statements\nToggle Examples of undecidable statements subsection\nRelationship with computability\nProof sketch for the first theorem\nToggle Proof sketch for the first theorem subsection\nProof sketch for the second theorem\nDiscussion and implications\nToggle Discussion and implications subsection\nHistory\nToggle History subsection\nSee also\nReferences\nToggle References subsection\nExternal links\nGödel's incompleteness theorems\nArticle\nTalk\nRead\nEdit\nView history\nAppearance\nhide\nChecked\nFrom Wikipedia, the free encyclopedia\nFor the earlier theory about the correspondence between truth and provability, see\nGödel's completeness theorem\n.\nGödel's incompleteness theorems\nare two\ntheorems\nof\nmathematical logic\nthat are concerned with the limits of\nprovability\nin formal axiomatic theories. These results, published by\nKurt Gödel\nin 1931, are important both in mathematical logic and in\nphilosophy of mathematics\n. The theorems are interpreted as showing that\nHilbert's program\nto find a complete and consistent set of\naxioms\nfor all\nmathematics\nis impossible.\n[\n1\n]\nThe first incompleteness theorem states that no\nconsistent system\nof\naxioms\nwhose theorems can be listed by an\neffective procedure\n(i.e. an\nalgorithm\n) is capable of\nproving\nall truths about the arithmetic of\nnatural numbers\n. For any such consistent formal system, there will always be statements about natural numbers that are true, but that are unprovable within the system. Equivalently, there will always be statements about natural numbers that are false, but that cannot be proved false within the system.\nThe second incompleteness theorem, an extension of the first, shows that no such system can demonstrate its own consistency.\nEmploying a\ndiagonal argument\n, Gödel's incompleteness theorems were among the first of several closely related theorems on the limitations of formal systems. They were followed by\nTarski's undefinability theorem\non the formal undefinability of truth,\nGraphics: []\nRecovery: {\"temporarily_unavailable\":[],\"instruction\":\"Actions with no observed effect, or already executed twice in this same state, are temporarily excluded. Try a different supported control or representation. Graphic labels alone do not prove all plotted values were compared.\"}",
+  "options": [
+    [
+      {
+        "element_id": "e1",
+        "role": "link",
+        "label": "Wikipedia \n\t\t The Free Encyclopedia",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 17,
+        "role": "link",
+        "label": "Wikipedia \n\t\t The Free Encyclopedia",
+        "rect": {
+          "x": 84,
+          "y": 14,
+          "w": 140,
+          "h": 38
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e1"
+      }
+    ],
+    [
+      {
+        "element_id": "e3",
+        "role": "searchbox",
+        "label": "Search Wikipedia",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 19,
+        "role": "searchbox",
+        "label": "Open Search Wikipedia",
+        "rect": {
+          "x": 266,
+          "y": 17,
+          "w": 404.296875,
+          "h": 32
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e3"
+      }
+    ],
+    [
+      {
+        "element_id": "e4",
+        "role": "button",
+        "label": "Search",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 20,
+        "role": "button",
+        "label": "Search",
+        "rect": {
+          "x": 669.296875,
+          "y": 17,
+          "w": 70.703125,
+          "h": 32
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e4"
+      }
+    ],
+    [
+      {
+        "element_id": "e5",
+        "role": "link",
+        "label": "Donate",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 22,
+        "role": "link",
+        "label": "Donate",
+        "rect": {
+          "x": 862.734375,
+          "y": 25,
+          "w": 45.15625,
+          "h": 16
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e5"
+      }
+    ],
+    [
+      {
+        "element_id": "e6",
+        "role": "link",
+        "label": "Create account",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 23,
+        "role": "link",
+        "label": "Create account",
+        "rect": {
+          "x": 915.890625,
+          "y": 25,
+          "w": 94.953125,
+          "h": 16
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e6"
+      }
+    ],
+    [
+      {
+        "element_id": "e7",
+        "role": "link",
+        "label": "Log in",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 24,
+        "role": "link",
+        "label": "Log in",
+        "rect": {
+          "x": 1018.84375,
+          "y": 25,
+          "w": 38.15625,
+          "h": 16
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e7"
+      }
+    ],
+    [
+      {
+        "element_id": "e8",
+        "role": "button",
+        "label": "Hide Contents",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 30,
+        "role": "button",
+        "label": "Hide Contents",
+        "rect": {
+          "x": 132.5625,
+          "y": 136.84375,
+          "w": 38.6875,
+          "h": 22
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e8"
+      }
+    ],
+    [
+      {
+        "element_id": "e9",
+        "role": "link",
+        "label": "(Top)",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 37,
+        "role": "link",
+        "label": "(Top)",
+        "rect": {
+          "x": 60,
+          "y": 172.328125,
+          "w": 164,
+          "h": 28
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e9"
+      }
+    ],
+    [
+      {
+        "element_id": "e10",
+        "role": "link",
+        "label": "1 \n\t\t\t\t Formal systems",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 38,
+        "role": "link",
+        "label": "1 \n\t\t\t\t Formal systems",
+        "rect": {
+          "x": 60,
+          "y": 200.328125,
+          "w": 164,
+          "h": 28
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e10"
+      }
+    ],
+    [
+      {
+        "element_id": "e11",
+        "role": "button",
+        "label": "Toggle Formal systems subsection",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 39,
+        "role": "button",
+        "label": "Toggle Formal systems subsection",
+        "rect": {
+          "x": 37,
+          "y": 201.328125,
+          "w": 22,
+          "h": 22
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e11"
+      }
+    ],
+    [
+      {
+        "element_id": "e12",
+        "role": "link",
+        "label": "2 \n\t\t\t\t First incompleteness theorem",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 40,
+        "role": "link",
+        "label": "2 \n\t\t\t\t First incompleteness theorem",
+        "rect": {
+          "x": 60,
+          "y": 228.328125,
+          "w": 164,
+          "h": 44
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e12"
+      }
+    ],
+    [
+      {
+        "element_id": "e13",
+        "role": "button",
+        "label": "Toggle First incompleteness theorem subsection",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 41,
+        "role": "button",
+        "label": "Toggle First incompleteness theorem subsection",
+        "rect": {
+          "x": 37,
+          "y": 229.328125,
+          "w": 22,
+          "h": 22
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e13"
+      }
+    ],
+    [
+      {
+        "element_id": "e14",
+        "role": "link",
+        "label": "3 \n\t\t\t\t Second incompleteness theorem",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 42,
+        "role": "link",
+        "label": "3 \n\t\t\t\t Second incompleteness theorem",
+        "rect": {
+          "x": 60,
+          "y": 272.328125,
+          "w": 164,
+          "h": 44
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e14"
+      }
+    ],
+    [
+      {
+        "element_id": "e15",
+        "role": "button",
+        "label": "Toggle Second incompleteness theorem subsection",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 43,
+        "role": "button",
+        "label": "Toggle Second incompleteness theorem subsection",
+        "rect": {
+          "x": 37,
+          "y": 273.328125,
+          "w": 22,
+          "h": 22
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e15"
+      }
+    ],
+    [
+      {
+        "element_id": "e16",
+        "role": "link",
+        "label": "4 \n\t\t\t\t Examples of undecidable statements",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 44,
+        "role": "link",
+        "label": "4 \n\t\t\t\t Examples of undecidable statements",
+        "rect": {
+          "x": 60,
+          "y": 316.328125,
+          "w": 164,
+          "h": 44
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e16"
+      }
+    ],
+    [
+      {
+        "element_id": "e17",
+        "role": "button",
+        "label": "Toggle Examples of undecidable statements subsection",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 45,
+        "role": "button",
+        "label": "Toggle Examples of undecidable statements subsection",
+        "rect": {
+          "x": 37,
+          "y": 317.328125,
+          "w": 22,
+          "h": 22
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e17"
+      }
+    ],
+    [
+      {
+        "element_id": "e18",
+        "role": "link",
+        "label": "5 \n\t\t\t\t Relationship with computability",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 46,
+        "role": "link",
+        "label": "5 \n\t\t\t\t Relationship with computability",
+        "rect": {
+          "x": 60,
+          "y": 360.328125,
+          "w": 164,
+          "h": 44
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e18"
+      }
+    ],
+    [
+      {
+        "element_id": "e19",
+        "role": "link",
+        "label": "6 \n\t\t\t\t Proof sketch for the first theorem",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 47,
+        "role": "link",
+        "label": "6 \n\t\t\t\t Proof sketch for the first theorem",
+        "rect": {
+          "x": 60,
+          "y": 404.328125,
+          "w": 164,
+          "h": 44
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e19"
+      }
+    ],
+    [
+      {
+        "element_id": "e20",
+        "role": "button",
+        "label": "Toggle Proof sketch for the first theorem subsection",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 48,
+        "role": "button",
+        "label": "Toggle Proof sketch for the first theorem subsection",
+        "rect": {
+          "x": 37,
+          "y": 405.328125,
+          "w": 22,
+          "h": 22
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e20"
+      }
+    ],
+    [
+      {
+        "element_id": "e21",
+        "role": "link",
+        "label": "7 \n\t\t\t\t Proof sketch for the second theorem",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 49,
+        "role": "link",
+        "label": "7 \n\t\t\t\t Proof sketch for the second theorem",
+        "rect": {
+          "x": 60,
+          "y": 448.328125,
+          "w": 164,
+          "h": 44
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e21"
+      }
+    ],
+    [
+      {
+        "element_id": "e22",
+        "role": "link",
+        "label": "8 \n\t\t\t\t Discussion and implications",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 50,
+        "role": "link",
+        "label": "8 \n\t\t\t\t Discussion and implications",
+        "rect": {
+          "x": 60,
+          "y": 492.328125,
+          "w": 164,
+          "h": 44
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e22"
+      }
+    ],
+    [
+      {
+        "element_id": "e23",
+        "role": "button",
+        "label": "Toggle Discussion and implications subsection",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 51,
+        "role": "button",
+        "label": "Toggle Discussion and implications subsection",
+        "rect": {
+          "x": 37,
+          "y": 493.328125,
+          "w": 22,
+          "h": 22
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e23"
+      }
+    ],
+    [
+      {
+        "element_id": "e24",
+        "role": "link",
+        "label": "9 \n\t\t\t\t History",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 52,
+        "role": "link",
+        "label": "9 \n\t\t\t\t History",
+        "rect": {
+          "x": 60,
+          "y": 536.328125,
+          "w": 164,
+          "h": 28
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e24"
+      }
+    ],
+    [
+      {
+        "element_id": "e25",
+        "role": "button",
+        "label": "Toggle History subsection",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 53,
+        "role": "button",
+        "label": "Toggle History subsection",
+        "rect": {
+          "x": 37,
+          "y": 537.328125,
+          "w": 22,
+          "h": 22
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e25"
+      }
+    ],
+    [
+      {
+        "element_id": "e26",
+        "role": "link",
+        "label": "10 \n\t\t\t\t See also",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 54,
+        "role": "link",
+        "label": "10 \n\t\t\t\t See also",
+        "rect": {
+          "x": 60,
+          "y": 564.328125,
+          "w": 164,
+          "h": 28
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e26"
+      }
+    ],
+    [
+      {
+        "element_id": "e27",
+        "role": "link",
+        "label": "11 \n\t\t\t\t References",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 55,
+        "role": "link",
+        "label": "11 \n\t\t\t\t References",
+        "rect": {
+          "x": 60,
+          "y": 592.328125,
+          "w": 164,
+          "h": 28
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e27"
+      }
+    ],
+    [
+      {
+        "element_id": "e28",
+        "role": "button",
+        "label": "Toggle References subsection",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 56,
+        "role": "button",
+        "label": "Toggle References subsection",
+        "rect": {
+          "x": 37,
+          "y": 593.328125,
+          "w": 22,
+          "h": 22
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e28"
+      }
+    ],
+    [
+      {
+        "element_id": "e29",
+        "role": "link",
+        "label": "12 \n\t\t\t\t External links",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 57,
+        "role": "link",
+        "label": "12 \n\t\t\t\t External links",
+        "rect": {
+          "x": 60,
+          "y": 620.328125,
+          "w": 164,
+          "h": 28
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e29"
+      }
+    ],
+    [
+      {
+        "element_id": "e30",
+        "role": "link",
+        "label": "Article",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 58,
+        "role": "link",
+        "label": "Article",
+        "rect": {
+          "x": 264,
+          "y": 129.640625,
+          "w": 38.90625,
+          "h": 32
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e30"
+      }
+    ],
+    [
+      {
+        "element_id": "e31",
+        "role": "link",
+        "label": "Talk",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 59,
+        "role": "link",
+        "label": "Talk",
+        "rect": {
+          "x": 318.90625,
+          "y": 129.640625,
+          "w": 24.90625,
+          "h": 32
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e31"
+      }
+    ],
+    [
+      {
+        "element_id": "e32",
+        "role": "link",
+        "label": "Read",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 60,
+        "role": "link",
+        "label": "Read",
+        "rect": {
+          "x": 644.1875,
+          "y": 129.640625,
+          "w": 33.46875,
+          "h": 32
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e32"
+      }
+    ],
+    [
+      {
+        "element_id": "e33",
+        "role": "link",
+        "label": "Edit",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 61,
+        "role": "link",
+        "label": "Edit",
+        "rect": {
+          "x": 693.65625,
+          "y": 129.640625,
+          "w": 24.125,
+          "h": 32
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e33"
+      }
+    ],
+    [
+      {
+        "element_id": "e34",
+        "role": "link",
+        "label": "View history",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 62,
+        "role": "link",
+        "label": "View history",
+        "rect": {
+          "x": 733.78125,
+          "y": 129.640625,
+          "w": 75.21875,
+          "h": 32
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e34"
+      }
+    ],
+    [
+      {
+        "element_id": "e35",
+        "role": "button",
+        "label": "Hide Appearance",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 63,
+        "role": "button",
+        "label": "Hide Appearance",
+        "rect": {
+          "x": 973.046875,
+          "y": 136.84375,
+          "w": 38.6875,
+          "h": 22
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e35"
+      }
+    ],
+    [
+      {
+        "element_id": "e36",
+        "role": "link",
+        "label": "Page protected with pending changes",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 64,
+        "role": "link",
+        "label": "Page protected with pending changes",
+        "rect": {
+          "x": 821,
+          "y": 173.640625,
+          "w": 20,
+          "h": 16
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e36"
+      }
+    ],
+    [
+      {
+        "element_id": "e37",
+        "role": "link",
+        "label": "Gödel's completeness theorem",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 65,
+        "role": "link",
+        "label": "Gödel's completeness theorem",
+        "rect": {
+          "x": 319.84375,
+          "y": 247.390625,
+          "w": 220.0625,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e37"
+      }
+    ],
+    [
+      {
+        "element_id": "e38",
+        "role": "link",
+        "label": "theorems",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 66,
+        "role": "link",
+        "label": "theorems",
+        "rect": {
+          "x": 585.25,
+          "y": 281.390625,
+          "w": 66.703125,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e38"
+      }
+    ],
+    [
+      {
+        "element_id": "e39",
+        "role": "link",
+        "label": "mathematical logic",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 67,
+        "role": "link",
+        "label": "mathematical logic",
+        "rect": {
+          "x": 674.1875,
+          "y": 281.390625,
+          "w": 132.5,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e39"
+      }
+    ],
+    [
+      {
+        "element_id": "e40",
+        "role": "link",
+        "label": "Kurt Gödel",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 68,
+        "role": "link",
+        "label": "Kurt Gödel",
+        "rect": {
+          "x": 414.3125,
+          "y": 333.390625,
+          "w": 76.484375,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e40"
+      }
+    ],
+    [
+      {
+        "element_id": "e41",
+        "role": "link",
+        "label": "philosophy of mathematics",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 69,
+        "role": "link",
+        "label": "philosophy of mathematics",
+        "rect": {
+          "x": 312.046875,
+          "y": 359.390625,
+          "w": 189.4375,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e41"
+      }
+    ],
+    [
+      {
+        "element_id": "e42",
+        "role": "link",
+        "label": "Hilbert's program",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 70,
+        "role": "link",
+        "label": "Hilbert's program",
+        "rect": {
+          "x": 264,
+          "y": 385.390625,
+          "w": 121.3125,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e42"
+      }
+    ],
+    [
+      {
+        "element_id": "e43",
+        "role": "link",
+        "label": "axioms",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 71,
+        "role": "link",
+        "label": "axioms",
+        "rect": {
+          "x": 671.703125,
+          "y": 385.390625,
+          "w": 50.6875,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e43"
+      }
+    ],
+    [
+      {
+        "element_id": "e44",
+        "role": "link",
+        "label": "mathematics",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 72,
+        "role": "link",
+        "label": "mathematics",
+        "rect": {
+          "x": 264,
+          "y": 411.390625,
+          "w": 90.703125,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e44"
+      }
+    ],
+    [
+      {
+        "element_id": "e45",
+        "role": "link",
+        "label": "[ 1 ]",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 73,
+        "role": "link",
+        "label": "[ 1 ]",
+        "rect": {
+          "x": 455.1875,
+          "y": 407.0625,
+          "w": 14.25,
+          "h": 15
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e45"
+      }
+    ],
+    [
+      {
+        "element_id": "e46",
+        "role": "link",
+        "label": "consistent system",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 74,
+        "role": "link",
+        "label": "consistent system",
+        "rect": {
+          "x": 605.5,
+          "y": 453.390625,
+          "w": 127.15625,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e46"
+      }
+    ],
+    [
+      {
+        "element_id": "e47",
+        "role": "link",
+        "label": "axioms",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 75,
+        "role": "link",
+        "label": "axioms",
+        "rect": {
+          "x": 754.890625,
+          "y": 453.390625,
+          "w": 50.6875,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e47"
+      }
+    ],
+    [
+      {
+        "element_id": "e48",
+        "role": "link",
+        "label": "effective procedure",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 76,
+        "role": "link",
+        "label": "effective procedure",
+        "rect": {
+          "x": 523.703125,
+          "y": 479.390625,
+          "w": 135.796875,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e48"
+      }
+    ],
+    [
+      {
+        "element_id": "e49",
+        "role": "link",
+        "label": "algorithm",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 77,
+        "role": "link",
+        "label": "algorithm",
+        "rect": {
+          "x": 717.3125,
+          "y": 479.390625,
+          "w": 65.8125,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e49"
+      }
+    ],
+    [
+      {
+        "element_id": "e50",
+        "role": "link",
+        "label": "proving",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 78,
+        "role": "link",
+        "label": "proving",
+        "rect": {
+          "x": 342.28125,
+          "y": 505.390625,
+          "w": 52.484375,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e50"
+      }
+    ],
+    [
+      {
+        "element_id": "e51",
+        "role": "link",
+        "label": "natural numbers",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 79,
+        "role": "link",
+        "label": "natural numbers",
+        "rect": {
+          "x": 626.890625,
+          "y": 505.390625,
+          "w": 115.625,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e51"
+      }
+    ],
+    [
+      {
+        "element_id": "e52",
+        "role": "link",
+        "label": "diagonal argument",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "node": 80,
+        "role": "link",
+        "label": "diagonal argument",
+        "rect": {
+          "x": 356.5,
+          "y": 719.390625,
+          "w": 132.546875,
+          "h": 17
+        },
+        "kind": "click",
+        "value": "",
+        "id": "e52"
+      }
+    ],
+    [
+      {
+        "element_id": "e2",
+        "role": "searchbox",
+        "label": "Search Wikipedia",
+        "action": "fill",
+        "entity_id": null
+      },
+      {
+        "node": 19,
+        "role": "searchbox",
+        "label": "Search Wikipedia",
+        "rect": {
+          "x": 266,
+          "y": 17,
+          "w": 404.296875,
+          "h": 32
+        },
+        "kind": "fill",
+        "value": "",
+        "id": "e2"
+      }
+    ],
+    [
+      {
+        "element_id": "scroll_down",
+        "role": "page",
+        "label": "Scroll down",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "id": "scroll_down",
+        "kind": "scroll",
+        "label": "Scroll down",
+        "delta": 560
+      }
+    ],
+    [
+      {
+        "element_id": "wait",
+        "role": "page",
+        "label": "Wait for the page to update",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "id": "wait",
+        "kind": "wait",
+        "label": "Wait for the page to update"
+      }
+    ],
+    [
+      {
+        "element_id": "DONE",
+        "role": "task",
+        "label": "Finish: every requirement is visibly satisfied",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "id": "DONE",
+        "kind": "terminal",
+        "label": "DONE"
+      }
+    ],
+    [
+      {
+        "element_id": "BLOCKED",
+        "role": "task",
+        "label": "Give up: no supported operation can progress",
+        "action": "click",
+        "entity_id": null
+      },
+      {
+        "id": "BLOCKED",
+        "kind": "terminal",
+        "label": "BLOCKED"
+      }
+    ]
+  ]
+}
