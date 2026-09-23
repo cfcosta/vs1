@@ -175,3 +175,44 @@ cargo test --release -p vs1 --features flash-attn --lib \
 cargo test --release -p vs1 --features flash-attn --lib \
   paired_bias_act -- --ignored --nocapture --test-threads=1
 ```
+
+## 4. Activation and gate in one CUTLASS dual GEMM — accepted
+
+On the large-row path (BF16, 2048–32768 packed rows, 1024 -> 2624, the RTX
+3080 Ti with cuBLAS 12.9.1; the same guard as the rounded epilogue), the
+encoder FFN ran Candle's gate GEMM, wrote the gate, then ran the CUTLASS
+activation GEMM whose epilogue read the gate back. It now runs CUTLASS's
+dual GEMM (example 45, vendored in `crates/vs1/src/cutlass_dual/` at the
+pinned commit): one kernel loads each A tile once, accumulates both
+products, rounds each accumulator to BF16 like a separate GEMM output
+(`LinearCombination` with `ScaleType::Nothing`), and stores only the
+rounded GeGLU. Neither intermediate product reaches global memory. The
+vendored epilogue is patched to skip C-source loads that the round-only ops
+never read. Tile shape is 128x64x32 (warp 64x32x32, three stages, no
+split-K), so each element keeps the plain K-loop order.
+
+`dual_products_match_candle` compares the dual kernel against Candle's two
+GEMMs plus the rounded GeGLU kernel for three independent weight pairs,
+nine row counts (129 to 32768, including the 2047/2048/2049 boundary) and
+positive/negated inputs with five magnitude bands: 54 products and
+**353,845,248** BF16 outputs, all identical (`04-dual-exactness.json`).
+The parallel-worker regression `batch_workers_preserve_default_outputs`
+also passes with the dual path active.
+
+| Workload      | First paired change | Faster | Repeat | Faster |
+| ------------- | ------------------: | -----: | -----: | -----: |
+| 1             |              -0.03% |  22/40 | +0.08% |  18/40 |
+| 8             |              +0.03% |  19/40 | -0.02% |  20/40 |
+| 32            |              -5.58% |  33/40 | -5.00% |  32/40 |
+| 64            |              -5.13% |  39/40 | -5.82% |  40/40 |
+| 128           |              -5.33% |  40/40 | -5.84% |  40/40 |
+| mixed128      |              -3.51% |  39/40 | -3.22% |  39/40 |
+| shared128     |              -5.04% |  40/40 | -4.90% |  40/40 |
+| browser_call3 |              +0.00% |  20/40 | -0.12% |  24/40 |
+| browser_call5 |              -0.81% |  25/40 | -0.15% |  21/40 |
+
+Workloads 1, 8 and the browser calls stay below 2048 rows and keep their
+previous path; they are controls. The gain on large batches is much larger
+than the removed gate traffic alone would predict, so the dual kernel's
+tiling is probably also more efficient than the previous pair of GEMMs;
+this was not profiled. Reports: `04-paired.json`, `04-paired-repeat.json`.

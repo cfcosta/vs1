@@ -1,0 +1,272 @@
+[
+  {
+    "weights": 0,
+    "rows": 129,
+    "dual_vs_candle": { "values": 338496, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 129,
+    "dual_vs_candle": { "values": 338496, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 1032,
+    "dual_vs_candle": { "values": 2707968, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 1032,
+    "dual_vs_candle": { "values": 2707968, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 2047,
+    "dual_vs_candle": { "values": 5371328, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 2047,
+    "dual_vs_candle": { "values": 5371328, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 2048,
+    "dual_vs_candle": { "values": 5373952, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 2048,
+    "dual_vs_candle": { "values": 5373952, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 2049,
+    "dual_vs_candle": { "values": 5376576, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 2049,
+    "dual_vs_candle": { "values": 5376576, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 4128,
+    "dual_vs_candle": { "values": 10831872, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 4128,
+    "dual_vs_candle": { "values": 10831872, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 5400,
+    "dual_vs_candle": { "values": 14169600, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 5400,
+    "dual_vs_candle": { "values": 14169600, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 16384,
+    "dual_vs_candle": { "values": 42991616, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 16384,
+    "dual_vs_candle": { "values": 42991616, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 32768,
+    "dual_vs_candle": { "values": 85983232, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 0,
+    "rows": 32768,
+    "dual_vs_candle": { "values": 85983232, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 129,
+    "dual_vs_candle": { "values": 338496, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 129,
+    "dual_vs_candle": { "values": 338496, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 1032,
+    "dual_vs_candle": { "values": 2707968, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 1032,
+    "dual_vs_candle": { "values": 2707968, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 2047,
+    "dual_vs_candle": { "values": 5371328, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 2047,
+    "dual_vs_candle": { "values": 5371328, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 2048,
+    "dual_vs_candle": { "values": 5373952, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 2048,
+    "dual_vs_candle": { "values": 5373952, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 2049,
+    "dual_vs_candle": { "values": 5376576, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 2049,
+    "dual_vs_candle": { "values": 5376576, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 4128,
+    "dual_vs_candle": { "values": 10831872, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 4128,
+    "dual_vs_candle": { "values": 10831872, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 5400,
+    "dual_vs_candle": { "values": 14169600, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 5400,
+    "dual_vs_candle": { "values": 14169600, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 16384,
+    "dual_vs_candle": { "values": 42991616, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 16384,
+    "dual_vs_candle": { "values": 42991616, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 32768,
+    "dual_vs_candle": { "values": 85983232, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 1,
+    "rows": 32768,
+    "dual_vs_candle": { "values": 85983232, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 129,
+    "dual_vs_candle": { "values": 338496, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 129,
+    "dual_vs_candle": { "values": 338496, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 1032,
+    "dual_vs_candle": { "values": 2707968, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 1032,
+    "dual_vs_candle": { "values": 2707968, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 2047,
+    "dual_vs_candle": { "values": 5371328, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 2047,
+    "dual_vs_candle": { "values": 5371328, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 2048,
+    "dual_vs_candle": { "values": 5373952, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 2048,
+    "dual_vs_candle": { "values": 5373952, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 2049,
+    "dual_vs_candle": { "values": 5376576, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 2049,
+    "dual_vs_candle": { "values": 5376576, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 4128,
+    "dual_vs_candle": { "values": 10831872, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 4128,
+    "dual_vs_candle": { "values": 10831872, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 5400,
+    "dual_vs_candle": { "values": 14169600, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 5400,
+    "dual_vs_candle": { "values": 14169600, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 16384,
+    "dual_vs_candle": { "values": 42991616, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 16384,
+    "dual_vs_candle": { "values": 42991616, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 32768,
+    "dual_vs_candle": { "values": 85983232, "differing_values": 0, "max_absolute_error": 0.0 }
+  },
+  {
+    "weights": 2,
+    "rows": 32768,
+    "dual_vs_candle": { "values": 85983232, "differing_values": 0, "max_absolute_error": 0.0 }
+  }
+]

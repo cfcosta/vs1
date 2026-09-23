@@ -39,6 +39,7 @@ fn main() {
     #[cfg(feature = "flash-attn")]
     {
         println!("cargo::rerun-if-changed=src/cutlass_geglu.cu");
+        println!("cargo::rerun-if-changed=src/cutlass_dual");
         println!("cargo::rerun-if-env-changed=CUDAFORGE_HOME");
         // Same pinned headers/cache as candle-flash-attn; Nix prepopulates it.
         let headers = cudaforge::ExternalDependency::cutlass(Some(

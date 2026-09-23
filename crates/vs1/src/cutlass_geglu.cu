@@ -53,3 +53,49 @@ extern "C" int vs1_cutlass_geglu(void const*x,void const*w,void const*g,void*out
     using Plain=cutlass::epilogue::thread::LinearCombination<B,8,float,float>;
     return run<Gemm<Plain>>(x,w,g,out,m,n,k,stream,{1.0f,0.0f});
 }
+
+// Dual GEMM (vendored CUTLASS example 45): one kernel computes both the
+// activation and gate products from shared A tiles. Each accumulator is
+// rounded to BF16 on its own, exactly like two separate GEMM outputs, and
+// only the rounded GeGLU product is stored.
+#include "cutlass_dual/device/dual_gemm.h"
+struct RoundedGeGluPair {
+    using ElementOutput=B; using ElementAccumulator=B; using ElementCompute=float;
+    static int const kCount=8;
+    using FragmentOutput=cutlass::Array<B,kCount>;
+    using FragmentAccumulator=cutlass::Array<B,kCount>;
+    struct Params {};
+    CUTLASS_HOST_DEVICE RoundedGeGluPair(Params const &) {}
+    CUTLASS_DEVICE FragmentOutput operator()(FragmentAccumulator const& act,FragmentAccumulator const& gate) const {
+        FragmentOutput out;
+        CUTLASS_PRAGMA_UNROLL
+        for(int i=0;i<kCount;++i) {
+            B a=act[i], g=gate[i];
+            B cdf(normcdff(float(a)));
+            out[i]=B::bitcast(mul_bf16(mul_bf16(a.raw(),cdf.raw()),g.raw()));
+        }
+        return out;
+    }
+};
+// Round each F32 accumulator to BF16 with no scaling and no source.
+using RoundOnly=cutlass::epilogue::thread::LinearCombination<B,8,float,float,
+    cutlass::epilogue::thread::ScaleType::Nothing>;
+using DualGeGlu=cutlass::gemm::device::DualGemm<B,cutlass::layout::RowMajor,B,
+    cutlass::layout::ColumnMajor,cutlass::layout::ColumnMajor,B,cutlass::layout::RowMajor,float,
+    cutlass::arch::OpClassTensorOp,cutlass::arch::Sm80,
+    cutlass::gemm::GemmShape<128,64,32>,cutlass::gemm::GemmShape<64,32,32>,
+    cutlass::gemm::GemmShape<16,8,16>,RoundOnly,RoundOnly,RoundedGeGluPair,
+    cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<1>,3,false,false,false>;
+extern "C" int vs1_cutlass_dual_geglu(void const*x,void const*wa,void const*wg,void*out,int m,int n,int k,void*stream) {
+    auto A=static_cast<B const*>(x);
+    auto D=static_cast<B*>(out);
+    // C is never read (RoundOnly needs no source); unstored D0/D1 are null.
+    typename DualGeGlu::Arguments args(cutlass::gemm::DualGemmMode::kGemm,{m,n,k},
+        {A,k},{static_cast<B const*>(wa),k},{D,n},{nullptr,n},
+        {static_cast<B const*>(wg),k},{D,n},{nullptr,n},{D,n});
+    DualGeGlu op;
+    auto valid=op.can_implement(args); if(valid!=cutlass::Status::kSuccess)return int(valid);
+    valid=op.initialize(args,nullptr,static_cast<cudaStream_t>(stream));
+    if(valid!=cutlass::Status::kSuccess)return 100+int(valid);
+    return int(op(static_cast<cudaStream_t>(stream)));
+}
