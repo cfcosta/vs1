@@ -42,6 +42,7 @@
 
 pub mod builder;
 pub mod config;
+pub mod cua_s1;
 pub mod error;
 pub mod head;
 pub mod model;
