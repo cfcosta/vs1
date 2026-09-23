@@ -82,6 +82,37 @@ pub(crate) fn dual_enabled() -> bool {
     }
     true
 }
+/// Test-only in-model check: compare each dual product against Candle's
+/// two GEMMs plus the rounded GeGLU on the model's real activations.
+#[cfg(test)]
+pub(crate) static DUAL_CHECK: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+#[cfg(test)]
+pub(crate) static DUAL_CHECKS: std::sync::Mutex<Vec<(usize, usize)>> =
+    std::sync::Mutex::new(Vec::new());
+#[cfg(test)]
+pub(crate) fn check_dual(
+    xs: &Tensor,
+    dual: &Tensor,
+    act: &candle_nn::Linear,
+    gate: &candle_nn::Linear,
+) -> Result<()> {
+    if !DUAL_CHECK.load(std::sync::atomic::Ordering::Relaxed) {
+        return Ok(());
+    }
+    let expected =
+        crate::geglu_cuda::forward(&xs.apply(act)?, &xs.apply(gate)?)?;
+    let differing = dual
+        .ne(&expected)?
+        .to_dtype(DType::U32)?
+        .sum_all()?
+        .to_scalar::<u32>()?;
+    DUAL_CHECKS
+        .lock()
+        .unwrap()
+        .push((xs.dim(0)?, differing as usize));
+    Ok(())
+}
 pub(crate) fn dual_forward(
     xs: &Tensor,
     act: &Tensor,
@@ -378,6 +409,56 @@ mod tests {
                 .iter()
                 .all(|r| r["dual_vs_candle"]["differing_values"] == 0)
         );
+        Ok(())
+    }
+
+    /// Real encoder activations have outlier channels that synthetic
+    /// products do not; cuBLAS's reduction order also varies by shape.
+    /// Check every FFN layer across many packed row counts at or above
+    /// the 2048-row guard.
+    #[test]
+    #[ignore = "requires CUDA and checkpoint; run alone"]
+    fn dual_matches_candle_on_real_activations() -> anyhow::Result<()> {
+        use crate::{Question, SystemOneRequest};
+        let model: crate::SystemOne =
+            crate::SystemOne::from(crate::DEFAULT_REPO_ID)
+                .with_device(candle_core::Device::new_cuda(0)?)
+                .with_dtype(DType::BF16)
+                .try_into()?;
+        let paragraph = "The indexing pipeline compares content hashes and updates changed documents. Unchanged files are skipped. ";
+        DUAL_CHECKS.lock().unwrap().clear();
+        DUAL_CHECK.store(true, std::sync::atomic::Ordering::Relaxed);
+        for repeats in [1usize, 2, 3, 5, 7, 9, 12, 16, 20, 26] {
+            for n in [5usize, 8, 10, 12, 14, 16, 17, 19, 21, 24, 27, 30, 32] {
+                let requests: Vec<_> = (0..n)
+                    .map(|i| {
+                        SystemOneRequest::new(format!(
+                            "Doc {i}. {}",
+                            paragraph.repeat(repeats)
+                        ))
+                        .question(
+                            "q",
+                            Question::noul("Does this explain how changed files are selected?"),
+                        )
+                    })
+                    .collect();
+                model.system_one_batch(&requests)?;
+            }
+        }
+        DUAL_CHECK.store(false, std::sync::atomic::Ordering::Relaxed);
+        let checks = std::mem::take(&mut *DUAL_CHECKS.lock().unwrap());
+        let mut shapes: Vec<_> = checks.iter().map(|&(rows, _)| rows).collect();
+        shapes.sort_unstable();
+        shapes.dedup();
+        let bad: Vec<_> = checks.iter().filter(|&&(_, d)| d > 0).collect();
+        eprintln!(
+            "DUAL_REAL shapes={} products={} rows={:?}..{:?} mismatched={bad:?}",
+            shapes.len(),
+            checks.len(),
+            shapes.first(),
+            shapes.last()
+        );
+        assert!(shapes.len() > 50 && bad.is_empty());
         Ok(())
     }
 

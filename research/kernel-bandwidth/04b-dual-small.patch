@@ -1,0 +1,140 @@
+diff --git a/crates/vs1/src/cutlass_geglu.rs b/crates/vs1/src/cutlass_geglu.rs
+index 938cecf289..6358896335 100644
+--- a/crates/vs1/src/cutlass_geglu.rs
++++ b/crates/vs1/src/cutlass_geglu.rs
+@@ -55,11 +55,25 @@
+     if REFERENCE.load(std::sync::atomic::Ordering::Relaxed) {
+         return false;
+     }
++    eligible(xs, weight, 2048)
++}
++/// The dual GEMM also applies below the rounded epilogue's row cutoff.
++pub(crate) fn dual_small_enabled(xs: &Tensor, weight: &Tensor) -> bool {
++    #[cfg(test)]
++    if REFERENCE_DUAL_SMALL.load(std::sync::atomic::Ordering::Relaxed) {
++        return false;
++    }
++    eligible(xs, weight, 1)
++}
++#[cfg(test)]
++pub(crate) static REFERENCE_DUAL_SMALL: std::sync::atomic::AtomicBool =
++    std::sync::atomic::AtomicBool::new(false);
++fn eligible(xs: &Tensor, weight: &Tensor, min_rows: usize) -> bool {
+     xs.device().is_cuda()
+         && xs.dtype() == DType::BF16
+         && xs.is_contiguous()
+         && xs.rank() == 2
+-        && (2048..=32768).contains(&xs.dims()[0])
++        && (min_rows..=32768).contains(&xs.dims()[0])
+         && xs.dims()[1] == 1024
+         && weight.dims() == [2624, 1024]
+         && weight.is_contiguous()
+@@ -392,6 +406,43 @@
+ 
+     #[test]
+     #[ignore = "requires CUDA and checkpoint; run alone"]
++    fn paired_dual_small() -> anyhow::Result<()> {
++        crate::model::batch_bench::run_paired_cases(
++            &REFERENCE_DUAL_SMALL,
++            crate::model::batch_bench::cases(),
++        )
++    }
++
++    #[test]
++    #[ignore = "requires CUDA and checkpoint; run alone"]
++    fn paired_dual_small_sweep() -> anyhow::Result<()> {
++        use crate::{Question, SystemOneRequest};
++        let paragraph = "The indexing pipeline compares content hashes and updates changed documents. Unchanged files are skipped. ";
++        let cases = [2, 3, 4, 5, 6]
++            .into_iter()
++            .map(|n| {
++                (
++                    format!("{n}"),
++                    (0..n)
++                        .map(|i| {
++                            SystemOneRequest::new(format!(
++                                "Document {i}. {}",
++                                paragraph.repeat(5)
++                            ))
++                            .question(
++                                "relevant",
++                                Question::noul("Does this explain how changed files are selected?"),
++                            )
++                        })
++                        .collect(),
++                )
++            })
++            .collect();
++        crate::model::batch_bench::run_paired_cases(&REFERENCE_DUAL_SMALL, cases)
++    }
++
++    #[test]
++    #[ignore = "requires CUDA and checkpoint; run alone"]
+     fn paired_rounded_epilogue() -> anyhow::Result<()> {
+         crate::model::batch_bench::run_paired_cases(
+             &REFERENCE,
+@@ -414,3 +465,24 @@
+         crate::model::batch_bench::run_paired_model(&REFERENCE, cases, model)
+     }
+ }
++#[cfg(test)]
++mod sweep_tmp {
++    #[test]
++    #[ignore = "debug"]
++    fn dual_real_sweep() -> anyhow::Result<()> {
++        use crate::{Question, SystemOneRequest};
++        let model: crate::SystemOne = crate::SystemOne::from(crate::DEFAULT_REPO_ID)
++            .with_device(candle_core::Device::new_cuda(0)?)
++            .with_dtype(candle_core::DType::BF16)
++            .try_into()?;
++        let paragraph = "The indexing pipeline compares content hashes and updates changed documents. Unchanged files are skipped. ";
++        for repeats in [1usize, 2, 3, 5, 7, 9, 12, 16, 20, 26] {
++            for n in [1usize, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 17, 19, 21, 24, 27, 30, 32] {
++                let requests: Vec<_> = (0..n).map(|i| SystemOneRequest::new(format!("Doc {i}. {}", paragraph.repeat(repeats)))
++                    .question("q", Question::noul("Does this explain how changed files are selected?"))).collect();
++                model.system_one_batch(&requests)?;
++            }
++        }
++        Ok(())
++    }
++}
+diff --git a/crates/vs1/src/modernbert.rs b/crates/vs1/src/modernbert.rs
+index 444ecd3208..a967a9c70b 100644
+--- a/crates/vs1/src/modernbert.rs
++++ b/crates/vs1/src/modernbert.rs
+@@ -615,14 +615,33 @@
+                 return output(&(act * gate)?, &self.wo);
+             }
+             #[cfg(feature = "flash-attn")]
+-            if crate::cutlass_geglu::enabled(xs, self.wi_act.weight())
+-                && crate::cutlass_geglu::dual_enabled()
++            if (crate::cutlass_geglu::enabled(xs, self.wi_act.weight())
++                && crate::cutlass_geglu::dual_enabled())
++                || crate::cutlass_geglu::dual_small_enabled(
++                    xs,
++                    self.wi_act.weight(),
++                )
+             {
+                 let fused = crate::cutlass_geglu::dual_forward(
+                     xs,
+                     self.wi_act.weight(),
+                     self.wi_gate.weight(),
+                 )?;
++                #[cfg(test)]
++                if std::env::var_os("VS1_DUAL_DEBUG").is_some() {
++                    let a = xs.apply(&self.wi_act)?;
++                    let g = xs.apply(&self.wi_gate)?;
++                    let r = crate::geglu_cuda::forward(&a, &g)?;
++                    let d = fused.ne(&r)?.to_dtype(DType::F32)?.sum_all()?.to_scalar::<f32>()?;
++                    let xd = xs.contiguous()?.copy()?;
++                    xd.device().synchronize()?;
++                    let again = crate::cutlass_geglu::dual_forward(&xd, self.wi_act.weight(), self.wi_gate.weight())?;
++                    xd.device().synchronize()?;
++                    let d2 = again.ne(&fused)?.to_dtype(DType::F32)?.sum_all()?.to_scalar::<f32>()?;
++                    let d3 = again.ne(&r)?.to_dtype(DType::F32)?.sum_all()?.to_scalar::<f32>()?;
++                    let _ = (d2, d3);
++                    eprintln!("DUALDBG rows={} diff={d} act_copy_diff={d2} offset={}", xs.dim(0)?, xs.layout().start_offset());
++                }
+                 return output(&fused, &self.wo);
+             }
+             #[cfg(feature = "flash-attn")]

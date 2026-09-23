@@ -216,3 +216,34 @@ previous path; they are controls. The gain on large batches is much larger
 than the removed gate traffic alone would predict, so the dual kernel's
 tiling is probably also more efficient than the previous pair of GEMMs;
 this was not profiled. Reports: `04-paired.json`, `04-paired-repeat.json`.
+
+### Real-activation regression
+
+Synthetic products can miss cuBLAS reduction-order changes (see 4b). The
+opt-in `dual_matches_candle_on_real_activations` test runs the checkpoint on
+130 packed workloads and, inside the model, compares every dual FFN product
+against Candle's two GEMMs plus the rounded GeGLU. It covers **81 distinct
+row counts from 2064 to 16224 and 2268 layer products; none differ**. The
+same in-model comparison detects the sub-2048 divergences in 4b, so it is
+sensitive to the failure it guards against.
+
+## 4b. Dual GEMM below 2048 rows — rejected (not exact)
+
+Lowering the dual GEMM's row guard to one row looked attractive in the
+first paired run (`04b-paired.json`, first-run changes: 1 +16.49%, 8 -17.30%,
+browser_call3 -2.80%, browser_call5 -7.50%, larger workloads unchanged), and
+isolated seeded products at 129–2047 rows all matched. But a 2–6 question
+sweep failed the exact-output check at 4 questions (516 rows; a `noul`
+probability moved from 0.7361581 to 0.7315422).
+
+An in-model comparison on real activations over 187 packed row counts found
+the dual result different from Candle's cuBLAS GEMMs at 9 of the 100 shapes
+below 2048 rows (57, 516, 525, 558, 570, 1155, 1197, 1200, 1206), with
+roughly half of the outputs differing in affected layers, and at none of
+the 86 shapes at or above 2048. The dual kernel was deterministic (repeated
+runs on the same input were identical), so cuBLAS picks a different
+reduction order (most likely split-K) at those smaller shapes. The real
+activations' outlier channels make that visible where the benign synthetic
+products did not. A row whitelist would depend on cuBLAS heuristics, so the
+extension was reverted (`04b-dual-small.patch`). The existing 2048-row guard
+remains.

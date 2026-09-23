@@ -623,6 +623,13 @@ impl ModernBertMLP {
                     self.wi_act.weight(),
                     self.wi_gate.weight(),
                 )?;
+                #[cfg(test)]
+                crate::cutlass_geglu::check_dual(
+                    xs,
+                    &fused,
+                    &self.wi_act,
+                    &self.wi_gate,
+                )?;
                 return output(&fused, &self.wo);
             }
             #[cfg(feature = "flash-attn")]
