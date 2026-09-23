@@ -6,6 +6,15 @@ use candle_nn::{Linear, Module, ops};
 use super::{LayerType, TextConfig, TextWeights, normalize_rms};
 use crate::SystemOneError;
 
+/// Saved keys and values for one full-attention sequence.
+#[derive(Debug, Clone)]
+pub struct KvCache {
+    /// Keys after normalization and rotary, shaped `[kv_heads, seq, head_dim]`.
+    pub key: Tensor,
+    /// Projected values with shape `[kv_heads, seq, head_dim]`.
+    pub value: Tensor,
+}
+
 /// Gated, causal grouped-query attention for one sequence.
 pub struct FullAttention {
     q_proj: Linear,
@@ -86,7 +95,8 @@ impl FullAttention {
         key: &Tensor,
         value: &Tensor,
     ) -> Result<Tensor> {
-        self.attend_with_kernel(query_gate, key, value, attend_causally)
+        self.attend_with_kernel(query_gate, key, value, None, attend_causally)
+            .map(|(output, _)| output)
     }
 
     fn attend_with_kernel(
@@ -94,9 +104,29 @@ impl FullAttention {
         query_gate: &Tensor,
         key: &Tensor,
         value: &Tensor,
+        cache: Option<&KvCache>,
         attend: impl FnOnce(&Tensor, &Tensor, &Tensor) -> Result<Tensor>,
-    ) -> Result<Tensor> {
+    ) -> Result<(Tensor, KvCache)> {
         let seq = query_gate.dim(0)?;
+        let cached_len = match cache {
+            Some(cache) => {
+                let (heads, cached_len, head_dim) = cache.key.dims3()?;
+                if heads != self.num_kv_heads
+                    || head_dim != self.head_dim
+                    || cache.value.shape() != cache.key.shape()
+                    || cache.key.dtype() != query_gate.dtype()
+                    || cache.value.dtype() != query_gate.dtype()
+                    || !cache.key.device().same_device(query_gate.device())
+                    || !cache.value.device().same_device(query_gate.device())
+                {
+                    candle_core::bail!(
+                        "full attention cache has incompatible shape, dtype or device"
+                    )
+                }
+                cached_len
+            }
+            None => 0,
+        };
         let query_gate =
             query_gate.reshape((seq, self.num_heads, 2 * self.head_dim))?;
         // The gate follows each head's query, not all queries together.
@@ -113,8 +143,12 @@ impl FullAttention {
             .reshape((seq, self.num_kv_heads, self.head_dim))?
             .transpose(0, 1)?;
 
-        // Text gives all three mRoPE axes the same positions, starting at zero.
-        let positions = Tensor::arange(0f32, seq as f32, query.device())?;
+        // Text gives all three mRoPE axes the same absolute positions.
+        let positions = Tensor::arange(
+            cached_len as f32,
+            (cached_len + seq) as f32,
+            query.device(),
+        )?;
         let freqs = positions
             .unsqueeze(1)?
             .broadcast_mul(&self.inv_freq.unsqueeze(0)?)?;
@@ -123,9 +157,39 @@ impl FullAttention {
         let sin = freqs.sin()?.to_dtype(query.dtype())?;
         let query = apply_rotary(&query, &cos, &sin)?;
         let key = apply_rotary(&key, &cos, &sin)?;
+        let (key, value) = match cache {
+            Some(cache) => (
+                Tensor::cat(&[&cache.key, &key], 1)?,
+                Tensor::cat(&[&cache.value, &value], 1)?,
+            ),
+            None => (key, value),
+        };
         let output = attend(&query, &key, &value)?
             .reshape((seq, self.num_heads * self.head_dim))?;
-        output * ops::sigmoid(&gate)?
+        Ok(((output * ops::sigmoid(&gate)?)?, KvCache { key, value }))
+    }
+
+    /// Continues an unpadded `[seq, hidden_size]` sequence from cached keys/values.
+    pub fn forward_with_cache(
+        &self,
+        x: &Tensor,
+        cache: Option<&KvCache>,
+    ) -> Result<(Tensor, KvCache)> {
+        let (seq, _) = x.dims2()?;
+        if seq == 0 {
+            candle_core::bail!("full attention requires a nonempty sequence")
+        }
+        let query_gate = self.q_proj.forward(x)?;
+        let key = self.k_proj.forward(x)?;
+        let value = self.v_proj.forward(x)?;
+        let (output, cache) = self.attend_with_kernel(
+            &query_gate,
+            &key,
+            &value,
+            cache,
+            attend_causally,
+        )?;
+        Ok((self.o_proj.forward(&output)?, cache))
     }
 }
 
@@ -154,6 +218,8 @@ fn attend_causally(
         && matches!(query.dtype(), DType::BF16 | DType::F16)
     {
         // Flash attention consumes [batch, seq, heads, dim] with grouped KV heads.
+        // candle-flash-attn 0.11.0 kernels/mask.h aligns causal masks to the
+        // bottom right: keys through query_row + key_len - query_len are visible.
         let head_dim = query.dim(D::Minus1)?;
         return candle_flash_attn::flash_attn(
             &query.transpose(0, 1)?.contiguous()?.unsqueeze(0)?,
@@ -173,6 +239,8 @@ fn attend_explicitly(
     value: &Tensor,
 ) -> Result<Tensor> {
     let (heads, seq, head_dim) = query.dims3()?;
+    let key_seq = key.dim(1)?;
+    let cached_len = key_seq - seq;
     // Materialize the per-head layouts for CUDA's batched matmul.
     let query = query.contiguous()?;
     let groups = heads / key.dim(0)?;
@@ -182,14 +250,16 @@ fn attend_explicitly(
     let scores = (query.matmul(&key)? * (head_dim as f64).sqrt().recip())?;
     let mask: Vec<_> = (0..seq)
         .flat_map(|row| {
-            (0..seq).map(
-                move |col| {
-                    if col > row { f32::NEG_INFINITY } else { 0. }
-                },
-            )
+            (0..key_seq).map(move |col| {
+                if col > cached_len + row {
+                    f32::NEG_INFINITY
+                } else {
+                    0.
+                }
+            })
         })
         .collect();
-    let mask = Tensor::from_vec(mask, (seq, seq), scores.device())?
+    let mask = Tensor::from_vec(mask, (seq, key_seq), scores.device())?
         .to_dtype(scores.dtype())?;
     let probabilities = ops::softmax_last_dim(
         &scores.broadcast_add(&mask)?.to_dtype(DType::F32)?,
@@ -224,6 +294,246 @@ mod tests {
     use candle_core::{Device, safetensors::MmapedSafetensors};
 
     use super::*;
+
+    fn sample_attention(
+        hidden_size: usize,
+        num_heads: usize,
+        num_kv_heads: usize,
+        head_dim: usize,
+        dtype: DType,
+        device: &Device,
+    ) -> Result<FullAttention> {
+        let sample_projection = |input: usize, output| -> Result<Linear> {
+            let weight = Tensor::randn(
+                0f32,
+                (input as f32).sqrt().recip(),
+                (output, input),
+                device,
+            )?
+            .to_dtype(dtype)?;
+            Ok(Linear::new(weight, None))
+        };
+        let rotary_dim = head_dim / 4;
+        let inv_freq: Vec<_> = (0..rotary_dim)
+            .step_by(2)
+            .map(|i| 10_000_000f32.powf(i as f32 / rotary_dim as f32).recip())
+            .collect();
+        Ok(FullAttention {
+            q_proj: sample_projection(hidden_size, num_heads * head_dim * 2)?,
+            k_proj: sample_projection(hidden_size, num_kv_heads * head_dim)?,
+            v_proj: sample_projection(hidden_size, num_kv_heads * head_dim)?,
+            o_proj: sample_projection(num_heads * head_dim, hidden_size)?,
+            q_norm: Tensor::zeros(head_dim, dtype, device)?,
+            k_norm: Tensor::zeros(head_dim, dtype, device)?,
+            inv_freq: Tensor::new(inv_freq.as_slice(), device)?,
+            num_heads,
+            num_kv_heads,
+            head_dim,
+            rms_norm_eps: 1e-6,
+        })
+    }
+
+    fn compare_continuation(
+        name: &str,
+        output: &Tensor,
+        expected: &Tensor,
+        tolerance: f32,
+        should_assert_tolerance: bool,
+    ) -> Result<()> {
+        assert_eq!(output.dtype(), expected.dtype(), "{name}");
+        assert_eq!(output.dims(), expected.dims(), "{name}");
+        let is_bf16 = expected.dtype() == DType::BF16;
+        let output = output
+            .to_dtype(DType::F32)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let expected = expected
+            .to_dtype(DType::F32)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let mut max_absolute_difference = 0f32;
+        let mut max_tolerance_ratio = 0f32;
+        for (actual, expected) in output.into_iter().zip(expected) {
+            assert!(actual.is_finite() && expected.is_finite(), "{name}");
+            let difference = (actual - expected).abs();
+            max_absolute_difference = max_absolute_difference.max(difference);
+            if is_bf16 && tolerance > 0. {
+                // BF16 uses the same absolute and relative tolerance.
+                let allowed_difference = tolerance + tolerance * expected.abs();
+                max_tolerance_ratio =
+                    max_tolerance_ratio.max(difference / allowed_difference);
+            }
+        }
+        if is_bf16 && tolerance > 0. {
+            println!(
+                "{name}: max absolute difference {max_absolute_difference:e}, max tolerance ratio {max_tolerance_ratio:e}"
+            );
+            if should_assert_tolerance {
+                assert!(
+                    max_tolerance_ratio <= 1.,
+                    "{name}: exceeds atol={tolerance}, rtol={tolerance}"
+                );
+            }
+        } else {
+            println!(
+                "{name}: max absolute difference {max_absolute_difference:e}"
+            );
+            if should_assert_tolerance {
+                assert!(
+                    max_absolute_difference <= tolerance,
+                    "{name}: exceeds atol={tolerance}"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    fn assert_cached_splits_match(
+        attention: &FullAttention,
+        x: &Tensor,
+        splits: &[usize],
+        tolerance: f32,
+    ) -> Result<()> {
+        let seq = x.dim(0)?;
+        let whole = attention.forward(x)?;
+        let (output, whole_cache) = attention.forward_with_cache(x, None)?;
+        compare_continuation("no cache", &output, &whole, 0., true)?;
+        assert_eq!(
+            whole_cache.key.dims(),
+            [attention.num_kv_heads, seq, attention.head_dim]
+        );
+        assert_eq!(whole_cache.value.dims(), whole_cache.key.dims());
+        // BF16 rotary cancellation and shape-dependent projection rounding make keys/values diagnostic only.
+        let should_assert_cache_tolerance = x.dtype() != DType::BF16;
+        for &split in splits {
+            let (prefix, cache) =
+                attention.forward_with_cache(&x.narrow(0, 0, split)?, None)?;
+            let saved_key = cache.key.copy()?;
+            let saved_value = cache.value.copy()?;
+            for _ in 0..2 {
+                let (suffix, extended) = attention.forward_with_cache(
+                    &x.narrow(0, split, seq - split)?,
+                    Some(&cache),
+                )?;
+                compare_continuation(
+                    &format!("split={split} output"),
+                    &Tensor::cat(&[&prefix, &suffix], 0)?,
+                    &whole,
+                    tolerance,
+                    true,
+                )?;
+                compare_continuation(
+                    &format!("split={split} keys"),
+                    &extended.key,
+                    &whole_cache.key,
+                    tolerance,
+                    should_assert_cache_tolerance,
+                )?;
+                compare_continuation(
+                    &format!("split={split} values"),
+                    &extended.value,
+                    &whole_cache.value,
+                    tolerance,
+                    should_assert_cache_tolerance,
+                )?;
+            }
+            compare_continuation(
+                "saved keys",
+                &cache.key,
+                &saved_key,
+                0.,
+                true,
+            )?;
+            compare_continuation(
+                "saved values",
+                &cache.value,
+                &saved_value,
+                0.,
+                true,
+            )?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn cached_prefix_matches_full_sequence_on_f32() -> Result<()> {
+        let attention =
+            sample_attention(32, 4, 2, 16, DType::F32, &Device::Cpu)?;
+        let x = Tensor::randn(0f32, 1., (23, 32), &Device::Cpu)?;
+        assert_cached_splits_match(&attention, &x, &[1, 2, 7, 16, 22], 1e-5)?;
+        let whole = attention.forward(&x)?;
+        let mut cache = None;
+        for t in 0..23 {
+            let (output, next_cache) = attention
+                .forward_with_cache(&x.narrow(0, t, 1)?, cache.as_ref())?;
+            compare_continuation(
+                &format!("token={t} output"),
+                &output,
+                &whole.narrow(0, t, 1)?,
+                1e-5,
+                true,
+            )?;
+            assert_eq!(next_cache.key.dim(1)?, t + 1);
+            cache = Some(next_cache);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_mismatched_full_attention_cache() -> Result<()> {
+        let attention =
+            sample_attention(32, 4, 2, 16, DType::F32, &Device::Cpu)?;
+        let x = Tensor::ones((2, 32), DType::F32, &Device::Cpu)?;
+        let (_, cache) = attention.forward_with_cache(&x, None)?;
+        for invalid in [
+            KvCache {
+                key: cache.key.narrow(0, 0, 1)?,
+                ..cache.clone()
+            },
+            KvCache {
+                key: cache.key.narrow(2, 0, 8)?,
+                ..cache.clone()
+            },
+            KvCache {
+                key: cache.key.to_dtype(DType::BF16)?,
+                ..cache.clone()
+            },
+            KvCache {
+                value: cache.value.narrow(1, 0, 1)?,
+                ..cache.clone()
+            },
+            KvCache {
+                value: cache.value.to_dtype(DType::BF16)?,
+                ..cache.clone()
+            },
+        ] {
+            assert!(attention.forward_with_cache(&x, Some(&invalid)).is_err());
+        }
+        assert!(
+            attention
+                .forward_with_cache(&x.narrow(0, 0, 0)?, Some(&cache))
+                .is_err()
+        );
+        Ok(())
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires CUDA"]
+    fn cached_prefix_matches_full_sequence_on_cuda_bf16() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        device.set_seed(42)?;
+        let attention =
+            sample_attention(2560, 16, 4, 256, DType::BF16, &device)?;
+        let x = Tensor::randn(0f32, 1., (1860, 2560), &device)?
+            .to_dtype(DType::BF16)?;
+        assert_cached_splits_match(
+            &attention,
+            &x,
+            &[1, 129, 930, 1796, 1859],
+            1. / 64.,
+        )
+    }
 
     fn assert_close(name: &str, output: &Tensor, expected: &Tensor) {
         assert_eq!(output.dtype(), DType::F32);
@@ -347,49 +657,25 @@ mod tests {
         let device = Device::new_cuda(0)?;
         device.set_seed(42)?;
         let hidden_size = 2560;
-        let num_heads = 16;
-        let num_kv_heads = 4;
-        let head_dim = 256;
-        let sample_projection = |input: usize, output| -> Result<Linear> {
-            let weight = Tensor::randn(
-                0f32,
-                (input as f32).sqrt().recip(),
-                (output, input),
-                &device,
-            )?
-            .to_dtype(DType::BF16)?;
-            Ok(Linear::new(weight, None))
-        };
-        let inv_freq: Vec<_> = (0..64)
-            .step_by(2)
-            .map(|i| 10_000_000f32.powf(i as f32 / 64.).recip())
-            .collect();
-        let attention = FullAttention {
-            q_proj: sample_projection(hidden_size, num_heads * head_dim * 2)?,
-            k_proj: sample_projection(hidden_size, num_kv_heads * head_dim)?,
-            v_proj: sample_projection(hidden_size, num_kv_heads * head_dim)?,
-            o_proj: sample_projection(num_heads * head_dim, hidden_size)?,
-            q_norm: Tensor::zeros(head_dim, DType::BF16, &device)?,
-            k_norm: Tensor::zeros(head_dim, DType::BF16, &device)?,
-            inv_freq: Tensor::new(inv_freq.as_slice(), &device)?,
-            num_heads,
-            num_kv_heads,
-            head_dim,
-            rms_norm_eps: 1e-6,
-        };
+        let attention =
+            sample_attention(hidden_size, 16, 4, 256, DType::BF16, &device)?;
         for seq in [1, 7, 129, 257] {
             let input = Tensor::randn(0f32, 1., (seq, hidden_size), &device)?
                 .to_dtype(DType::BF16)?;
             let query_gate = attention.q_proj.forward(&input)?;
             let key = attention.k_proj.forward(&input)?;
             let value = attention.v_proj.forward(&input)?;
-            let expected =
-                attention.o_proj.forward(&attention.attend_with_kernel(
-                    &query_gate,
-                    &key,
-                    &value,
-                    attend_explicitly,
-                )?)?;
+            let expected = attention.o_proj.forward(
+                &attention
+                    .attend_with_kernel(
+                        &query_gate,
+                        &key,
+                        &value,
+                        None,
+                        attend_explicitly,
+                    )?
+                    .0,
+            )?;
             let output = attention.forward(&input)?;
             assert_eq!(output.dtype(), DType::BF16);
             assert_eq!(output.dims(), expected.dims());

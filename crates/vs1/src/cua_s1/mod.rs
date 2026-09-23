@@ -29,7 +29,7 @@ pub use api::{
     DEFAULT_REPO_ID,
     MODEL_NAME,
 };
-pub use attention::FullAttention;
+pub use attention::{FullAttention, KvCache};
 pub use config::{LayerType, TextConfig};
 pub use delta_net::{DeltaNetState, GatedDeltaNet};
 pub use lora::LoraAdapter;
