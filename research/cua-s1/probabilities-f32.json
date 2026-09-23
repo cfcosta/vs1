@@ -1,0 +1,321 @@
+{
+  "cua_s1_commit": "a5f18829df026d7b9ef80c339194b44b1c61f856",
+  "versions": {
+    "torch": "2.13.0+cpu",
+    "torchvision": "0.28.0+cpu",
+    "pillow": "12.3.0",
+    "transformers": "5.17.0",
+    "peft": "0.18.1",
+    "accelerate": "1.15.0",
+    "huggingface-hub": "1.32.0",
+    "safetensors": "0.8.0"
+  },
+  "base_model": "Qwen/Qwen3.5-4B",
+  "base_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "adapter_repo": "cua-ai/cua-s1-4b-0.2",
+  "adapter_revision": "16818868b0cc7813808aae4e87b417657046ab79",
+  "adapter_subfolder": "text",
+  "device": "cpu",
+  "dtype": "float32",
+  "threads": 4,
+  "attention_implementation": "sdpa",
+  "load_seconds": 2.660407306997513,
+  "total_seconds": 37.52890593600023,
+  "cases": [
+    {
+      "name": "save_note",
+      "input_tokens": 171,
+      "forward_seconds": 5.227271500996721,
+      "options": [
+        {
+          "element_id": "9",
+          "role": "button",
+          "label": "Save",
+          "action": "click",
+          "entity_id": null,
+          "letter": "A",
+          "probability": 0.9995156526565552,
+          "token_id": 32,
+          "logit": 23.759727478027344
+        },
+        {
+          "element_id": "3",
+          "role": "button",
+          "label": "Discard",
+          "action": "click",
+          "entity_id": null,
+          "letter": "B",
+          "probability": 0.0004843097703997046,
+          "token_id": 33,
+          "logit": 16.127426147460938
+        }
+      ]
+    },
+    {
+      "name": "reset_password",
+      "input_tokens": 202,
+      "forward_seconds": 5.573008084000321,
+      "options": [
+        {
+          "element_id": "7",
+          "role": "textbox",
+          "label": "Email",
+          "action": "fill",
+          "entity_id": "account_email",
+          "letter": "A",
+          "probability": 0.9099059104919434,
+          "token_id": 32,
+          "logit": 22.229501724243164
+        },
+        {
+          "element_id": "4",
+          "role": "button",
+          "label": "Send reset link",
+          "action": "click",
+          "entity_id": null,
+          "letter": "B",
+          "probability": 0.08881377428770065,
+          "token_id": 33,
+          "logit": 19.90270233154297
+        },
+        {
+          "element_id": "2",
+          "role": "link",
+          "label": "Back to sign in",
+          "action": "click",
+          "entity_id": null,
+          "letter": "C",
+          "probability": 0.0012804181315004826,
+          "token_id": 34,
+          "logit": 15.663347244262695
+        }
+      ]
+    },
+    {
+      "name": "decline_invitation",
+      "input_tokens": 224,
+      "forward_seconds": 6.05947005499911,
+      "options": [
+        {
+          "element_id": "18",
+          "role": "button",
+          "label": "Accept",
+          "action": "click",
+          "entity_id": null,
+          "letter": "A",
+          "probability": 0.00010153844050364569,
+          "token_id": 32,
+          "logit": 15.444271087646484
+        },
+        {
+          "element_id": "11",
+          "role": "button",
+          "label": "Maybe",
+          "action": "click",
+          "entity_id": null,
+          "letter": "B",
+          "probability": 1.319956481893314e-5,
+          "token_id": 33,
+          "logit": 13.404017448425293
+        },
+        {
+          "element_id": "23",
+          "role": "button",
+          "label": "Decline",
+          "action": "click",
+          "entity_id": null,
+          "letter": "C",
+          "probability": 0.9996405839920044,
+          "token_id": 34,
+          "logit": 24.63898468017578
+        },
+        {
+          "element_id": "6",
+          "role": "button",
+          "label": "Propose a new time",
+          "action": "click",
+          "entity_id": null,
+          "letter": "D",
+          "probability": 0.00024468210176564753,
+          "token_id": 35,
+          "logit": 16.323793411254883
+        }
+      ]
+    },
+    {
+      "name": "download_invoice",
+      "input_tokens": 220,
+      "forward_seconds": 5.945685234997654,
+      "options": [
+        {
+          "element_id": "14",
+          "role": "link",
+          "label": "View payment",
+          "action": "click",
+          "entity_id": null,
+          "letter": "A",
+          "probability": 8.970841008704156e-5,
+          "token_id": 32,
+          "logit": 14.827350616455078
+        },
+        {
+          "element_id": "8",
+          "role": "button",
+          "label": "Print",
+          "action": "click",
+          "entity_id": null,
+          "letter": "B",
+          "probability": 0.0003470907104201615,
+          "token_id": 33,
+          "logit": 16.18037223815918
+        },
+        {
+          "element_id": "31",
+          "role": "button",
+          "label": "Send receipt",
+          "action": "click",
+          "entity_id": null,
+          "letter": "C",
+          "probability": 9.233724267687649e-5,
+          "token_id": 34,
+          "logit": 14.856233596801758
+        },
+        {
+          "element_id": "20",
+          "role": "button",
+          "label": "Download PDF",
+          "action": "click",
+          "entity_id": null,
+          "letter": "D",
+          "probability": 0.978663444519043,
+          "token_id": 35,
+          "logit": 24.12472915649414
+        },
+        {
+          "element_id": "3",
+          "role": "link",
+          "label": "All invoices",
+          "action": "click",
+          "entity_id": null,
+          "letter": "E",
+          "probability": 0.02080746926367283,
+          "token_id": 36,
+          "logit": 20.273853302001953
+        }
+      ]
+    },
+    {
+      "name": "notification_settings",
+      "input_tokens": 246,
+      "forward_seconds": 6.587221699999645,
+      "options": [
+        {
+          "element_id": "60",
+          "role": "link",
+          "label": "Billing",
+          "action": "click",
+          "entity_id": null,
+          "letter": "A",
+          "probability": 0.00015365987201221287,
+          "token_id": 32,
+          "logit": 15.370043754577637
+        },
+        {
+          "element_id": "10",
+          "role": "link",
+          "label": "Profile",
+          "action": "click",
+          "entity_id": null,
+          "letter": "B",
+          "probability": 5.6129767472157255e-5,
+          "token_id": 33,
+          "logit": 14.362968444824219
+        },
+        {
+          "element_id": "50",
+          "role": "link",
+          "label": "Integrations",
+          "action": "click",
+          "entity_id": null,
+          "letter": "C",
+          "probability": 0.0003163138753734529,
+          "token_id": 34,
+          "logit": 16.092037200927734
+        },
+        {
+          "element_id": "20",
+          "role": "link",
+          "label": "Security",
+          "action": "click",
+          "entity_id": null,
+          "letter": "D",
+          "probability": 0.00026137454551644623,
+          "token_id": 35,
+          "logit": 15.901256561279297
+        },
+        {
+          "element_id": "40",
+          "role": "link",
+          "label": "Appearance",
+          "action": "click",
+          "entity_id": null,
+          "letter": "E",
+          "probability": 9.013819362735376e-5,
+          "token_id": 36,
+          "logit": 14.83664608001709
+        },
+        {
+          "element_id": "30",
+          "role": "link",
+          "label": "Notifications",
+          "action": "click",
+          "entity_id": null,
+          "letter": "F",
+          "probability": 0.9991224408149719,
+          "token_id": 37,
+          "logit": 24.149934768676758
+        }
+      ]
+    },
+    {
+      "name": "search_portuguese",
+      "input_tokens": 198,
+      "forward_seconds": 5.431122449001123,
+      "options": [
+        {
+          "element_id": "4",
+          "role": "textbox",
+          "label": "Título ou autor",
+          "action": "fill",
+          "entity_id": "search_query",
+          "letter": "A",
+          "probability": 0.3061268627643585,
+          "token_id": 32,
+          "logit": 20.04593849182129
+        },
+        {
+          "element_id": "9",
+          "role": "button",
+          "label": "Pesquisar",
+          "action": "click",
+          "entity_id": null,
+          "letter": "B",
+          "probability": 0.6937244534492493,
+          "token_id": 33,
+          "logit": 20.864013671875
+        },
+        {
+          "element_id": "2",
+          "role": "link",
+          "label": "Coleção: edição especial",
+          "action": "click",
+          "entity_id": null,
+          "letter": "C",
+          "probability": 0.00014863697288092226,
+          "token_id": 34,
+          "logit": 12.415690422058105
+        }
+      ]
+    }
+  ]
+}
