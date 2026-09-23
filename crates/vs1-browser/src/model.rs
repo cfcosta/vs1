@@ -10,11 +10,11 @@ use candle_core::{DType, Device};
 use serde_json::Map;
 use serde_json::{Value, json};
 #[cfg(feature = "local")]
-use vs1::{SystemOne, SystemOneRequest};
+use vs1::{DecisionModel, SystemOne, SystemOneRequest};
 
 pub struct Backend {
     #[cfg(feature = "local")]
-    model: Option<SystemOne>,
+    model: Option<DecisionModel>,
     hosted: Option<vs1::JevClient>,
     client: reqwest::blocking::Client,
     pub metadata: Value,
@@ -59,8 +59,11 @@ impl Backend {
         client: reqwest::blocking::Client,
     ) -> Result<Self> {
         ensure!(
-            matches!(args.backend.as_str(), "local" | "laya"),
-            "backend must be local/laya or typesafe/jev"
+            matches!(
+                args.backend.as_str(),
+                "local" | "laya" | "openjev" | "cua-s1"
+            ),
+            "backend must be local/laya, openjev, cua-s1 or typesafe/jev"
         );
         let started = Instant::now();
         let device = match args.device.as_str() {
@@ -73,26 +76,79 @@ impl Backend {
                 "unsupported device; build the matching cuda or metal feature"
             ),
         };
-        let mut builder = SystemOne::from(&args.checkpoint)
-            .with_subfolder(&args.subfolder)
-            .with_dtype(if device.is_cuda() {
-                DType::BF16
-            } else {
-                DType::F32
-            })
-            .with_device(device)
-            .with_batch_size(8);
-        if let Some(n) = args.max_len {
-            builder = builder.with_max_len(n);
-        }
-        if let Some(n) = args.head_max_len {
-            builder = builder.with_head_max_len(n);
-        }
-        let model: SystemOne = builder.try_into()?;
-        let metadata = json!({"backend":"local","checkpoint":args.checkpoint,"subfolder":args.subfolder,
-            "device":args.device,"dtype":format!("{:?}",model.dtype()),"max_len":model.config().max_len,
-            "head_max_len":model.config().head_max_len,"load_ms":started.elapsed().as_secs_f64()*1000.0,
-            "features":{"cuda":cfg!(feature="cuda"),"metal":cfg!(feature="metal")}});
+        let dtype = if device.is_cuda() {
+            DType::BF16
+        } else {
+            DType::F32
+        };
+        let (model, mut metadata): (DecisionModel, Value) = match args
+            .backend
+            .as_str()
+        {
+            "local" | "laya" => {
+                let mut builder = SystemOne::from(&args.checkpoint)
+                    .with_subfolder(&args.subfolder)
+                    .with_dtype(dtype)
+                    .with_device(device)
+                    .with_batch_size(8);
+                if let Some(n) = args.max_len {
+                    builder = builder.with_max_len(n);
+                }
+                if let Some(n) = args.head_max_len {
+                    builder = builder.with_head_max_len(n);
+                }
+                let model: SystemOne = builder.try_into()?;
+                let metadata = json!({"backend":"local","subfolder":args.subfolder,
+                    "max_len":model.config().max_len,"head_max_len":model.config().head_max_len});
+                (model.into(), metadata)
+            }
+            "openjev" => {
+                ensure!(
+                    args.subfolder.is_empty() && args.head_max_len.is_none(),
+                    "OpenJev does not use --subfolder or --head-max-len"
+                );
+                let mut builder = vs1::OpenJev::from(&args.checkpoint)
+                    .with_dtype(dtype)
+                    .with_device(device)
+                    .with_batch_size(8);
+                if let Some(n) = args.max_len {
+                    builder = builder.with_max_len(n);
+                }
+                let model: vs1::OpenJev = builder.try_into()?;
+                let metadata =
+                    json!({"backend":"openjev","max_len":model.max_len()});
+                (model.into(), metadata)
+            }
+            "cua-s1" => {
+                ensure!(
+                    args.subfolder.is_empty()
+                        && args.max_len.is_none()
+                        && args.head_max_len.is_none(),
+                    "Cua-S1 does not use --subfolder, --max-len or --head-max-len"
+                );
+                let mut builder = vs1::CuaS1::from(&args.checkpoint)
+                    .with_dtype(dtype)
+                    .with_device(device);
+                let root = std::path::Path::new(&args.checkpoint);
+                if root.is_dir() {
+                    builder = builder.with_local_directories(
+                        root.join("base").join(vs1::cua_s1::BASE_REVISION),
+                        root.join("adapter")
+                            .join(vs1::cua_s1::ADAPTER_REVISION)
+                            .join("text"),
+                    );
+                }
+                let model: vs1::CuaS1 = builder.try_into()?;
+                (model.into(), json!({"backend":"cua-s1"}))
+            }
+            _ => unreachable!("validated local backend"),
+        };
+        metadata.as_object_mut().unwrap().extend(
+            json!({"checkpoint":args.checkpoint,"model":model.model_name(),
+                "device":args.device,"dtype":format!("{dtype:?}"),"load_ms":started.elapsed().as_secs_f64()*1000.0,
+                "features":{"cuda":cfg!(feature="cuda"),"metal":cfg!(feature="metal")}})
+            .as_object().unwrap().clone(),
+        );
         Ok(Self {
             model: Some(model),
             hosted: None,
@@ -130,7 +186,9 @@ impl Backend {
         #[cfg(feature = "local")]
         {
             let body = _body;
-            let Some(model) = &self.model else {
+            let Some(model) =
+                self.model.as_ref().and_then(DecisionModel::local)
+            else {
                 return Ok(Value::Null);
             };
             let (body, deterministic) = split_singletons(body)?;
@@ -296,12 +354,73 @@ impl Drop for Backend {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "local")]
+    #[test]
+    fn local_backends_read_checkpoint_directories_without_downloading() {
+        use clap::Parser;
+        for backend in ["local", "laya", "openjev", "cua-s1"] {
+            let args = crate::Cli::try_parse_from([
+                "vs1-browser",
+                "--backend",
+                backend,
+                "--device",
+                "cpu",
+                "--checkpoint",
+                env!("CARGO_MANIFEST_DIR"),
+            ])
+            .unwrap();
+            let error = Backend::load(&args.model).err().unwrap();
+            assert!(
+                matches!(
+                    error.downcast_ref::<vs1::SystemOneError>(),
+                    Some(vs1::SystemOneError::Io(_))
+                ),
+                "{backend}: {error}"
+            );
+        }
+    }
+    #[cfg(feature = "local")]
+    #[test]
+    fn local_backends_reject_unsupported_options_before_loading_weights() {
+        use clap::Parser;
+        for (backend, option, message) in [
+            ("openjev", "--subfolder", "OpenJev does not use"),
+            ("openjev", "--head-max-len", "OpenJev does not use"),
+            ("cua-s1", "--subfolder", "Cua-S1 does not use"),
+            ("cua-s1", "--max-len", "Cua-S1 does not use"),
+            ("cua-s1", "--head-max-len", "Cua-S1 does not use"),
+        ] {
+            let args = crate::Cli::try_parse_from([
+                "vs1-browser",
+                "--backend",
+                backend,
+                "--device",
+                "cpu",
+                option,
+                "128",
+            ])
+            .unwrap();
+            let error = Backend::load(&args.model).err().unwrap();
+            assert!(error.to_string().contains(message), "{error}");
+        }
+    }
     #[test]
     fn singleton_is_resolved_without_inventing_an_option() {
         let (request, answers)=split_singletons(&json!({"questions":{
             "operation":{"type":"choice","criteria":{"CLICK":"click","DONE":"done"}},
             "click_target":{"type":"choice","criteria":{"7":"Continue"}}}})).unwrap();
         assert_eq!(request["questions"].as_object().unwrap().len(), 1);
+        assert_eq!(
+            answers["click_target"],
+            json!({"choice":"7","confidence":1.0,"probabilities":{"7":1.0}})
+        );
+    }
+    #[test]
+    fn singleton_only_request_needs_no_model_questions() {
+        let (request, answers) = split_singletons(&json!({"questions":{
+            "click_target":{"type":"choice","criteria":{"7":"Continue"}}}}))
+        .unwrap();
+        assert!(request["questions"].as_object().unwrap().is_empty());
         assert_eq!(answers["click_target"]["choice"], "7");
     }
     #[test]

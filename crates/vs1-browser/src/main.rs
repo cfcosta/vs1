@@ -19,7 +19,7 @@ use serde_json::{Value, json};
 #[derive(Args, Debug)]
 pub struct ModelArgs {
     #[arg(long, default_value = "typesafe")]
-    #[cfg_attr(feature="local", arg(value_parser=["typesafe", "local", "jev", "laya"]))]
+    #[cfg_attr(feature="local", arg(value_parser=["typesafe", "local", "jev", "laya", "openjev", "cua-s1"]))]
     #[cfg_attr(not(feature="local"), arg(value_parser=["typesafe", "jev"]))]
     backend: String,
     /// Hosted model ID, selected by the caller.
@@ -28,8 +28,12 @@ pub struct ModelArgs {
     #[cfg(feature = "local")]
     #[arg(long, env = "VS1_DEVICE", default_value = "cpu")]
     device: String,
+    /// Local model repository or directory; defaults to the selected backend's checkpoint.
     #[cfg(feature = "local")]
-    #[arg(long, default_value=vs1::DEFAULT_REPO_ID)]
+    #[arg(long, default_value=vs1::DEFAULT_REPO_ID, default_value_ifs=[
+        ("backend", "openjev", Some(vs1::openjev::DEFAULT_REPO_ID)),
+        ("backend", "cua-s1", Some(vs1::cua_s1::DEFAULT_REPO_ID)),
+    ])]
     checkpoint: String,
     #[cfg(feature = "local")]
     #[arg(long, default_value = "")]
@@ -467,26 +471,34 @@ mod scenario_cli_tests {
         let args =
             Cli::try_parse_from(["vs1-browser", "--task", "hotel"]).unwrap();
         assert_eq!(args.model.backend, "typesafe");
+        for backend in ["typesafe", "jev"] {
+            assert!(
+                Cli::try_parse_from([
+                    "vs1-browser",
+                    "--backend",
+                    backend,
+                    "--task",
+                    "hotel"
+                ])
+                .is_ok()
+            );
+        }
+        for backend in ["local", "laya", "openjev", "cua-s1"] {
+            assert_eq!(
+                Cli::try_parse_from([
+                    "vs1-browser",
+                    "--backend",
+                    backend,
+                    "--task",
+                    "hotel"
+                ])
+                .is_ok(),
+                cfg!(feature = "local")
+            );
+        }
         assert!(
-            Cli::try_parse_from([
-                "vs1-browser",
-                "--backend",
-                "typesafe",
-                "--task",
-                "hotel"
-            ])
-            .is_ok()
-        );
-        assert_eq!(
-            Cli::try_parse_from([
-                "vs1-browser",
-                "--backend",
-                "local",
-                "--task",
-                "hotel"
-            ])
-            .is_ok(),
-            cfg!(feature = "local")
+            Cli::try_parse_from(["vs1-browser", "--backend", "unknown"])
+                .is_err()
         );
         for option in [
             "--checkpoint",
@@ -506,6 +518,33 @@ mod scenario_cli_tests {
                 .is_ok(),
                 cfg!(feature = "local")
             );
+        }
+    }
+    #[cfg(feature = "local")]
+    #[test]
+    fn local_backends_select_their_own_checkpoint_defaults() {
+        for (backend, checkpoint) in [
+            ("local", vs1::DEFAULT_REPO_ID),
+            ("laya", vs1::DEFAULT_REPO_ID),
+            ("openjev", vs1::openjev::DEFAULT_REPO_ID),
+            ("cua-s1", vs1::cua_s1::DEFAULT_REPO_ID),
+        ] {
+            let args =
+                Cli::try_parse_from(["vs1-browser", "--backend", backend])
+                    .unwrap();
+            assert_eq!(args.model.backend, backend);
+            assert_eq!(args.model.checkpoint, checkpoint);
+            for checkpoint in ["custom/model", "artifacts/checkpoint"] {
+                let args = Cli::try_parse_from([
+                    "vs1-browser",
+                    "--checkpoint",
+                    checkpoint,
+                    "--backend",
+                    backend,
+                ])
+                .unwrap();
+                assert_eq!(args.model.checkpoint, checkpoint);
+            }
         }
     }
     #[test]

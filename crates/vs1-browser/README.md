@@ -57,7 +57,20 @@ is dropped. Requests and provider answers use the same typed API as local laya. 
 repository (default `convaiinnovations/laya`). `--subfolder multilingual` and
 `--subfolder typed-decisions` select other checkpoints. Load and warmup happen
 once, before browser task timing. With local inference, only `TYPE_TEXT` uses an
-external model. Text-helper settings for either backend:
+external model.
+
+Local-enabled builds also accept `--backend openjev` and `--backend cua-s1`.
+Their default checkpoints are `heman10x/rlcd-modernbert-151m` and
+`cua-ai/cua-s1-4b-0.2`, respectively; `--checkpoint` overrides the selected
+backend's repository or directory. A Cua-S1 directory uses the reference runner's
+layout: `base/<BASE_REVISION>/` and `adapter/<ADAPTER_REVISION>/text/`, with the
+pinned revisions exported by `vs1::cua_s1` (for example,
+`--backend cua-s1 --checkpoint artifacts/cua-s1`). All three local backends use
+F32 on CPU and BF16 on CUDA. `--subfolder` and `--head-max-len` are Laya-only;
+OpenJev also supports `--max-len`. Cua-S1 supports none of these three overrides.
+Replay token inspection is Laya-only and returns `null` for OpenJev and Cua-S1.
+
+Text-helper settings for either backend:
 
 ```sh
 export TEXT_MODEL_BASE_URL=https://openrouter.ai/api/v1
