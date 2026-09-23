@@ -170,19 +170,23 @@ impl Module for GatedDeltaNet {
 }
 
 fn convolve_causally(x: &Tensor, weight: &Tensor) -> Result<Tensor> {
-    let (_, channels) = x.dims2()?;
+    let (seq, channels) = x.dims2()?;
     let (weight_channels, channels_per_group, kernel) = weight.dims3()?;
     if weight_channels != channels || channels_per_group != 1 || kernel == 0 {
         candle_core::bail!(
             "causal depthwise convolution requires [channels, 1, kernel] weights"
         )
     }
-    x.t()?
-        .unsqueeze(0)?
-        .pad_with_zeros(2, kernel - 1, 0)?
-        .conv1d(weight, 0, 1, 1, channels)?
-        .squeeze(0)?
-        .t()
+    // Accumulate in F32 like PyTorch, without launching a convolution per channel.
+    let padded = x.to_dtype(DType::F32)?.pad_with_zeros(0, kernel - 1, 0)?;
+    let weight = weight.to_dtype(DType::F32)?.squeeze(1)?;
+    let mut output = Tensor::zeros((seq, channels), DType::F32, x.device())?;
+    for tap in 0..kernel {
+        let tap_weight = weight.narrow(1, tap, 1)?.squeeze(1)?;
+        let product = padded.narrow(0, tap, seq)?.broadcast_mul(&tap_weight)?;
+        output = (output + product)?;
+    }
+    output.to_dtype(x.dtype())
 }
 
 fn repeat_key_heads(x: &Tensor, groups: usize) -> Result<Tensor> {
@@ -342,6 +346,26 @@ mod tests {
                 0.,
             );
         }
+    }
+
+    #[test]
+    fn accumulates_bf16_convolution_in_f32_before_casting_back() {
+        let x = Tensor::new(&[[256f32], [1.], [-256.], [1.]], &Device::Cpu)
+            .unwrap()
+            .to_dtype(DType::BF16)
+            .unwrap();
+        let weight =
+            Tensor::ones((1, 1, 4), DType::BF16, &Device::Cpu).unwrap();
+        let expected =
+            Tensor::new(&[[256f32], [256.], [1.], [2.]], &Device::Cpu).unwrap();
+        let output = convolve_causally(&x, &weight).unwrap();
+        assert_eq!(output.dtype(), DType::BF16);
+        assert_close(
+            "BF16 causal convolution",
+            &output.to_dtype(DType::F32).unwrap(),
+            &expected,
+            0.,
+        );
     }
 
     #[test]
