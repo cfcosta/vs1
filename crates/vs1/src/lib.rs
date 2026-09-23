@@ -105,6 +105,7 @@ pub mod backend;
 pub use backend::DecisionModel;
 
 pub mod openjev;
+pub use cua_s1::{CuaS1, CuaS1Builder, CuaS1Option, CuaS1OptionPrediction};
 pub use openjev::{OpenJev, OpenJevBuilder, OpenJevInput, OpenJevPrediction};
 pub use types::AbstentionAnswer;
 
