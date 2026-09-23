@@ -253,6 +253,28 @@ impl SystemOne {
         &self.config
     }
 
+    /// Configured maximum prompt size in tokens.
+    pub fn context_tokens(&self) -> usize {
+        self.config.max_len
+    }
+
+    /// Checks state capacity after each question's header, reserving the full
+    /// header budget for later tournament finalists. The state is not truncated.
+    pub fn request_fits(&self, request: &SystemOneRequest) -> Result<bool> {
+        let empty = self.encode_state(&crate::State::from(""))?;
+        let state = self.encode_state(&request.state)?;
+        for (id, question) in &request.questions {
+            let overhead = self.build_sequence(&empty, id, question)?.ids.len();
+            // Reserve the full header budget for later tournament finalists.
+            let overhead =
+                overhead.max(self.config().head_max_len.saturating_add(4));
+            if overhead + state.len() > self.config().max_len {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
     /// Name reported in every response.
     pub fn model_name(&self) -> &str {
         &self.model_name
@@ -729,6 +751,49 @@ fn load_weights(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "downloads the Laya checkpoint"]
+    fn request_fits_reserves_the_tournament_header_budget() {
+        let mut model: SystemOne =
+            SystemOne::from(crate::DEFAULT_REPO_ID).try_into().unwrap();
+        let request = SystemOneRequest::new("The invoice is paid.")
+            .question("paid", Question::noul("Paid?"))
+            .question(
+                "route",
+                Question::choice("Route?", [("a", "x"), ("b", "y")]),
+            );
+        let state = model.encode_state(&request.state).unwrap();
+        let empty = model.encode_state(&crate::State::from("")).unwrap();
+        for (id, question) in &request.questions {
+            assert!(
+                model
+                    .build_sequence(&empty, id, question)
+                    .unwrap()
+                    .ids
+                    .len()
+                    < model.config.head_max_len + 4
+            );
+        }
+        model.config.max_len = model.config.head_max_len + 4 + state.len();
+        assert_eq!(model.context_tokens(), model.config.max_len);
+        assert!(model.request_fits(&request).unwrap());
+        model.config.max_len -= 1;
+        let model: crate::DecisionModel = model.into();
+        assert!(!model.request_fits(&request).unwrap());
+        assert_eq!(
+            model.context_tokens(),
+            model.local().unwrap().config().max_len
+        );
+        assert!(
+            model
+                .request_fits(
+                    &SystemOneRequest::new("paid")
+                        .question("paid", Question::noul("Paid?"))
+                )
+                .unwrap()
+        );
+    }
 
     #[test]
     fn argmax_picks_first_maximum() {

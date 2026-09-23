@@ -2,7 +2,10 @@
 //! Responses are returned as supplied by the provider; probabilities and choices
 //! are not silently normalized. No local fallback or weight download occurs.
 use std::{
-    sync::atomic::{AtomicUsize, Ordering},
+    sync::{
+        OnceLock,
+        atomic::{AtomicUsize, Ordering},
+    },
     time::Duration,
 };
 
@@ -29,6 +32,8 @@ pub struct JevClient {
     endpoint: reqwest::Url,
     model: String,
     concurrency: usize,
+    context_tokens: usize,
+    tokenizer: OnceLock<Result<tokenizers::Tokenizer>>,
     calls: AtomicUsize,
     attempts: AtomicUsize,
     retries: AtomicUsize,
@@ -69,6 +74,8 @@ impl JevClient {
             .expect("static URL"),
             model,
             concurrency: 16,
+            context_tokens: 8192,
+            tokenizer: OnceLock::new(),
             calls: AtomicUsize::new(0),
             attempts: AtomicUsize::new(0),
             retries: AtomicUsize::new(0),
@@ -105,6 +112,46 @@ impl JevClient {
     }
     pub fn model_name(&self) -> &str {
         &self.model
+    }
+    /// Sets vs1's prompt budget (default 8192), not a documented provider limit.
+    pub fn with_context_tokens(mut self, n: usize) -> Result<Self> {
+        if n == 0 {
+            return Err(SystemOneError::Config(
+                "Jev context tokens must be positive".into(),
+            ));
+        }
+        self.context_tokens = n;
+        Ok(self)
+    }
+    /// vs1's declared prompt budget, not a documented provider limit.
+    pub fn context_tokens(&self) -> usize {
+        self.context_tokens
+    }
+    /// Approximates each question's size with OpenJev's tokenizer, counting the
+    /// state, instructions and candidate descriptions. The hosted tokenizer and
+    /// prompt format are unknown. Loads only the tokenizer on the first check
+    /// and keeps it on this client; no model weights are loaded.
+    pub fn request_fits(&self, request: &SystemOneRequest) -> Result<bool> {
+        let tokenizer = self
+            .tokenizer
+            .get_or_init(crate::openjev::load_tokenizer)
+            .as_ref()
+            .map_err(|error| SystemOneError::Tokenizer(error.to_string()))?;
+        let state_tokens =
+            tokenizer.encode(request.state.render(), false)?.len();
+        for question in request.questions.values() {
+            let mut tokens = state_tokens
+                + tokenizer
+                    .encode(question.instructions().render(), false)?
+                    .len();
+            for description in question.render_options() {
+                tokens += tokenizer.encode(description, false)?.len();
+            }
+            if tokens > self.context_tokens {
+                return Ok(false);
+            }
+        }
+        Ok(true)
     }
     pub fn stats(&self) -> JevStats {
         JevStats {
@@ -360,6 +407,84 @@ mod tests {
                 .with_concurrency(0)
                 .is_err()
         );
+        assert!(
+            JevClient::new("key", "model")
+                .unwrap()
+                .with_context_tokens(0)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn request_fits_counts_state_instructions_and_candidates_per_question() {
+        use tokenizers::{
+            Tokenizer,
+            models::wordlevel::WordLevel,
+            pre_tokenizers::whitespace::WhitespaceSplit,
+        };
+        let client = JevClient::new("key", "model").unwrap();
+        assert_eq!(client.context_tokens(), 8192);
+        assert!(client.tokenizer.get().is_none());
+        let client = client.with_context_tokens(4).unwrap();
+        let mut tokenizer = Tokenizer::new(
+            WordLevel::builder()
+                .vocab([("[UNK]".into(), 0)].into_iter().collect())
+                .unk_token("[UNK]".into())
+                .build()
+                .unwrap(),
+        );
+        tokenizer.with_pre_tokenizer(Some(WhitespaceSplit));
+        client.tokenizer.set(Ok(tokenizer)).unwrap();
+        let question: crate::Question = serde_json::from_value(json!({
+            "type": "choice", "instructions": "Choose", "criteria": ["yes", "no"]
+        })).unwrap();
+        let request = SystemOneRequest::new("state")
+            .question("first", question.clone())
+            .question("second", question);
+        let model: crate::DecisionModel = client.into();
+        assert_eq!(model.context_tokens(), 4);
+        assert!(model.request_fits(&request).unwrap());
+        let mut long_state = request.clone();
+        long_state.state = "two words".into();
+        assert!(!model.request_fits(&long_state).unwrap());
+        for question in [
+            crate::Question::choice(
+                "Choose",
+                [("a", "many words"), ("b", "x")],
+            ),
+            crate::Question::score("Rate", ["many words", "good"]),
+            crate::Question::noul_with_criteria("Paid?", "many words", "no"),
+        ] {
+            assert!(
+                !model
+                    .request_fits(&request.clone().question("long", question))
+                    .unwrap()
+            );
+        }
+        let mut long_instructions = request.clone();
+        let crate::Question::Choice(question) =
+            &mut long_instructions.questions["second"]
+        else {
+            panic!()
+        };
+        question.instructions = "Choose carefully".into();
+        assert!(!model.request_fits(&long_instructions).unwrap());
+    }
+
+    #[test]
+    #[ignore = "downloads the OpenJev tokenizer only"]
+    fn request_fits_loads_and_keeps_the_openjev_tokenizer() {
+        let client = JevClient::new("key", "model")
+            .unwrap()
+            .with_context_tokens(64)
+            .unwrap();
+        assert!(client.request_fits(&request(0.7)).unwrap());
+        let tokenizer = client.tokenizer.get().unwrap() as *const _;
+        let mut long_request = request(0.7);
+        long_request.state = "background ".repeat(64).into();
+        assert!(!client.request_fits(&long_request).unwrap());
+        assert_eq!(tokenizer, client.tokenizer.get().unwrap() as *const _);
+        assert_eq!(client.stats().attempts, 0);
     }
 
     #[test]

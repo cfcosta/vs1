@@ -39,6 +39,28 @@ impl DecisionModel {
             Self::Jev(m) => m.model_name(),
         }
     }
+    /// Configured maximum prompt size in tokens.
+    /// Hosted Jev uses a vs1-declared budget, not a provider limit.
+    pub fn context_tokens(&self) -> usize {
+        match self {
+            Self::Laya(m) => m.context_tokens(),
+            Self::OpenJev(m) => m.context_tokens(),
+            Self::CuaS1(m) => m.context_tokens(),
+            #[cfg(feature = "jev")]
+            Self::Jev(m) => m.context_tokens(),
+        }
+    }
+    /// Whether every question fits without truncating its input.
+    /// Laya reserves its tournament header budget; hosted Jev is approximate.
+    pub fn request_fits(&self, request: &SystemOneRequest) -> Result<bool> {
+        match self {
+            Self::Laya(m) => m.request_fits(request),
+            Self::OpenJev(m) => m.request_fits(request),
+            Self::CuaS1(m) => m.request_fits(request),
+            #[cfg(feature = "jev")]
+            Self::Jev(m) => m.request_fits(request),
+        }
+    }
     pub fn system_one(
         &self,
         request: &SystemOneRequest,

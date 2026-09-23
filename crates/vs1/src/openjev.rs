@@ -323,6 +323,19 @@ fn weights(
     Ok(unsafe { VarBuilder::from_mmaped_safetensors(&[path], dtype, device)? })
 }
 
+#[cfg(feature = "jev")]
+pub(crate) fn load_tokenizer() -> Result<Tokenizer> {
+    let repo = Api::new()?.repo(Repo::with_revision(
+        DEFAULT_REPO_ID.into(),
+        RepoType::Model,
+        DEFAULT_REVISION.into(),
+    ));
+    let mut tokenizer = Tokenizer::from_file(repo.get("tokenizer.json")?)?;
+    tokenizer.with_padding(None);
+    tokenizer.with_truncation(None)?;
+    Ok(tokenizer)
+}
+
 impl OpenJev {
     pub fn from(repo: &str) -> OpenJevBuilder {
         OpenJevBuilder {
@@ -344,6 +357,19 @@ impl OpenJev {
     }
     pub fn max_len(&self) -> usize {
         self.max_len
+    }
+    /// Configured maximum prompt size in tokens.
+    pub fn context_tokens(&self) -> usize {
+        self.max_len
+    }
+    /// Whether every full input, including special tokens and abstention, fits.
+    pub fn request_fits(&self, request: &SystemOneRequest) -> Result<bool> {
+        request_fits(
+            &self.tokenizer,
+            self.config.max_num_classes,
+            self.max_len,
+            request,
+        )
     }
 
     pub fn build_input(
@@ -522,6 +548,24 @@ impl OpenJev {
         }
         Ok(responses)
     }
+}
+
+fn request_fits(
+    tokenizer: &Tokenizer,
+    capacity: usize,
+    max_len: usize,
+    request: &SystemOneRequest,
+) -> Result<bool> {
+    let state = request.state.render();
+    for (id, question) in &request.questions {
+        let (prompt, _) = format_input(&state, id, question, capacity)?;
+        let encoded = tokenizer.encode(prompt.as_str(), true)?;
+        // The inference tokenizer truncates, so length alone is insufficient.
+        if encoded.len() > max_len || !encoded.get_overflowing().is_empty() {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 fn format_input(
@@ -712,6 +756,11 @@ fn answer(q: &Question, p: &OpenJevPrediction) -> Result<Answer> {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use tokenizers::{
+        models::wordlevel::WordLevel,
+        pre_tokenizers::whitespace::Whitespace,
+        processors::template::TemplateProcessing,
+    };
 
     use super::*;
 
@@ -738,6 +787,56 @@ mod tests {
                 per_k: HashMap::from([("3".into(), 1.)]),
             },
         )
+    }
+
+    #[test]
+    fn request_fits_counts_special_tokens_and_rejects_truncation() {
+        let mut tokenizer = Tokenizer::new(
+            WordLevel::builder()
+                .vocab([("[UNK]".into(), 0)].into_iter().collect())
+                .unk_token("[UNK]".into())
+                .build()
+                .unwrap(),
+        );
+        tokenizer.with_pre_tokenizer(Some(Whitespace));
+        tokenizer.with_post_processor(Some(
+            TemplateProcessing::builder()
+                .try_single("[CLS] $A [SEP]")
+                .unwrap()
+                .special_tokens(vec![("[CLS]", 1), ("[SEP]", 2)])
+                .build()
+                .unwrap(),
+        ));
+        let request = SystemOneRequest::new(json!({"body": "paid"}))
+            .question("route", choice());
+        let (prompt, _) =
+            format_input(&request.state.render(), "route", &choice(), 25)
+                .unwrap();
+        let tokens = tokenizer.encode(prompt.as_str(), false).unwrap().len();
+        assert!(!request_fits(&tokenizer, 25, tokens + 1, &request).unwrap());
+        assert!(request_fits(&tokenizer, 25, tokens + 2, &request).unwrap());
+        tokenizer
+            .with_truncation(Some(TruncationParams {
+                max_length: tokens + 2,
+                ..Default::default()
+            }))
+            .unwrap();
+        assert!(request_fits(&tokenizer, 25, tokens + 2, &request).unwrap());
+        let mut long_state = request.clone();
+        long_state.state = "background ".repeat(tokens).into();
+        assert!(
+            !request_fits(&tokenizer, 25, tokens + 2, &long_state).unwrap()
+        );
+        for question in [
+            Question::choice("word ".repeat(tokens), [("a", "x"), ("b", "y")]),
+            Question::score("Rate", ["word ".repeat(tokens), "good".into()]),
+            Question::noul("word ".repeat(tokens)),
+        ] {
+            let request = request.clone().question("long", question);
+            assert!(
+                !request_fits(&tokenizer, 25, tokens + 2, &request).unwrap()
+            );
+        }
     }
 
     #[test]

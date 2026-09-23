@@ -1,5 +1,5 @@
 use anyhow::{Result, ensure};
-use vs1::{State, SystemOne, SystemOneRequest};
+use vs1::{SystemOne, SystemOneRequest};
 
 /// Nonoverlapping UTF-8 chunks, preferring whitespace boundaries. `fits` must
 /// measure the whole request, including the repeated headers and owner context.
@@ -66,16 +66,5 @@ pub fn request_fits(
     model: &SystemOne,
     request: &SystemOneRequest,
 ) -> Result<bool> {
-    let empty = model.encode_state(&State::from(""))?;
-    let state = model.encode_state(&request.state)?;
-    for (id, question) in &request.questions {
-        let overhead = model.build_sequence(&empty, id, question)?.ids.len();
-        // Reserve the full header budget for later tournament finalists.
-        let overhead =
-            overhead.max(model.config().head_max_len.saturating_add(4));
-        if overhead + state.len() > model.config().max_len {
-            return Ok(false);
-        }
-    }
-    Ok(true)
+    Ok(model.request_fits(request)?)
 }

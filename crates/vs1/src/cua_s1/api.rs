@@ -128,8 +128,9 @@ impl TryFrom<CuaS1Builder> for CuaS1 {
         let config = TextConfig::from_slice(&std::fs::read(
             base_directory.join("config.json"),
         )?)?;
-        let tokenizer =
+        let mut tokenizer =
             Tokenizer::from_file(base_directory.join("tokenizer.json"))?;
+        tokenizer.with_truncation(None)?;
         let mut weights = TextWeights::load(
             &base_directory,
             Some(&adapter_directory),
@@ -215,6 +216,14 @@ impl CuaS1 {
     }
     pub fn max_len(&self) -> usize {
         self.max_len
+    }
+    /// Configured maximum prompt size in tokens.
+    pub fn context_tokens(&self) -> usize {
+        self.max_len
+    }
+    /// Whether every complete chat prompt fits without truncating the state.
+    pub fn request_fits(&self, request: &SystemOneRequest) -> Result<bool> {
+        request_fits(&self.tokenizer, &self.app, self.max_len, request)
     }
 
     pub fn system_one(
@@ -317,6 +326,30 @@ fn question_error(id: &str, reason: impl Into<String>) -> SystemOneError {
         id: id.into(),
         reason: reason.into(),
     }
+}
+
+fn request_fits(
+    tokenizer: &Tokenizer,
+    app: &str,
+    max_len: usize,
+    request: &SystemOneRequest,
+) -> Result<bool> {
+    let state = request.state.render();
+    for (id, question) in &request.questions {
+        let (goal, options) = format_input(id, question)?;
+        let input = CuaS1Input::encode(
+            tokenizer,
+            &options,
+            app,
+            id,
+            &state,
+            Some(&goal),
+        )?;
+        if input.input_ids.len() > max_len {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 fn format_input(id: &str, q: &Question) -> Result<(String, Vec<CuaS1Option>)> {
@@ -442,11 +475,73 @@ fn answer(q: &Question, options: &[CuaS1Option], probs: &[f32]) -> Answer {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
+    use tokenizers::{
+        models::wordlevel::WordLevel,
+        pre_tokenizers::whitespace::Whitespace,
+    };
 
     use super::*;
 
     fn parse_question(value: serde_json::Value) -> Question {
         serde_json::from_value(value).unwrap()
+    }
+
+    #[test]
+    fn request_fits_counts_the_full_chat_prompt_for_every_question() {
+        let mut tokenizer = Tokenizer::new(
+            WordLevel::builder()
+                .vocab([("[UNK]".into(), 0)].into_iter().collect())
+                .unk_token("[UNK]".into())
+                .build()
+                .unwrap(),
+        );
+        tokenizer.with_pre_tokenizer(Some(Whitespace));
+        let request = SystemOneRequest::new(json!({"body": "paid"}))
+            .question("paid", Question::noul("Paid?"));
+        let (goal, options) =
+            format_input("paid", &request.questions["paid"]).unwrap();
+        let input = CuaS1Input::encode(
+            &tokenizer,
+            &options,
+            "mail",
+            "paid",
+            &request.state.render(),
+            Some(&goal),
+        )
+        .unwrap();
+        let tokens = input.input_ids.len();
+        assert!(request_fits(&tokenizer, "mail", tokens, &request).unwrap());
+        assert!(
+            !request_fits(&tokenizer, "mail", tokens - 1, &request).unwrap()
+        );
+        assert!(!request_fits(&tokenizer, "mail", 0, &request).unwrap());
+        let mut long_state = request.clone();
+        long_state.state = "background ".repeat(tokens).into();
+        assert!(
+            !request_fits(&tokenizer, "mail", tokens, &long_state).unwrap()
+        );
+        for question in [
+            Question::choice("word ".repeat(tokens), [("a", "x"), ("b", "y")]),
+            Question::score("Rate", ["word ".repeat(tokens), "good".into()]),
+            Question::noul("word ".repeat(tokens)),
+        ] {
+            let request = request.clone().question("long", question);
+            assert!(
+                !request_fits(&tokenizer, "mail", tokens, &request).unwrap()
+            );
+        }
+        assert!(
+            request_fits(
+                &tokenizer,
+                "mail",
+                tokens,
+                &request.question(
+                    "invalid",
+                    Question::noul_with_criteria("?", "x", "y")
+                ),
+            )
+            .is_err()
+        );
     }
 
     #[test]
