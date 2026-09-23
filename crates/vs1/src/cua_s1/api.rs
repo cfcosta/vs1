@@ -33,14 +33,18 @@ pub const BASE_REVISION: &str = "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a";
 pub const MODEL_NAME: &str = "Cua-S1-4B";
 pub const DEFAULT_MAX_LEN: usize = 4096;
 
-/// One option's final-position letter logit and option-only probability.
+/// One option's first-round letter/logit and hierarchical probability.
 #[derive(Debug, Clone, Serialize)]
 pub struct CuaS1OptionPrediction {
     pub letter: char,
     pub option: CuaS1Option,
     pub logit: f32,
     pub probability: f32,
-    /// State tokens dropped for this question; identical for every option.
+    /// Whether this option won the final round, with ties going to the first.
+    pub is_selected: bool,
+    /// Total forward passes for this decision; identical for every option.
+    pub forward_passes: usize,
+    /// State tokens dropped for this option's first-round group.
     pub dropped_state_tokens: usize,
 }
 
@@ -221,7 +225,8 @@ impl CuaS1 {
     pub fn context_tokens(&self) -> usize {
         self.max_len
     }
-    /// Whether every complete chat prompt fits without truncating the state.
+    /// Whether every first-round chat prompt fits without truncating the state.
+    /// Finalist prompts enforce the same limit when scored.
     pub fn request_fits(&self, request: &SystemOneRequest) -> Result<bool> {
         request_fits(&self.tokenizer, &self.app, self.max_len, request)
     }
@@ -238,22 +243,12 @@ impl CuaS1 {
         &self,
         requests: &[SystemOneRequest],
     ) -> Result<Vec<SystemOneResponse>> {
-        let mut inputs = Vec::new();
         let mut locations = Vec::new();
         for (r, request) in requests.iter().enumerate() {
             let state = request.state.render();
             for (id, question) in &request.questions {
                 let (goal, options) = format_input(id, question)?;
-                inputs.push(CuaS1Input::encode_with_max_len(
-                    &self.tokenizer,
-                    &options,
-                    &self.app,
-                    id,
-                    &state,
-                    Some(&goal),
-                    self.max_len,
-                )?);
-                locations.push((r, id, question, options));
+                locations.push((r, id, question, options, goal, state.clone()));
             }
         }
         let mut responses: Vec<_> = requests
@@ -264,27 +259,30 @@ impl CuaS1 {
                 usage: Usage::default(),
             })
             .collect();
-        for ((r, id, q, options), (input, dropped_state_tokens)) in
-            locations.into_iter().zip(inputs)
-        {
-            let prediction = self.model.forward(&input)?;
-            responses[r].usage.input_tokens += input.input_ids.len();
-            if dropped_state_tokens > 0 {
-                responses[r]
-                    .usage
-                    .dropped_state_tokens
-                    .insert(id.clone(), dropped_state_tokens);
-            }
-            responses[r].answers.insert(
-                id.clone(),
-                answer(q, &options, &prediction.probabilities),
-            );
+        for (r, id, q, options, goal, state) in locations {
+            let (predictions, usage) = self.score_options_with_usage(
+                &self.app,
+                id,
+                &state,
+                Some(&goal),
+                &options,
+            )?;
+            responses[r].usage.input_tokens += usage.input_tokens;
+            responses[r]
+                .usage
+                .dropped_state_tokens
+                .extend(usage.dropped_state_tokens);
+            responses[r]
+                .answers
+                .insert(id.clone(), answer(q, &predictions));
         }
         Ok(responses)
     }
 
-    /// Scores 1..=26 options in one forward pass, preserving option order.
-    /// Probabilities are normalized over only the option-letter logits.
+    /// Scores options in their original order; up to 26 use one forward pass.
+    /// Larger sets use balanced groups, recursively scoring their winners.
+    /// Probabilities multiply each group's softmax by its finalist's probability.
+    /// Use `is_selected` for the final-round winner, which can differ from argmax.
     pub fn score_options(
         &self,
         app: &str,
@@ -293,32 +291,123 @@ impl CuaS1 {
         goal: Option<&str>,
         options: &[CuaS1Option],
     ) -> Result<Vec<CuaS1OptionPrediction>> {
-        let (input, dropped_state_tokens) = CuaS1Input::encode_with_max_len(
-            &self.tokenizer,
-            options,
-            app,
-            task_family,
-            ax_tree,
-            goal,
-            self.max_len,
-        )?;
-        let prediction = self.model.forward(&input)?;
-        Ok(options
-            .iter()
-            .zip(input.letters)
-            .zip(prediction.logits)
-            .zip(prediction.probabilities)
-            .map(|(((option, letter), logit), probability)| {
-                CuaS1OptionPrediction {
-                    letter,
-                    option: option.clone(),
-                    logit,
-                    probability,
-                    dropped_state_tokens,
-                }
-            })
-            .collect())
+        self.score_options_with_usage(app, task_family, ax_tree, goal, options)
+            .map(|(predictions, _)| predictions)
     }
+
+    fn score_options_with_usage(
+        &self,
+        app: &str,
+        task_family: &str,
+        ax_tree: &str,
+        goal: Option<&str>,
+        options: &[CuaS1Option],
+    ) -> Result<(Vec<CuaS1OptionPrediction>, Usage)> {
+        let mut usage = Usage::default();
+        let predictions = score_tournament(options, &mut |group| {
+            let (input, dropped_state_tokens) =
+                CuaS1Input::encode_with_max_len(
+                    &self.tokenizer,
+                    group,
+                    app,
+                    task_family,
+                    ax_tree,
+                    goal,
+                    self.max_len,
+                )?;
+            let prediction = self.model.forward(&input)?;
+            usage.input_tokens += input.input_ids.len();
+            if dropped_state_tokens > 0 {
+                let dropped = usage
+                    .dropped_state_tokens
+                    .entry(task_family.into())
+                    .or_default();
+                *dropped = (*dropped).max(dropped_state_tokens);
+            }
+            Ok(group
+                .iter()
+                .zip(input.letters)
+                .zip(prediction.logits)
+                .zip(prediction.probabilities)
+                .map(|(((option, letter), logit), probability)| {
+                    CuaS1OptionPrediction {
+                        letter,
+                        option: option.clone(),
+                        logit,
+                        probability,
+                        is_selected: false,
+                        forward_passes: 1,
+                        dropped_state_tokens,
+                    }
+                })
+                .collect())
+        })?;
+        Ok((predictions, usage))
+    }
+}
+
+fn split_options<T>(options: &[T]) -> impl Iterator<Item = &[T]> {
+    let groups = options.len().div_ceil(26).max(1);
+    let smaller_groups = groups - options.len() % groups;
+    (0..groups).scan(0, move |start, group| {
+        let size =
+            options.len() / groups + usize::from(group >= smaller_groups);
+        let end = *start + size;
+        let options = &options[*start..end];
+        *start = end;
+        Some(options)
+    })
+}
+
+fn score_tournament(
+    options: &[CuaS1Option],
+    score_group: &mut impl FnMut(
+        &[CuaS1Option],
+    ) -> Result<Vec<CuaS1OptionPrediction>>,
+) -> Result<Vec<CuaS1OptionPrediction>> {
+    if options.is_empty() {
+        return Err(SystemOneError::Config(
+            "Cua-S1 requires at least one option".into(),
+        ));
+    }
+    if options.len() <= 26 {
+        let mut predictions = score_group(options)?;
+        let mut best = 0;
+        for i in 1..predictions.len() {
+            if predictions[i].probability > predictions[best].probability {
+                best = i;
+            }
+        }
+        for (i, prediction) in predictions.iter_mut().enumerate() {
+            prediction.is_selected = i == best;
+            prediction.forward_passes = 1;
+        }
+        return Ok(predictions);
+    }
+    let mut groups = Vec::new();
+    let mut finalists = Vec::new();
+    for options in split_options(options) {
+        let predictions = score_tournament(options, score_group)?;
+        finalists.extend(
+            predictions
+                .iter()
+                .filter(|p| p.is_selected)
+                .map(|p| p.option.clone()),
+        );
+        groups.push(predictions);
+    }
+    let finalists = score_tournament(&finalists, score_group)?;
+    let forward_passes = groups.len() + finalists[0].forward_passes;
+    let mut predictions = Vec::with_capacity(options.len());
+    for (group, finalist) in groups.into_iter().zip(finalists) {
+        for mut prediction in group {
+            prediction.probability *= finalist.probability;
+            prediction.is_selected &= finalist.is_selected;
+            prediction.forward_passes = forward_passes;
+            predictions.push(prediction);
+        }
+    }
+    Ok(predictions)
 }
 
 fn question_error(id: &str, reason: impl Into<String>) -> SystemOneError {
@@ -337,16 +426,18 @@ fn request_fits(
     let state = request.state.render();
     for (id, question) in &request.questions {
         let (goal, options) = format_input(id, question)?;
-        let input = CuaS1Input::encode(
-            tokenizer,
-            &options,
-            app,
-            id,
-            &state,
-            Some(&goal),
-        )?;
-        if input.input_ids.len() > max_len {
-            return Ok(false);
+        for group in split_options(&options) {
+            let input = CuaS1Input::encode(
+                tokenizer,
+                group,
+                app,
+                id,
+                &state,
+                Some(&goal),
+            )?;
+            if input.input_ids.len() > max_len {
+                return Ok(false);
+            }
         }
     }
     Ok(true)
@@ -397,10 +488,10 @@ fn format_input(id: &str, q: &Question) -> Result<(String, Vec<CuaS1Option>)> {
             )
         }
     };
-    if !(2..=26).contains(&candidates.len()) {
+    if candidates.len() < 2 {
         return Err(question_error(
             id,
-            "Cua-S1 requires 2..=26 candidates (one letter each, A..Z)",
+            "Cua-S1 requires at least 2 candidates",
         ));
     }
     if candidates.iter().any(|(id, _)| id.is_empty())
@@ -431,23 +522,18 @@ fn format_input(id: &str, q: &Question) -> Result<(String, Vec<CuaS1Option>)> {
     ))
 }
 
-fn answer(q: &Question, options: &[CuaS1Option], probs: &[f32]) -> Answer {
-    let confidence = confidence_from_probs(probs, probs.len());
-    let probabilities = options
+fn answer(q: &Question, predictions: &[CuaS1OptionPrediction]) -> Answer {
+    let probs: Vec<_> = predictions.iter().map(|p| p.probability).collect();
+    let confidence = confidence_from_probs(&probs, probs.len());
+    let probabilities = predictions
         .iter()
-        .map(|option| option.element_id.clone())
-        .zip(probs.iter().copied())
+        .map(|p| (p.option.element_id.clone(), p.probability))
         .collect();
     match q {
         Question::Choice(_) => {
-            let mut best = 0;
-            for i in 1..probs.len() {
-                if probs[i] > probs[best] {
-                    best = i;
-                }
-            }
+            let selected = predictions.iter().find(|p| p.is_selected).unwrap();
             Answer::Choice(ChoiceAnswer {
-                choice: options[best].element_id.clone(),
+                choice: selected.option.element_id.clone(),
                 probabilities,
                 confidence,
                 action: None,
@@ -486,6 +572,209 @@ mod tests {
         serde_json::from_value(value).unwrap()
     }
 
+    fn predict_group(
+        options: &[CuaS1Option],
+        probabilities: &[f32],
+    ) -> Vec<CuaS1OptionPrediction> {
+        assert_eq!(options.len(), probabilities.len());
+        options
+            .iter()
+            .zip('A'..='Z')
+            .zip(probabilities)
+            .map(|((option, letter), &probability)| CuaS1OptionPrediction {
+                letter,
+                option: option.clone(),
+                logit: probability.ln(),
+                probability,
+                is_selected: false,
+                forward_passes: 1,
+                dropped_state_tokens: 0,
+            })
+            .collect()
+    }
+
+    fn answer_with_probabilities(
+        q: &Question,
+        options: &[CuaS1Option],
+        probabilities: &[f32],
+    ) -> Answer {
+        let predictions = score_tournament(options, &mut |group| {
+            Ok(predict_group(group, probabilities))
+        })
+        .unwrap();
+        answer(q, &predictions)
+    }
+
+    #[test]
+    fn scores_up_to_twenty_six_options_in_one_pass() {
+        for count in [1, 2, 26] {
+            let options: Vec<_> = (0..count)
+                .map(|i| CuaS1Option {
+                    element_id: i.to_string(),
+                    role: "button".into(),
+                    label: format!("Option {i}"),
+                    action: "click".into(),
+                    entity_id: None,
+                })
+                .collect();
+            let probabilities = vec![1.0 / count as f32; count];
+            let mut calls = 0;
+            let predictions = score_tournament(&options, &mut |group| {
+                calls += 1;
+                Ok(predict_group(group, &probabilities))
+            })
+            .unwrap();
+            assert_eq!(calls, 1);
+            for (i, p) in predictions.iter().enumerate() {
+                assert_eq!(p.probability, probabilities[i]);
+                assert_eq!(p.logit, probabilities[i].ln());
+                assert_eq!(p.letter, (b'A' + i as u8) as char);
+                assert_eq!(p.is_selected, i == 0);
+                assert_eq!(p.forward_passes, 1);
+                assert_eq!(
+                    serde_json::to_value(&p.option).unwrap(),
+                    serde_json::to_value(&options[i]).unwrap()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn scores_twenty_seven_options_and_selects_the_final_round_winner() {
+        let q = Question::choice(
+            "Pick",
+            (0..27).map(|i| (i.to_string(), format!("Option {i}"))),
+        );
+        let (_, options) = format_input("pick", &q).unwrap();
+        let mut groups = Vec::new();
+        let predictions = score_tournament(&options, &mut |group| {
+            groups.push(
+                group
+                    .iter()
+                    .map(|o| o.element_id.clone())
+                    .collect::<Vec<_>>(),
+            );
+            let probabilities = match groups.len() {
+                1 => {
+                    let mut probabilities = vec![0.1 / 12.0; 13];
+                    probabilities[0] = 0.9;
+                    probabilities
+                }
+                2 => vec![1.0 / 14.0; 14],
+                3 => vec![0.4, 0.6],
+                _ => panic!("unexpected group"),
+            };
+            Ok(predict_group(group, &probabilities))
+        })
+        .unwrap();
+        assert_eq!(
+            groups[0],
+            (0..13).map(|i| i.to_string()).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            groups[1],
+            (13..27).map(|i| i.to_string()).collect::<Vec<_>>()
+        );
+        assert_eq!(groups[2], ["0", "13"]);
+        assert_eq!(predictions[0].letter, 'A');
+        assert_eq!(predictions[13].letter, 'A');
+        assert_eq!(predictions[0].logit, 0.9_f32.ln());
+        assert!((predictions[0].probability - 0.36).abs() < 1e-6);
+        assert!(predictions[0].probability > predictions[13].probability);
+        assert!(
+            (predictions.iter().map(|p| p.probability).sum::<f32>() - 1.0)
+                .abs()
+                < 1e-6
+        );
+        for (i, p) in predictions.iter().enumerate() {
+            assert_eq!(p.option.element_id, i.to_string());
+            assert_eq!(p.is_selected, i == 13);
+            assert_eq!(p.forward_passes, 3);
+            let expected = if i == 0 {
+                0.36
+            } else if i < 13 {
+                0.4 * 0.1 / 12.0
+            } else {
+                0.6 / 14.0
+            };
+            assert!((p.probability - expected).abs() < 1e-6);
+        }
+        let Answer::Choice(a) = answer(&q, &predictions) else {
+            panic!("choice")
+        };
+        assert_eq!(a.choice, "13");
+        assert_eq!(
+            a.probabilities.keys().collect::<Vec<_>>(),
+            options.iter().map(|o| &o.element_id).collect::<Vec<_>>()
+        );
+        let q = Question::score("Rate", (0..27).map(|i| i.to_string()));
+        let Answer::Score(a) = answer(&q, &predictions) else {
+            panic!("score")
+        };
+        assert!((a.score - 11.96).abs() < 1e-5);
+        assert_eq!(a.legend.len(), 27);
+        assert_eq!(a.probabilities.len(), 27);
+    }
+
+    #[test]
+    fn scores_seven_hundred_options_recursively_in_original_order() {
+        let q = Question::choice(
+            "Pick",
+            (0..700).map(|i| (i.to_string(), format!("Option {i}"))),
+        );
+        let (_, options) = format_input("pick", &q).unwrap();
+        let mut groups = Vec::new();
+        let predictions = score_tournament(&options, &mut |group| {
+            groups.push(
+                group
+                    .iter()
+                    .map(|o| o.element_id.clone())
+                    .collect::<Vec<_>>(),
+            );
+            let probabilities = if group.len() == 2 {
+                vec![0.2, 0.8]
+            } else {
+                vec![1.0 / group.len() as f32; group.len()]
+            };
+            Ok(predict_group(group, &probabilities))
+        })
+        .unwrap();
+        assert_eq!(groups.len(), 30);
+        assert!(groups[..2].iter().all(|g| g.len() == 25));
+        assert!(groups[2..27].iter().all(|g| g.len() == 26));
+        assert_eq!(groups[27].len(), 13);
+        assert_eq!(groups[28].len(), 14);
+        assert_eq!(groups[29], ["0", "336"]);
+        assert_eq!(predictions.len(), 700);
+        assert!(
+            (predictions.iter().map(|p| p.probability).sum::<f32>() - 1.0)
+                .abs()
+                < 1e-5
+        );
+        for (i, p) in predictions.iter().enumerate() {
+            assert_eq!(p.option.element_id, i.to_string());
+            assert_eq!(p.is_selected, i == 336);
+            assert_eq!(p.forward_passes, 30);
+            let expected = if i < 50 {
+                0.2 / 13.0 / 25.0
+            } else if i < 336 {
+                0.2 / 13.0 / 26.0
+            } else {
+                0.8 / 14.0 / 26.0
+            };
+            assert!((p.probability - expected).abs() < 1e-7);
+        }
+        assert_eq!(answer(&q, &predictions).choice(), Some("336"));
+    }
+
+    #[test]
+    fn rejects_empty_tournaments_without_scoring() {
+        let result = score_tournament(&[], &mut |_| panic!("no options"));
+        assert!(
+            matches!(result, Err(SystemOneError::Config(reason)) if reason.contains("at least one option"))
+        );
+    }
+
     #[test]
     fn request_fits_counts_the_full_chat_prompt_for_every_question() {
         let mut tokenizer = Tokenizer::new(
@@ -515,6 +804,22 @@ mod tests {
             !request_fits(&tokenizer, "mail", tokens - 1, &request).unwrap()
         );
         assert!(!request_fits(&tokenizer, "mail", 0, &request).unwrap());
+        for count in [27, 700] {
+            let request = SystemOneRequest::new("state").question(
+                "pick",
+                Question::choice(
+                    "Pick",
+                    (0..count).map(|i| (i.to_string(), "option")),
+                ),
+            );
+            assert!(
+                request_fits(&tokenizer, "mail", DEFAULT_MAX_LEN, &request)
+                    .unwrap()
+            );
+            assert!(
+                !request_fits(&tokenizer, "mail", tokens, &request).unwrap()
+            );
+        }
         let mut long_state = request.clone();
         long_state.state = "background ".repeat(tokens).into();
         assert!(
@@ -652,20 +957,20 @@ mod tests {
     }
 
     #[test]
-    fn requires_two_through_twenty_six_candidates() {
+    fn requires_at_least_two_candidates() {
         for kind in ["choice", "score"] {
-            for count in [0, 1, 2, 26, 27] {
+            for count in [0, 1, 2, 26, 27, 700] {
                 let criteria: Vec<_> =
                     (0..count).map(|i| i.to_string()).collect();
                 let q =
                     parse_question(json!({"type": kind, "criteria": criteria}));
                 let result = format_input("bounded", &q);
-                if (2..=26).contains(&count) {
+                if count >= 2 {
                     assert_eq!(result.unwrap().1.len(), count);
                 } else {
                     assert!(
                         matches!(result, Err(SystemOneError::Question { id, reason })
-                        if id == "bounded" && reason.contains("2..=26") && reason.contains("A..Z"))
+                        if id == "bounded" && reason.contains("at least 2"))
                     );
                 }
             }
@@ -687,7 +992,9 @@ mod tests {
     fn answers_with_probabilities_confidence_and_expected_level() {
         let q = Question::choice("Route?", [("z", "last"), ("a", "first")]);
         let (_, options) = format_input("route", &q).unwrap();
-        let Answer::Choice(a) = answer(&q, &options, &[0.25, 0.75]) else {
+        let Answer::Choice(a) =
+            answer_with_probabilities(&q, &options, &[0.25, 0.75])
+        else {
             panic!("choice")
         };
         assert_eq!(a.choice, "a");
@@ -697,13 +1004,18 @@ mod tests {
         );
         assert!((a.confidence - 0.1887219).abs() < 1e-6);
         assert!(a.action.is_none());
-        assert_eq!(answer(&q, &options, &[0.5, 0.5]).choice(), Some("z"));
+        assert_eq!(
+            answer_with_probabilities(&q, &options, &[0.5, 0.5]).choice(),
+            Some("z")
+        );
 
         let q = parse_question(
             json!({"type": "score", "criteria": ["bad", {"quality": "neutral"}, "good"]}),
         );
         let (_, options) = format_input("quality", &q).unwrap();
-        let Answer::Score(a) = answer(&q, &options, &[0.25, 0.25, 0.5]) else {
+        let Answer::Score(a) =
+            answer_with_probabilities(&q, &options, &[0.25, 0.25, 0.5])
+        else {
             panic!("score")
         };
         assert_eq!(a.score, 1.25);
@@ -724,7 +1036,7 @@ mod tests {
 
         let q = Question::noul("Paid?");
         let (_, options) = format_input("paid", &q).unwrap();
-        let a = answer(&q, &options, &[0.25, 0.75]);
+        let a = answer_with_probabilities(&q, &options, &[0.25, 0.75]);
         assert_eq!(
             serde_json::to_value(&a).unwrap(),
             json!({"type": "noul", "noul": 0.25})

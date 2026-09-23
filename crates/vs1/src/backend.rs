@@ -52,6 +52,7 @@ impl DecisionModel {
     }
     /// Whether every question fits without truncating its input.
     /// Laya reserves its tournament header budget; hosted Jev is approximate.
+    /// Cua-S1 checks first-round prompts; finalist prompts are limited at scoring.
     pub fn request_fits(&self, request: &SystemOneRequest) -> Result<bool> {
         match self {
             Self::Laya(m) => m.request_fits(request),

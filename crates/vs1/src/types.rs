@@ -423,7 +423,7 @@ pub struct Action {
 /// Answer to a [`ChoiceQuestion`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChoiceAnswer {
-    /// The most probable label.
+    /// Selected label; Cua-S1 tournaments use the final-round winner.
     pub choice: String,
     /// Calibrated probability per label, in option order.
     pub probabilities: IndexMap<String, f32>,
@@ -544,7 +544,7 @@ pub struct Usage {
     pub input_tokens: usize,
     /// Always zero: nothing is generated.
     pub output_tokens: usize,
-    /// State tokens dropped by Cua-S1, keyed by truncated question ID.
+    /// Maximum state tokens dropped across Cua-S1 passes, by question ID.
     #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub dropped_state_tokens: IndexMap<String, usize>,
 }

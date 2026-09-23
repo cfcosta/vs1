@@ -252,7 +252,7 @@ fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     ensure!(
         (4..=6).contains(&args.len()),
-        "ROOT export|laya|jev|openjev|openjev-bf16|cua-s1 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]\nAll backends split complete requests at their model context limit and pool chunks by body character count; Laya keeps its per-chunk tournament. OpenJev audit modes configure max_len (original/compact1024: 1024, compact512/plain512: 512). Retrieval fit checks use exactly the context sent. cua-s1: original only (default), full descriptions, at most 26 candidates; prepare is OpenJev-only. Summary context_tokens records the model limit; budget retains the audit setting."
+        "ROOT export|laya|jev|openjev|openjev-bf16|cua-s1 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]\nAll backends split complete requests at their model context limit and pool chunks by body character count; Laya keeps its per-chunk tournament. OpenJev audit modes configure max_len (original/compact1024: 1024, compact512/plain512: 512). Retrieval fit checks use exactly the context sent. cua-s1: original only (default), full descriptions, tournaments above 26 candidates; prepare is OpenJev-only. Summary context_tokens records the model limit; budget retains the audit setting."
     );
     let root = Path::new(&args[1]);
     let backend = args[2].as_str();
@@ -426,8 +426,8 @@ fn main() -> Result<()> {
                 }
                 "cua-s1" => {
                     ensure!(
-                        config.rules().len() <= 26,
-                        "cua-s1 supports at most 26 categories"
+                        config.rules().len() >= 2,
+                        "cua-s1 requires at least 2 categories"
                     );
                     let model: vs1::CuaS1 =
                         vs1::CuaS1::from(vs1::cua_s1::DEFAULT_REPO_ID)

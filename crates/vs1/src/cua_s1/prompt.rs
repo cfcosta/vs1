@@ -32,7 +32,7 @@ pub struct CuaS1Input {
 
 impl CuaS1Input {
     /// Builds a text prompt using the Qwen3.5 `tokenizer.json` tokenizer.
-    /// Requires 1..=26 options, a nonempty tree, and one token per letter.
+    /// Requires 1..=26 options per pass, a nonempty tree, and one token per letter.
     pub fn encode(
         tokenizer: &Tokenizer,
         options: &[CuaS1Option],
@@ -136,7 +136,7 @@ fn build_prompt(
 ) -> Result<(String, Vec<char>)> {
     if !(1..=26).contains(&options.len()) {
         return Err(SystemOneError::Config(
-            "Cua-S1 requires between 1 and 26 options".into(),
+            "Cua-S1 prompts require between 1 and 26 options per pass; use CuaS1::score_options for larger sets".into(),
         ));
     }
     let letters: Vec<char> = ('A'..='Z').take(options.len()).collect();

@@ -113,7 +113,9 @@ they are not successful inference latencies.
 - Cua-S1 and Laya chose DONE on the first hotel decision, before any action.
   OpenJev scrolled once, then chose BLOCKED.
 - On Wikipedia, Cua-S1 and OpenJev errored because the page offered more
-  click targets than their per-question limits of 26 and 24, respectively.
+  click targets than their then-current per-question limits of 26 and 24,
+  respectively. Cua-S1 now supports larger sets through option tournaments;
+  these recorded runs predate that change.
   Laya clicked the unrelated “quarantined” link, then chose DONE; the article
   check failed in both runs.
 
@@ -134,4 +136,5 @@ failure; it does not isolate the model's ability with its native option format.
 Follow-ups:
 
 1. Add a Cua-S1-native browser policy with combined (element, action) options.
-2. Add a tournament over groups of at most 26 candidates for larger pages.
+2. Implemented: [balanced option tournaments](README.md#rust-option-tournaments)
+   over groups of at most 26 candidates. The live tasks above have not been rerun.

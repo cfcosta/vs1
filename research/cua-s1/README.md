@@ -3,6 +3,32 @@
 See [the 2026-09-23 benchmark comparison](benchmarks.md) for email, browser replay
 and live-task results against Jev, Laya and OpenJev.
 
+## Rust option tournaments
+
+`CuaS1::score_options` preserves option order and uses one forward pass for
+1–26 options. Larger sets are split in their original order into the fewest
+balanced groups of at most 26, with smaller groups first. Each group's winner
+advances, and finalists are scored recursively until one final round fits.
+Every prompt uses the same app, task family, state and goal, with fresh letters
+starting at A. State truncation applies separately to each prompt.
+
+Each option's `probability` is its group probability multiplied by its
+finalist's recursively computed probability. The full distribution sums to one.
+`is_selected` identifies the final-round winner, which can differ from the
+highest hierarchical probability; ties within each round favor the first option.
+`letter`, `logit` and `dropped_state_tokens` describe the option's first-round
+group. `forward_passes` is the total number of model calls for the decision,
+repeated on each prediction: 1 for 26 options, 3 for 27, and 30 for 700.
+
+`system_one` accepts choice and score questions with at least two candidates.
+Choice uses the tournament winner; score retains the expected level over the
+hierarchical probabilities. Token usage includes every round, and dropped state
+tokens report the maximum across rounds for each question. `request_fits`
+checks first-round prompts; finalist prompts enforce `max_len` when scored.
+The low-level `CuaS1Input::encode` still accepts only 1–26 options per pass.
+
+## Reference prompts
+
 Regenerate from the repository root:
 
 ```sh
