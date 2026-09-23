@@ -181,3 +181,96 @@ fn scores_all_reference_cases_from_local_checkpoints() {
         "probabilities exceed atol=1e-4"
     );
 }
+
+#[cfg(feature = "cuda")]
+#[test]
+#[ignore = "requires CUDA"]
+fn scores_all_bf16_reference_cases_on_cuda() {
+    let device = Device::new_cuda(0).unwrap();
+    let result = CuaS1::try_from(
+        CuaS1::from("unused/repo")
+            .with_device(device.clone())
+            .with_dtype(DType::F32),
+    );
+    let Err(SystemOneError::Config(message)) = result else {
+        panic!("expected CUDA/F32 to be rejected before loading");
+    };
+    assert!(message.contains("12 GB"), "{message}");
+    assert!(message.contains("use BF16"), "{message}");
+
+    let root =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../artifacts/cua-s1");
+    let model: CuaS1 = CuaS1::from(DEFAULT_REPO_ID)
+        .with_device(device)
+        .with_local_directories(
+            root.join("base").join(BASE_REVISION),
+            root.join("adapter").join(ADAPTER_REVISION).join("text"),
+        )
+        .try_into()
+        .unwrap();
+    let cases: Vec<Case> = serde_json::from_str(include_str!(
+        "../../../research/cua-s1/cases.json"
+    ))
+    .unwrap();
+    let reference: Reference = serde_json::from_str(include_str!(
+        "../../../research/cua-s1/probabilities-bf16.json"
+    ))
+    .unwrap();
+    assert_eq!(cases.len(), 6);
+    assert_eq!(cases.len(), reference.cases.len());
+    let mut max_probability_difference = 0f32;
+    let mut has_matching_top_options = true;
+    for (case, expected) in cases.iter().zip(&reference.cases) {
+        assert_eq!(case.name, expected.name);
+        let predictions = model
+            .score_options(
+                &case.app,
+                &case.task_family,
+                &case.ax_tree,
+                case.goal.as_deref(),
+                &case.options,
+            )
+            .unwrap();
+        assert_eq!(predictions.len(), expected.options.len());
+        let mut probability_difference = 0f32;
+        for (prediction, expected) in predictions.iter().zip(&expected.options)
+        {
+            assert_eq!(prediction.letter, expected.letter);
+            assert!(prediction.logit.is_finite());
+            assert!((0.0..=1.0).contains(&prediction.probability));
+            probability_difference = probability_difference
+                .max((prediction.probability - expected.probability).abs());
+        }
+        let total: f32 = predictions.iter().map(|p| p.probability).sum();
+        assert!((total - 1.0).abs() < 1e-6);
+        max_probability_difference =
+            max_probability_difference.max(probability_difference);
+        let top = predictions
+            .iter()
+            .max_by(|a, b| a.probability.total_cmp(&b.probability))
+            .unwrap()
+            .letter;
+        let expected_top = expected
+            .options
+            .iter()
+            .max_by(|a, b| a.probability.total_cmp(&b.probability))
+            .unwrap()
+            .letter;
+        has_matching_top_options &= top == expected_top;
+        println!(
+            "{}: top {top} (expected {expected_top}), max probability difference {probability_difference:e}",
+            case.name
+        );
+    }
+    println!(
+        "all 6 cases: max probability difference {max_probability_difference:e}"
+    );
+    assert!(
+        has_matching_top_options,
+        "top option differs from BF16 reference"
+    );
+    assert!(
+        max_probability_difference <= 0.03,
+        "probabilities exceed atol=0.03"
+    );
+}

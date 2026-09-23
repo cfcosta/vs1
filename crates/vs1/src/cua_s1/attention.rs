@@ -1,12 +1,12 @@
 //! Full text attention from Transformers 5.17.0's Qwen3.5 implementation.
 
-use candle_core::{D, DType, Device, Result, Tensor};
+use candle_core::{D, DType, Result, Tensor};
 use candle_nn::{Linear, Module, ops};
 
 use super::{LayerType, TextConfig, TextWeights, normalize_rms};
 use crate::SystemOneError;
 
-/// Gated, causal grouped-query attention for one CPU/F32 sequence.
+/// Gated, causal grouped-query attention for one sequence.
 pub struct FullAttention {
     q_proj: Linear,
     k_proj: Linear,
@@ -47,11 +47,6 @@ impl FullAttention {
         let prefix = format!("model.language_model.layers.{layer}.self_attn");
         let q_weight =
             weights.linear_weight(&format!("{prefix}.q_proj.weight"))?;
-        if !q_weight.device().is_cpu() || q_weight.dtype() != DType::F32 {
-            return Err(SystemOneError::Config(
-                "full attention requires CPU/F32 text weights".into(),
-            ));
-        }
         let inv_freq: Vec<_> = (0..rotary_dim)
             .step_by(2)
             .map(|i| {
@@ -60,6 +55,7 @@ impl FullAttention {
                     .recip()
             })
             .collect();
+        let inv_freq = Tensor::new(inv_freq.as_slice(), q_weight.device())?;
         Ok(Self {
             q_proj: Linear::new(q_weight, None),
             k_proj: Linear::new(
@@ -76,7 +72,7 @@ impl FullAttention {
             ),
             q_norm: weights.tensor(&format!("{prefix}.q_norm.weight"))?,
             k_norm: weights.tensor(&format!("{prefix}.k_norm.weight"))?,
-            inv_freq: Tensor::new(inv_freq.as_slice(), &Device::Cpu)?,
+            inv_freq,
             num_heads: config.num_attention_heads,
             num_kv_heads: config.num_key_value_heads,
             head_dim: config.head_dim,
@@ -108,21 +104,22 @@ impl FullAttention {
             .transpose(0, 1)?;
 
         // Text gives all three mRoPE axes the same positions, starting at zero.
-        let positions = Tensor::arange(0f32, seq as f32, &Device::Cpu)?;
+        let positions = Tensor::arange(0f32, seq as f32, query.device())?;
         let freqs = positions
             .unsqueeze(1)?
             .broadcast_mul(&self.inv_freq.unsqueeze(0)?)?;
         let freqs = Tensor::cat(&[&freqs, &freqs], D::Minus1)?;
-        let cos = freqs.cos()?;
-        let sin = freqs.sin()?;
-        let query = apply_rotary(&query, &cos, &sin)?;
+        let cos = freqs.cos()?.to_dtype(query.dtype())?;
+        let sin = freqs.sin()?.to_dtype(query.dtype())?;
+        // Materialize the per-head layouts for CUDA's batched matmul.
+        let query = apply_rotary(&query, &cos, &sin)?.contiguous()?;
         let key = apply_rotary(&key, &cos, &sin)?;
         let groups = self.num_heads / self.num_kv_heads;
-        let key = repeat_kv(&key, groups)?;
-        let value = repeat_kv(&value, groups)?;
+        let key = repeat_kv(&key, groups)?.transpose(1, 2)?.contiguous()?;
+        let value = repeat_kv(&value, groups)?.contiguous()?;
 
-        let scores = (query.matmul(&key.transpose(1, 2)?)?
-            * (self.head_dim as f64).sqrt().recip())?;
+        let scores =
+            (query.matmul(&key)? * (self.head_dim as f64).sqrt().recip())?;
         let mask: Vec<_> = (0..seq)
             .flat_map(|row| {
                 (0..seq).map(
@@ -132,9 +129,12 @@ impl FullAttention {
                 )
             })
             .collect();
-        let mask = Tensor::from_vec(mask, (seq, seq), &Device::Cpu)?;
-        let probabilities =
-            ops::softmax_last_dim(&scores.broadcast_add(&mask)?)?;
+        let mask = Tensor::from_vec(mask, (seq, seq), scores.device())?
+            .to_dtype(scores.dtype())?;
+        let probabilities = ops::softmax_last_dim(
+            &scores.broadcast_add(&mask)?.to_dtype(DType::F32)?,
+        )?
+        .to_dtype(query.dtype())?;
         let output = probabilities
             .matmul(&value)?
             .transpose(0, 1)?
@@ -147,10 +147,8 @@ impl Module for FullAttention {
     /// Mixes an unpadded `[seq, hidden_size]` sequence at positions `0..seq`.
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
         let (seq, _) = x.dims2()?;
-        if seq == 0 || !x.device().is_cpu() || x.dtype() != DType::F32 {
-            candle_core::bail!(
-                "full attention requires a nonempty CPU/F32 sequence"
-            )
+        if seq == 0 {
+            candle_core::bail!("full attention requires a nonempty sequence")
         }
         let query_gate = self.q_proj.forward(x)?;
         let key = self.k_proj.forward(x)?;
@@ -183,7 +181,7 @@ fn repeat_kv(x: &Tensor, groups: usize) -> Result<Tensor> {
 mod tests {
     use std::path::Path;
 
-    use candle_core::safetensors::MmapedSafetensors;
+    use candle_core::{Device, safetensors::MmapedSafetensors};
 
     use super::*;
 

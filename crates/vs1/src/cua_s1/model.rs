@@ -1,4 +1,4 @@
-use candle_core::{DType, Device, Tensor};
+use candle_core::{DType, Tensor};
 use candle_nn::{Module, ops};
 
 use super::{
@@ -83,7 +83,7 @@ pub struct CuaS1Prediction {
     pub probabilities: Vec<f32>,
 }
 
-/// Qwen3.5 text decoder for one unpadded CPU/F32 sequence, without a cache.
+/// Qwen3.5 text decoder for one unpadded sequence, without a cache.
 pub struct TextModel {
     embed_tokens: Tensor,
     layers: Vec<DecoderLayer>,
@@ -105,14 +105,9 @@ impl TextModel {
                 "text decoder requires tied embeddings and one mixer type per layer".into(),
             ));
         }
-        let embed_tokens =
-            weights.tensor("model.language_model.embed_tokens.weight")?;
-        if !embed_tokens.device().is_cpu() || embed_tokens.dtype() != DType::F32
-        {
-            return Err(SystemOneError::Config(
-                "text decoder requires CPU/F32 text weights".into(),
-            ));
-        }
+        // Keep the tied embedding table on the CPU; only selected rows move.
+        let embed_tokens = weights
+            .load_cpu_tensor("model.language_model.embed_tokens.weight")?;
         if embed_tokens.dims() != [config.vocab_size, config.hidden_size] {
             return Err(SystemOneError::Config(
                 "embedding dimensions do not match the text config".into(),
@@ -153,8 +148,14 @@ impl TextModel {
                     .into(),
             ));
         }
-        let ids = Tensor::new(input.input_ids.as_slice(), &Device::Cpu)?;
-        let mut hidden = self.embed_tokens.index_select(&ids, 0)?;
+        let ids = Tensor::new(
+            input.input_ids.as_slice(),
+            self.embed_tokens.device(),
+        )?;
+        let mut hidden = self
+            .embed_tokens
+            .index_select(&ids, 0)?
+            .to_device(self.norm.device())?;
         for layer in &self.layers {
             hidden = layer.forward(&hidden)?;
         }
@@ -168,10 +169,16 @@ impl TextModel {
     ) -> Result<CuaS1Prediction> {
         let last = hidden.narrow(0, hidden.dim(0)? - 1, 1)?;
         let last = normalize_rms(&last, &self.norm, self.rms_norm_eps)?;
-        let ids = Tensor::new(letter_ids, &Device::Cpu)?;
+        let ids = Tensor::new(letter_ids, self.embed_tokens.device())?;
         // Gather before projecting: never materialize full-vocabulary logits.
-        let embeddings = self.embed_tokens.index_select(&ids, 0)?;
-        let logits = last.matmul(&embeddings.t()?)?.squeeze(0)?;
+        let embeddings = self
+            .embed_tokens
+            .index_select(&ids, 0)?
+            .to_device(hidden.device())?;
+        let logits = last
+            .matmul(&embeddings.t()?)?
+            .squeeze(0)?
+            .to_dtype(DType::F32)?;
         let probabilities = ops::softmax_last_dim(&logits)?.to_vec1::<f32>()?;
         Ok(CuaS1Prediction {
             logits: logits.to_vec1::<f32>()?,
@@ -184,7 +191,7 @@ impl TextModel {
 mod tests {
     use std::path::Path;
 
-    use candle_core::safetensors::MmapedSafetensors;
+    use candle_core::{Device, safetensors::MmapedSafetensors};
     use serde::Deserialize;
 
     use super::*;

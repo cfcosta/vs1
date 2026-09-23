@@ -26,7 +26,7 @@ pub struct CuaS1OptionPrediction {
     pub probability: f32,
 }
 
-/// Local Cua-S1 text decision model, supported on CPU in F32.
+/// Local Cua-S1 text decision model, supported on CPU/F32 and CUDA/BF16.
 pub struct CuaS1 {
     model: TextModel,
     tokenizer: Tokenizer,
@@ -35,7 +35,7 @@ pub struct CuaS1 {
 pub struct CuaS1Builder {
     adapter_repo: String,
     device: Device,
-    dtype: DType,
+    dtype: Option<DType>,
     local_directories: Option<(PathBuf, PathBuf)>,
 }
 
@@ -44,8 +44,9 @@ impl CuaS1Builder {
         self.device = device;
         self
     }
+    /// Defaults to BF16 on CUDA and F32 on CPU.
     pub fn with_dtype(mut self, dtype: DType) -> Self {
-        self.dtype = dtype;
+        self.dtype = Some(dtype);
         self
     }
     /// Loads both checkpoints locally without contacting the Hub.
@@ -65,9 +66,25 @@ impl TryFrom<CuaS1Builder> for CuaS1 {
     type Error = SystemOneError;
 
     fn try_from(builder: CuaS1Builder) -> Result<Self> {
-        if !builder.device.is_cpu() || builder.dtype != DType::F32 {
+        let dtype = builder.dtype.unwrap_or_else(|| {
+            if builder.device.is_cuda() && cfg!(feature = "cuda") {
+                DType::BF16
+            } else {
+                DType::F32
+            }
+        });
+        if builder.device.is_cuda() && dtype == DType::F32 {
             return Err(SystemOneError::Config(
-                "Cua-S1 supports only CPU with F32 dtype".into(),
+                "Cua-S1 F32 weights on CUDA do not fit in 12 GB of GPU memory; use BF16".into(),
+            ));
+        }
+        if !(builder.device.is_cpu() && dtype == DType::F32
+            || builder.device.is_cuda()
+                && cfg!(feature = "cuda")
+                && dtype == DType::BF16)
+        {
+            return Err(SystemOneError::Config(
+                "Cua-S1 supports only CPU with F32 or CUDA with BF16 dtype (requires the cuda feature)".into(),
             ));
         }
         let (base_directory, adapter_directory) =
@@ -84,7 +101,7 @@ impl TryFrom<CuaS1Builder> for CuaS1 {
             &base_directory,
             Some(&adapter_directory),
             &builder.device,
-            builder.dtype,
+            dtype,
         )?;
         Ok(Self {
             model: TextModel::load(&mut weights, &config)?,
@@ -133,12 +150,12 @@ fn download_checkpoints(adapter_repo: &str) -> Result<(PathBuf, PathBuf)> {
 
 impl CuaS1 {
     /// Loads `adapter_repo` at [`ADAPTER_REVISION`] over the pinned base.
-    /// Defaults to CPU/F32; other devices and dtypes are rejected.
+    /// Defaults to CPU/F32, or BF16 when selecting CUDA with the `cuda` feature.
     pub fn from(adapter_repo: &str) -> CuaS1Builder {
         CuaS1Builder {
             adapter_repo: adapter_repo.into(),
             device: Device::Cpu,
-            dtype: DType::F32,
+            dtype: None,
             local_directories: None,
         }
     }

@@ -72,13 +72,22 @@ impl TextWeights {
 
     /// Fetches an unmerged tensor by its full checkpoint name.
     pub fn tensor(&self, name: &str) -> Result<Tensor> {
-        Ok(self.load_base_tensor(name)?.to_dtype(self.dtype)?)
+        Ok(self
+            .load_base_tensor(name, &self.device)?
+            .to_dtype(self.dtype)?)
+    }
+
+    /// Loads an unmerged tensor directly on the CPU in the model dtype.
+    pub(super) fn load_cpu_tensor(&self, name: &str) -> Result<Tensor> {
+        Ok(self
+            .load_base_tensor(name, &Device::Cpu)?
+            .to_dtype(self.dtype)?)
     }
 
     /// Returns the base weight with the LoRA delta merged in, unchanged when
     /// the module has no adapter.
     pub fn linear_weight(&mut self, name: &str) -> Result<Tensor> {
-        let base = self.load_base_tensor(name)?;
+        let base = self.load_base_tensor(name, &self.device)?;
         let merged = match &mut self.adapter {
             Some(adapter) => adapter.merge(name, &base)?,
             None => base,
@@ -94,13 +103,13 @@ impl TextWeights {
         Ok(())
     }
 
-    fn load_base_tensor(&self, name: &str) -> Result<Tensor> {
+    fn load_base_tensor(&self, name: &str, device: &Device) -> Result<Tensor> {
         if !self.weight_names.contains(name) {
             return Err(SystemOneError::Config(format!(
                 "weight is not in the text checkpoint index: {name}"
             )));
         }
-        Ok(self.base.load(name, &self.device)?)
+        Ok(self.base.load(name, device)?)
     }
 }
 

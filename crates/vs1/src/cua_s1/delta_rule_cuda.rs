@@ -129,10 +129,6 @@ impl CustomOp3 for DeltaRule {
 }
 
 /// Applies the recurrence with repeated, normalized/scaled Q/K and `exp(g)` decay.
-#[allow(
-    dead_code,
-    reason = "The CUDA recurrence is not wired into the model yet"
-)]
 pub(crate) fn apply_delta_rule(
     query: &Tensor,
     key: &Tensor,

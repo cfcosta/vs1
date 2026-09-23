@@ -12,7 +12,7 @@ use super::{
 };
 use crate::SystemOneError;
 
-/// Gated delta-rule attention for one CPU/F32 sequence, without a cache.
+/// Gated delta-rule attention for one sequence, without a cache.
 pub struct GatedDeltaNet {
     in_proj_qkv: Linear,
     in_proj_z: Linear,
@@ -58,11 +58,6 @@ impl GatedDeltaNet {
         let prefix = format!("model.language_model.layers.{layer}.linear_attn");
         let qkv_weight =
             weights.linear_weight(&format!("{prefix}.in_proj_qkv.weight"))?;
-        if !qkv_weight.device().is_cpu() || qkv_weight.dtype() != DType::F32 {
-            return Err(SystemOneError::Config(
-                "DeltaNet requires CPU/F32 text weights".into(),
-            ));
-        }
         let conv_weight = weights.tensor(&format!("{prefix}.conv1d.weight"))?;
         let channels =
             2 * config.linear_num_key_heads * config.linear_key_head_dim
@@ -124,14 +119,28 @@ impl GatedDeltaNet {
             self.value_head_dim,
         ))?;
         let groups = self.num_value_heads / self.num_key_heads;
-        let query = repeat_key_heads(&query, groups)?;
-        let key = repeat_key_heads(&key, groups)?;
+        let query = repeat_key_heads(&query, groups)?.to_dtype(DType::F32)?;
+        let key = repeat_key_heads(&key, groups)?.to_dtype(DType::F32)?;
         let query = (normalize_l2(&query)?
             * (self.key_head_dim as f64).sqrt().recip())?;
         let key = normalize_l2(&key)?;
-        let beta = ops::sigmoid(b)?;
+        let value = value.to_dtype(DType::F32)?.contiguous()?;
+        let beta = ops::sigmoid(b)?.to_dtype(DType::F32)?;
         let g = compute_log_decay(a, &self.a_log, &self.dt_bias)?;
-        apply_delta_rule(&query, &key, &value, &beta, &g.exp()?)
+        let decay = g.exp()?;
+        #[cfg(feature = "cuda")]
+        if mixed.device().is_cuda() {
+            return super::delta_rule_cuda::apply_delta_rule(
+                &query.contiguous()?,
+                &key.contiguous()?,
+                &value,
+                &beta.contiguous()?,
+                &decay.contiguous()?,
+            )?
+            .to_dtype(mixed.dtype());
+        }
+        apply_delta_rule(&query, &key, &value, &beta, &decay)?
+            .to_dtype(mixed.dtype())
     }
 }
 
@@ -139,8 +148,8 @@ impl Module for GatedDeltaNet {
     /// Mixes an unpadded `[seq, hidden_size]` sequence from a zero state.
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
         let (seq, _) = x.dims2()?;
-        if seq == 0 || !x.device().is_cpu() || x.dtype() != DType::F32 {
-            candle_core::bail!("DeltaNet requires a nonempty CPU/F32 sequence")
+        if seq == 0 {
+            candle_core::bail!("DeltaNet requires a nonempty sequence")
         }
         let mixed = self.in_proj_qkv.forward(x)?;
         let a = self.in_proj_a.forward(x)?;
@@ -161,26 +170,19 @@ impl Module for GatedDeltaNet {
 }
 
 fn convolve_causally(x: &Tensor, weight: &Tensor) -> Result<Tensor> {
-    let (seq, channels) = x.dims2()?;
+    let (_, channels) = x.dims2()?;
     let (weight_channels, channels_per_group, kernel) = weight.dims3()?;
     if weight_channels != channels || channels_per_group != 1 || kernel == 0 {
         candle_core::bail!(
             "causal depthwise convolution requires [channels, 1, kernel] weights"
         )
     }
-    let x = x.to_vec2::<f32>()?;
-    let weight = weight.squeeze(1)?.to_vec2::<f32>()?;
-    let mut output = vec![0f32; seq * channels];
-    for t in 0..seq {
-        for channel in 0..channels {
-            // The last tap multiplies this token; earlier taps see left padding.
-            for tap in (kernel - 1).saturating_sub(t)..kernel {
-                output[t * channels + channel] +=
-                    x[t + tap + 1 - kernel][channel] * weight[channel][tap];
-            }
-        }
-    }
-    Tensor::from_vec(output, (seq, channels), &Device::Cpu)
+    x.t()?
+        .unsqueeze(0)?
+        .pad_with_zeros(2, kernel - 1, 0)?
+        .conv1d(weight, 0, 1, 1, channels)?
+        .squeeze(0)?
+        .t()
 }
 
 fn repeat_key_heads(x: &Tensor, groups: usize) -> Result<Tensor> {
@@ -196,16 +198,14 @@ fn compute_log_decay(
     a_log: &Tensor,
     dt_bias: &Tensor,
 ) -> Result<Tensor> {
-    let shifted = a.broadcast_add(dt_bias)?;
+    let shifted = a
+        .to_dtype(DType::F32)?
+        .broadcast_add(&dt_bias.to_dtype(DType::F32)?)?;
     // PyTorch softplus switches to its linear branch above 20.
-    let softplus: Vec<_> = shifted
-        .flatten_all()?
-        .to_vec1::<f32>()?
-        .into_iter()
-        .map(|x| if x > 20. { x } else { x.exp().ln_1p() })
-        .collect();
-    let softplus = Tensor::from_vec(softplus, a.shape(), &Device::Cpu)?;
-    softplus.broadcast_mul(&a_log.exp()?.neg()?)
+    let softplus =
+        (shifted.clamp(f32::NEG_INFINITY, 20.)?.exp()? + 1.)?.log()?;
+    let softplus = shifted.gt(20.)?.where_cond(&shifted, &softplus)?;
+    softplus.broadcast_mul(&a_log.to_dtype(DType::F32)?.exp()?.neg()?)
 }
 
 /// Applies the recurrence from a zero state with precomputed `exp(g)` decay.
@@ -387,6 +387,23 @@ mod tests {
             &expected,
             1e-6,
         );
+    }
+
+    #[test]
+    fn computes_log_decay_in_f32_before_adding_bf16_bias() {
+        let a = Tensor::new(&[[20f32]], &Device::Cpu)
+            .unwrap()
+            .to_dtype(DType::BF16)
+            .unwrap();
+        let a_log = Tensor::zeros(1, DType::BF16, &Device::Cpu).unwrap();
+        let dt_bias = Tensor::new(&[0.015625f32], &Device::Cpu)
+            .unwrap()
+            .to_dtype(DType::BF16)
+            .unwrap();
+        let output = compute_log_decay(&a, &a_log, &dt_bias).unwrap();
+        assert_eq!(output.dtype(), DType::F32);
+        // BF16 addition would round the shifted input back to 20.
+        assert_eq!(output.to_vec2::<f32>().unwrap(), [[-20.015625]]);
     }
 
     #[test]

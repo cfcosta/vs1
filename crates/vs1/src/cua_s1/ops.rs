@@ -45,7 +45,7 @@ pub fn normalize_l2(x: &Tensor) -> Result<Tensor> {
         .to_dtype(input_dtype)
 }
 
-/// Bias-free Qwen3.5 MLP, with F32 gate, up and down projection weights.
+/// Bias-free Qwen3.5 MLP, with gate, up and down projections in the model dtype.
 pub struct Mlp {
     gate_proj: Linear,
     up_proj: Linear,
@@ -59,20 +59,18 @@ impl Mlp {
         down_weight: Tensor,
     ) -> Result<Self> {
         Ok(Self {
-            gate_proj: Linear::new(gate_weight.to_dtype(DType::F32)?, None),
-            up_proj: Linear::new(up_weight.to_dtype(DType::F32)?, None),
-            down_proj: Linear::new(down_weight.to_dtype(DType::F32)?, None),
+            gate_proj: Linear::new(gate_weight, None),
+            up_proj: Linear::new(up_weight, None),
+            down_proj: Linear::new(down_weight, None),
         })
     }
 }
 
 impl Module for Mlp {
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
-        let input_dtype = x.dtype();
-        let x = x.to_dtype(DType::F32)?;
-        let gated = (self.gate_proj.forward(&x)?.silu()?
-            * self.up_proj.forward(&x)?)?;
-        self.down_proj.forward(&gated)?.to_dtype(input_dtype)
+        let gated =
+            (self.gate_proj.forward(x)?.silu()? * self.up_proj.forward(x)?)?;
+        self.down_proj.forward(&gated)
     }
 }
 
@@ -210,8 +208,26 @@ mod tests {
     }
 
     #[test]
-    fn projects_silu_gated_mlp_in_f32_and_restores_input_dtype() {
-        for dtype in [DType::F32, DType::F16, DType::BF16] {
+    fn projects_silu_gated_mlp_in_input_dtype() {
+        // CPU matmul supports F16 but not BF16. The F16 expectations
+        // include intermediate rounding.
+        for (dtype, expected) in [
+            (
+                DType::F32,
+                [8.70167, -0.5795272, -3.162_64, 0.71521753, 0., 0.],
+            ),
+            (
+                DType::F16,
+                [
+                    8.695_312_5,
+                    -0.580_566_4,
+                    -3.162_109_4,
+                    0.715_332_03,
+                    0.,
+                    0.,
+                ],
+            ),
+        ] {
             let gate_weight =
                 Tensor::new(&[[1f32, 0.], [0., 1.], [1., -1.]], &Device::Cpu)
                     .unwrap()
@@ -238,11 +254,7 @@ mod tests {
             assert_eq!(output.dims(), x.dims());
             // First row: gate = [1, 2, -1], up = [3, 2, -2].
             // Second row: gate = [-1, 1, -2], up = [0, -2, -1].
-            assert_values(
-                &output,
-                &[8.70167, -0.5795272, -3.162_64, 0.71521753, 0., 0.],
-                1e-6,
-            );
+            assert_values(&output, &expected, 1e-6);
         }
     }
 
