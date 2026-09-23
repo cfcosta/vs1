@@ -7,6 +7,35 @@ compute workload ran during measurements (a small docbert process was
 resident). Raw paired reports are retained here; scratch output lives in the
 ignored `artifacts/residual-norm-wide/` and sibling directories.
 
+## Summary
+
+| #   | Experiment                                 | Outcome              |
+| --- | ------------------------------------------ | -------------------- |
+| 1   | Warp-per-row width-1024 residual LayerNorm | accepted             |
+| 2   | Same kernel for head/embedding norms       | rejected (noise)     |
+| 3   | Fused head bias add + ReLU                 | accepted             |
+| 4   | FFN activation + gate as one dual GEMM     | accepted             |
+| 4b  | Dual GEMM below 2048 rows                  | rejected (not exact) |
+| 5a  | Eight-wide GeGLU kernel                    | rejected (noise)     |
+| 5b  | Eight-column rotary kernel                 | rejected (noise)     |
+
+All three accepted changes toggled together against the original runtime
+(`paired_kernel_bandwidth`, 40 AB/BA pairs per workload, every call exact):
+
+| Workload      | First run p50 ms |  Change | Faster |  Repeat | Faster |
+| ------------- | ---------------- | ------: | -----: | ------: | -----: |
+| 1             | 5.91 -> 5.69     |  -3.36% |  40/40 |  -3.94% |  34/40 |
+| 8             | 23.17 -> 21.89   |  -5.45% |  39/40 |  -5.61% |  38/40 |
+| 32            | 76.95 -> 67.11   | -12.42% |  40/40 | -12.72% |  40/40 |
+| 64            | 153.42 -> 137.06 | -11.47% |  40/40 | -12.02% |  40/40 |
+| 128           | 315.93 -> 276.66 | -11.59% |  40/40 | -10.73% |  40/40 |
+| mixed128      | 449.53 -> 391.49 | -11.95% |  40/40 |  -9.80% |  40/40 |
+| shared128     | 320.80 -> 296.71 | -10.63% |  38/40 | -11.33% |  40/40 |
+| browser_call3 | 19.13 -> 18.08   |  -5.04% |  38/40 |  -5.84% |  35/40 |
+| browser_call5 | 33.77 -> 31.65   |  -5.73% |  40/40 |  -5.66% |  34/40 |
+
+Reports: `combined-paired.json`, `combined-paired-repeat.json`.
+
 ## Motivation
 
 The round-5 CUPTI trace (`../cuda-optimization/14-kernels-128.tsv`) put

@@ -239,14 +239,35 @@ pub(crate) fn run_paired_model(
     cases: Vec<(String, Vec<SystemOneRequest>)>,
     model: SystemOne,
 ) -> anyhow::Result<()> {
+    run_paired_model_many(&[reference], cases, model)
+}
+
+/// Like `run_paired_model`, with every switch in `references` toggled
+/// together to compare several changes against their combined reference.
+pub(crate) fn run_paired_model_many(
+    references: &[&'static std::sync::atomic::AtomicBool],
+    cases: Vec<(String, Vec<SystemOneRequest>)>,
+    model: SystemOne,
+) -> anyhow::Result<()> {
     use std::sync::atomic::Ordering;
-    struct Reset(&'static std::sync::atomic::AtomicBool);
-    impl Drop for Reset {
+    struct Reset<'a>(&'a [&'static std::sync::atomic::AtomicBool]);
+    impl Drop for Reset<'_> {
         fn drop(&mut self) {
-            self.0.store(false, Ordering::Relaxed);
+            for reference in self.0 {
+                reference.store(false, Ordering::Relaxed);
+            }
         }
     }
-    let _reset = Reset(reference);
+    let _reset = Reset(references);
+    struct All<'a>(&'a [&'static std::sync::atomic::AtomicBool]);
+    impl All<'_> {
+        fn store(&self, value: bool, order: Ordering) {
+            for reference in self.0 {
+                reference.store(value, order);
+            }
+        }
+    }
+    let reference = All(references);
     let mut report = vec![];
     for (name, requests) in cases {
         reference.store(true, Ordering::Relaxed);
@@ -289,6 +310,21 @@ pub(crate) fn run_paired_model(
         std::fs::write(path, serde_json::to_vec_pretty(&report)?)?;
     }
     Ok(())
+}
+
+/// All accepted changes from research/kernel-bandwidth together.
+#[test]
+#[ignore = "requires CUDA and checkpoint; run alone"]
+fn paired_kernel_bandwidth() -> anyhow::Result<()> {
+    run_paired_model_many(
+        &[
+            &crate::residual_norm_cuda::REFERENCE_WIDE,
+            &crate::bias_act_cuda::REFERENCE_BIAS,
+            &crate::cutlass_geglu::REFERENCE_DUAL,
+        ],
+        cases(),
+        model()?,
+    )
 }
 
 #[test]
