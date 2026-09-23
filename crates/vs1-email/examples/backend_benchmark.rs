@@ -92,8 +92,7 @@ fn default_audit(backend: &str) -> &'static str {
 }
 fn resolve_audit_budget(backend: &str, mode: &str) -> Result<Option<usize>> {
     if backend == "cua-s1" {
-        // Cua-S1 accepts up to 26 candidates and applies its own prompt limit.
-        // Keep original requests; budgeted audit modes are OpenJev-only.
+        // Budgeted audit modes are OpenJev-only.
         ensure!(
             mode == "original",
             "cua-s1 supports only original audit mode"
@@ -147,6 +146,71 @@ fn direct(config: &Config, email: &Email) -> SystemOneRequest {
     request.questions.insert("category".into(), serde_json::from_value(json!({"type":"choice","instructions":instructions,"criteria":criteria})).unwrap());
     request
 }
+struct EmailChunks {
+    offset: usize,
+    lengths: Vec<usize>,
+}
+fn split_requests(
+    emails: &[Email],
+    request_for: impl Fn(&Email) -> Result<SystemOneRequest>,
+    mut fits: impl FnMut(&SystemOneRequest) -> Result<bool>,
+) -> Result<(Vec<SystemOneRequest>, Vec<EmailChunks>)> {
+    let mut requests = Vec::new();
+    let mut jobs = Vec::new();
+    for email in emails {
+        let mut part = email.clone();
+        let bodies = vs1_email::split_body(&email.body, &mut |body| {
+            part.body = body.into();
+            fits(&request_for(&part)?)
+        })
+        .with_context(|| format!("cannot chunk {}", email.path.display()))?;
+        let offset = requests.len();
+        let mut lengths = Vec::new();
+        for body in bodies {
+            part.body = body.into();
+            requests.push(request_for(&part)?);
+            lengths.push(body.chars().count());
+        }
+        jobs.push(EmailChunks { offset, lengths });
+    }
+    Ok((requests, jobs))
+}
+fn calculate_confidence(probs: &Value) -> f32 {
+    let probs = probs.as_object().unwrap();
+    let entropy: f64 = probs
+        .values()
+        .map(|p| p.as_f64().unwrap())
+        .filter(|p| *p > 0.0)
+        .map(|p| -p * p.ln())
+        .sum();
+    (1.0 - entropy / (probs.len() as f64).ln()).clamp(0.0, 1.0) as f32
+}
+fn record_jev_classification(
+    config: &Config,
+    email: &Email,
+    lengths: &[usize],
+    outputs: &[Value],
+    probabilities: &[Value],
+    pooled: &Value,
+) -> Result<Value> {
+    let mut usage = vs1::Usage::default();
+    let mut evidence = Vec::new();
+    let model = &outputs.first().context("no chunks")?["model"];
+    for ((chars, output), probs) in
+        lengths.iter().zip(outputs).zip(probabilities)
+    {
+        ensure!(&output["model"] == model, "mixed models in one email");
+        let chunk_usage: vs1::Usage =
+            serde_json::from_value(output["usage"].clone())?;
+        usage.input_tokens += chunk_usage.input_tokens;
+        usage.output_tokens += chunk_usage.output_tokens;
+        let decisions = json!({"provider":output,"evaluated":[{"candidates":config.rules().iter().map(|r| &r.category).collect::<Vec<_>>(),"answers":output["answers"]}]});
+        evidence.push(json!({"decisions":decisions,"body_chars":chars,"category":winner(probs),"confidence":calculate_confidence(probs),"probabilities":probs,"usage":chunk_usage}));
+    }
+    Ok(
+        json!({"path":email.path,"message_id":email.message_id,"subject":email.subject,"category":winner(pooled),"confidence":calculate_confidence(pooled),"probabilities":pooled,"model":model,"usage":usage,"chunks":evidence,"decisions":null}),
+    )
+}
 #[derive(Default, serde::Serialize)]
 struct Metrics {
     calls: usize,
@@ -188,7 +252,7 @@ fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     ensure!(
         (4..=6).contains(&args.len()),
-        "ROOT export|laya|jev|openjev|openjev-bf16|cua-s1 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]\ncua-s1: original only (default), full descriptions, state truncated to the model's default prompt limit, at most 26 candidates; prepare is OpenJev-only"
+        "ROOT export|laya|jev|openjev|openjev-bf16|cua-s1 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]\nAll backends split complete requests at their model context limit and pool chunks by body character count; Laya keeps its per-chunk tournament. OpenJev audit modes configure max_len (original/compact1024: 1024, compact512/plain512: 512). Retrieval fit checks use exactly the context sent. cua-s1: original only (default), full descriptions, at most 26 candidates; prepare is OpenJev-only. Summary context_tokens records the model limit; budget retains the audit setting."
     );
     let root = Path::new(&args[1]);
     let backend = args[2].as_str();
@@ -266,6 +330,7 @@ fn main() -> Result<()> {
     let mut http = json!({"calls":0,"attempts":0,"retries":0,"successes":0});
     let load_seconds;
     let run_seconds;
+    let context_tokens;
     let mut records = Vec::<Value>::new();
     let mut chunk_states = Vec::<Value>::new();
     match backend {
@@ -277,6 +342,7 @@ fn main() -> Result<()> {
                     .with_dtype(candle_core::DType::BF16)
                     .with_batch_size(16)
                     .try_into()?;
+            context_tokens = model.context_tokens();
             eprintln!(
                 "{} {:?} {:?}",
                 model.model_name(),
@@ -290,11 +356,11 @@ fn main() -> Result<()> {
                 &mailbox,
                 16,
                 &mut |r| {
-                    let mode = retrieval_fit_mode(retrieval_mode);
-                    vs1_email::request_fits(
-                        &model,
-                        &retrieval_request(r, &examples, mode)?,
-                    )
+                    Ok(model.request_fits(&retrieval_request(
+                        r,
+                        &examples,
+                        retrieval_mode,
+                    )?)?)
                 },
                 &mut |rs| {
                     for r in rs.iter().filter(|r| r.questions.len() > 1) {
@@ -322,80 +388,64 @@ fn main() -> Result<()> {
             }
             records.push(serde_json::to_value(report)?);
         }
-        "jev" => {
-            let client = vs1::JevClient::new(
-                std::env::var("TYPESAFE_API_KEY")?,
-                "jev-1.13.0",
-            )?;
-            load_seconds = load.elapsed().as_secs_f64();
-            let run = Instant::now();
-            let report = vs1_email::dry_run_single_choice_with_progress(
-                &config,
-                &mailbox,
-                16,
-                &mut |rs| {
-                    let mut sum = 0.0;
-                    let result = metrics.measure(rs, || {
-                        std::thread::scope(|scope| {
-                            let handles = rs
-                                .iter()
-                                .map(|r| {
-                                    let client = &client;
-                                    scope.spawn(move || {
-                                        let start = Instant::now();
-                                        let result = client.system_one(r);
-                                        (result, start.elapsed().as_secs_f64())
-                                    })
-                                })
-                                .collect::<Vec<_>>();
-                            let mut results = Vec::new();
-                            for handle in handles {
-                                let (result, seconds) = handle
-                                    .join()
-                                    .expect("request worker panicked");
-                                sum += seconds;
-                                results.push(result);
-                            }
-                            results
-                                .into_iter()
-                                .map(|r| r.map_err(Into::into))
-                                .collect()
-                        })
-                    });
-                    metrics.hosted_request_seconds_sum += sum;
-                    result
-                },
-                &mut |_| Ok(()),
-            )?;
-            run_seconds = run.elapsed().as_secs_f64();
-            http = serde_json::to_value(client.stats())?;
-            ensure!(report.failures.is_empty(), "Jev mailbox failures");
-            for c in &report.classifications {
-                chunks += c.chunks.len();
-                predictions.insert(
-                    c.path.file_name().unwrap().to_str().unwrap().into(),
-                    Some(c.category.clone()),
-                );
-            }
-            records.push(serde_json::to_value(report)?);
-        }
-        "openjev" | "openjev-bf16" => {
-            let budget = budget.context("OpenJev requires a token budget")?;
-            let (dtype, batch_size) = openjev_settings(backend);
-            // One extra token makes truncation detectable.
-            let model: vs1::OpenJev =
-                vs1::OpenJev::from("artifacts/openjev/checkpoint")
-                    .with_device(candle_core::Device::new_cuda(0)?)
-                    .with_dtype(dtype)
-                    .with_max_len(budget + 1)
-                    .with_batch_size(batch_size)
-                    .try_into()?;
-            eprintln!(
-                "{} {:?} {:?}; effective budget {budget}",
-                model.model_name(),
-                model.device(),
-                model.dtype()
-            );
+        "jev" | "openjev" | "openjev-bf16" | "cua-s1" => {
+            let batch_size = if backend.starts_with("openjev") {
+                openjev_settings(backend).1
+            } else {
+                16
+            };
+            let model: vs1::DecisionModel = match backend {
+                "jev" => {
+                    ensure!(
+                        config.rules().len() <= 255,
+                        "Jev supports at most 255 categories"
+                    );
+                    vs1::JevClient::new(
+                        std::env::var("TYPESAFE_API_KEY")?,
+                        "jev-1.13.0",
+                    )?
+                    .into()
+                }
+                "openjev" | "openjev-bf16" => {
+                    let budget =
+                        budget.context("OpenJev requires a token budget")?;
+                    let model: vs1::OpenJev =
+                        vs1::OpenJev::from("artifacts/openjev/checkpoint")
+                            .with_device(candle_core::Device::new_cuda(0)?)
+                            .with_dtype(openjev_settings(backend).0)
+                            .with_max_len(budget)
+                            .with_batch_size(batch_size)
+                            .try_into()?;
+                    eprintln!(
+                        "{} {:?} {:?}; effective budget {budget}",
+                        model.model_name(),
+                        model.device(),
+                        model.dtype()
+                    );
+                    model.into()
+                }
+                "cua-s1" => {
+                    ensure!(
+                        config.rules().len() <= 26,
+                        "cua-s1 supports at most 26 categories"
+                    );
+                    let model: vs1::CuaS1 =
+                        vs1::CuaS1::from(vs1::cua_s1::DEFAULT_REPO_ID)
+                            .with_device(candle_core::Device::new_cuda(0)?)
+                            .with_dtype(candle_core::DType::BF16)
+                            .with_max_len(vs1::cua_s1::DEFAULT_MAX_LEN)
+                            .try_into()?;
+                    eprintln!(
+                        "{} {:?} {:?}",
+                        model.model_name(),
+                        model.device(),
+                        model.dtype()
+                    );
+                    model.into()
+                }
+                _ => unreachable!(),
+            };
+            context_tokens = model.context_tokens();
             load_seconds = load.elapsed().as_secs_f64();
             let run = Instant::now();
             if retrieval_mode == "prepare" {
@@ -405,30 +455,16 @@ fn main() -> Result<()> {
                     let mut part = email.clone();
                     part.body.clear();
                     let base = audit_request(&config, &part, audit_mode)?;
-                    let base_len = model
-                        .build_input(
-                            &base.state.render(),
-                            "category",
-                            &base.questions["category"],
-                        )?
-                        .ids
-                        .len();
-                    ensure!(base_len <= budget, "metadata exceeds budget");
-                    let reserve = 64.min((budget - base_len) / 2);
+                    ensure!(
+                        model.request_fits(&base)?,
+                        "metadata exceeds budget"
+                    );
                     let fitted_row = fit_example_text(
                         examples.get(&key).context("missing examples")?.clone(),
                         |rows| {
                             let map = json!({key.clone():rows});
                             let r = retrieval_request(&base, &map, "full")?;
-                            Ok(model
-                                .build_input(
-                                    &r.state.render(),
-                                    "category",
-                                    &r.questions["category"],
-                                )?
-                                .ids
-                                .len()
-                                <= budget - reserve)
+                            Ok(model.request_fits(&r)?)
                         },
                     )?;
                     fitted[&key] = fitted_row;
@@ -436,51 +472,148 @@ fn main() -> Result<()> {
                 write_new(&root.join("examples-fitted.json"), &fitted)?;
                 return Ok(());
             }
-            let mut inputs = Vec::new();
-            let mut jobs = Vec::new();
-            for email in &mailbox.emails {
-                let mut part = email.clone();
-                let bodies = vs1_email::split_body(&email.body, &mut |body| {
-                    part.body = body.into();
-                    let r = audit_request(&config, &part, audit_mode)?;
-                    let r = retrieval_request(
-                        &r,
-                        &examples,
-                        retrieval_fit_mode(retrieval_mode),
-                    )?;
-                    Ok(model
-                        .build_input(
+            let (requests, jobs) = split_requests(
+                &mailbox.emails,
+                |email| {
+                    let r = audit_request(&config, email, audit_mode)?;
+                    retrieval_request(&r, &examples, retrieval_mode)
+                },
+                |r| Ok(model.request_fits(r)?),
+            )?;
+            for r in &requests {
+                let mut state = serde_json::to_value(&r.state)?;
+                if let Some(o) = state.as_object_mut() {
+                    o.remove("labeled_examples");
+                }
+                chunk_states.push(state);
+            }
+            let mut outputs = Vec::new();
+            let mut probabilities = Vec::new();
+            if let vs1::DecisionModel::OpenJev(model) = &model {
+                let inputs = requests
+                    .iter()
+                    .map(|r| {
+                        model.build_input(
                             &r.state.render(),
                             "category",
                             &r.questions["category"],
-                        )?
-                        .ids
-                        .len()
-                        <= budget)
-                })?;
-                let offset = inputs.len();
-                let mut lengths = Vec::new();
-                for body in &bodies {
-                    part.body = (*body).into();
-                    let r = audit_request(&config, &part, audit_mode)?;
-                    let r = retrieval_request(&r, &examples, retrieval_mode)?;
-                    let input = model.build_input(
-                        &r.state.render(),
-                        "category",
-                        &r.questions["category"],
-                    )?;
-                    ensure!(
-                        input.ids.len() <= budget,
-                        "OpenJev input would truncate"
-                    );
-                    let mut state = serde_json::to_value(&r.state)?;
-                    if let Some(o) = state.as_object_mut() {
-                        o.remove("labeled_examples");
+                        )
+                    })
+                    .collect::<vs1::Result<Vec<_>>>()?;
+                for batch in inputs.chunks(batch_size) {
+                    metrics.calls += batch.len();
+                    metrics.questions += batch.len();
+                    metrics.batch_calls += 1;
+                    let start = Instant::now();
+                    let results = model.predict(batch)?;
+                    let seconds = start.elapsed().as_secs_f64();
+                    metrics.call_wall_seconds += seconds;
+                    metrics.batch_seconds.push(seconds);
+                    for result in results {
+                        chunk_abstentions += usize::from(result.abstained);
+                        probabilities
+                            .push(serde_json::to_value(&result.probabilities)?);
+                        outputs.push(serde_json::to_value(result)?);
                     }
-                    chunk_states.push(state);
-                    inputs.push(input);
-                    lengths.push(body.chars().count());
+                    if outputs.len().is_multiple_of(100) {
+                        eprintln!(
+                            "OpenJev {}/{} chunks",
+                            outputs.len(),
+                            inputs.len()
+                        );
+                    }
                 }
+                write_new(
+                    &root.join(format!("{}.parity.json", args[3])),
+                    &inputs
+                        .iter()
+                        .zip(&outputs)
+                        .take(16)
+                        .map(|(i, p)| json!({"input":i,"prediction":p}))
+                        .collect::<Vec<_>>(),
+                )?;
+            } else {
+                for batch in requests.chunks(batch_size) {
+                    let mut sum = 0.0;
+                    let responses = metrics.measure(batch, || {
+                        if let vs1::DecisionModel::Jev(client) = &model {
+                            std::thread::scope(|scope| {
+                                let handles = batch
+                                    .iter()
+                                    .map(|r| {
+                                        scope.spawn(move || {
+                                            let start = Instant::now();
+                                            let result = client.system_one(r);
+                                            (
+                                                result,
+                                                start.elapsed().as_secs_f64(),
+                                            )
+                                        })
+                                    })
+                                    .collect::<Vec<_>>();
+                                let mut results = Vec::new();
+                                for handle in handles {
+                                    let (result, seconds) = handle
+                                        .join()
+                                        .expect("request worker panicked");
+                                    sum += seconds;
+                                    results.push(result);
+                                }
+                                results
+                                    .into_iter()
+                                    .map(|r| r.map_err(Into::into))
+                                    .collect()
+                            })
+                        } else {
+                            Ok(model.system_one_batch(batch)?)
+                        }
+                    });
+                    metrics.hosted_request_seconds_sum += sum;
+                    let responses = responses?;
+                    ensure!(
+                        responses.len() == batch.len(),
+                        "unexpected {backend} response count"
+                    );
+                    for response in responses {
+                        let answer = response
+                            .answers
+                            .get("category")
+                            .context("missing category answer")?;
+                        let probs = match answer {
+                            vs1::Answer::Choice(a) => &a.probabilities,
+                            vs1::Answer::Abstain(a) => &a.probabilities,
+                            _ => {
+                                anyhow::bail!("expected category choice answer")
+                            }
+                        };
+                        chunk_abstentions += usize::from(matches!(
+                            answer,
+                            vs1::Answer::Abstain(_)
+                        ));
+                        probabilities.push(serde_json::to_value(probs)?);
+                        outputs.push(serde_json::to_value(response)?);
+                    }
+                }
+            }
+            ensure!(
+                outputs.len() == requests.len(),
+                "unexpected {backend} response count"
+            );
+            chunks = outputs.len();
+            let mut classifications = Vec::new();
+            for (email, EmailChunks { offset, lengths }) in
+                mailbox.emails.iter().zip(jobs)
+            {
+                let outputs = &outputs[offset..offset + lengths.len()];
+                let probabilities =
+                    &probabilities[offset..offset + lengths.len()];
+                let probs = pool(
+                    &lengths
+                        .iter()
+                        .copied()
+                        .zip(probabilities.iter().cloned())
+                        .collect::<Vec<_>>(),
+                );
                 let id = email
                     .path
                     .file_name()
@@ -488,124 +621,25 @@ fn main() -> Result<()> {
                     .to_str()
                     .unwrap()
                     .to_owned();
-                jobs.push((id, offset, lengths));
-            }
-            let mut outputs = Vec::new();
-            for batch in inputs.chunks(batch_size) {
-                metrics.calls += batch.len();
-                metrics.questions += batch.len();
-                metrics.batch_calls += 1;
-                let start = Instant::now();
-                let results = model.predict(batch)?;
-                let seconds = start.elapsed().as_secs_f64();
-                metrics.call_wall_seconds += seconds;
-                metrics.batch_seconds.push(seconds);
-                outputs.extend(results);
-                if outputs.len().is_multiple_of(100) {
-                    eprintln!(
-                        "OpenJev {}/{} chunks",
-                        outputs.len(),
-                        inputs.len()
+                predictions.insert(id.clone(), winner(&probs));
+                if backend == "jev" {
+                    classifications.push(record_jev_classification(
+                        &config,
+                        email,
+                        &lengths,
+                        outputs,
+                        probabilities,
+                        &probs,
+                    )?);
+                } else {
+                    records.push(
+                        json!({"id":id,"probabilities":probs,"chunks":outputs}),
                     );
                 }
             }
-            write_new(
-                &root.join(format!("{}.parity.json", args[3])),
-                &inputs
-                    .iter()
-                    .zip(&outputs)
-                    .take(16)
-                    .map(|(i, p)| json!({"input":i,"prediction":p}))
-                    .collect::<Vec<_>>(),
-            )?;
-            chunks = outputs.len();
-            chunk_abstentions = outputs.iter().filter(|p| p.abstained).count();
-            for (id, offset, lengths) in jobs {
-                let outputs = &outputs[offset..offset + lengths.len()];
-                let probs = pool(
-                    &lengths
-                        .iter()
-                        .zip(outputs)
-                        .map(|(n, p)| {
-                            (
-                                *n,
-                                serde_json::to_value(&p.probabilities).unwrap(),
-                            )
-                        })
-                        .collect::<Vec<_>>(),
-                );
-                predictions.insert(id.clone(), winner(&probs));
-                records.push(
-                    json!({"id":id,"probabilities":probs,"chunks":outputs}),
-                );
-            }
-            run_seconds = run.elapsed().as_secs_f64();
-        }
-        "cua-s1" => {
-            ensure!(
-                config.rules().len() <= 26,
-                "cua-s1 supports at most 26 categories"
-            );
-            let model: vs1::CuaS1 =
-                vs1::CuaS1::from(vs1::cua_s1::DEFAULT_REPO_ID)
-                    .with_device(candle_core::Device::new_cuda(0)?)
-                    .with_dtype(candle_core::DType::BF16)
-                    .with_max_len(vs1::cua_s1::DEFAULT_MAX_LEN)
-                    .try_into()?;
-            eprintln!(
-                "{} {:?} {:?}",
-                model.model_name(),
-                model.device(),
-                model.dtype()
-            );
-            load_seconds = load.elapsed().as_secs_f64();
-            let run = Instant::now();
-            for emails in mailbox.emails.chunks(16) {
-                let requests = emails
-                    .iter()
-                    .map(|email| {
-                        let r = audit_request(&config, email, audit_mode)?;
-                        retrieval_request(&r, &examples, retrieval_mode)
-                    })
-                    .collect::<Result<Vec<_>>>()?;
-                let responses = metrics.measure(&requests, || {
-                    Ok(model.system_one_batch(&requests)?)
-                })?;
-                ensure!(
-                    responses.len() == requests.len(),
-                    "unexpected cua-s1 response count"
-                );
-                chunks += responses.len();
-                for ((email, request), response) in
-                    emails.iter().zip(&requests).zip(responses)
-                {
-                    let (prediction, probabilities) = match response
-                        .answers
-                        .get("category")
-                        .context("missing cua-s1 category answer")?
-                    {
-                        vs1::Answer::Choice(a) => {
-                            (Some(a.choice.clone()), &a.probabilities)
-                        }
-                        vs1::Answer::Abstain(a) => (None, &a.probabilities),
-                        _ => anyhow::bail!("expected cua-s1 choice answer"),
-                    };
-                    chunk_abstentions += usize::from(prediction.is_none());
-                    let id = email
-                        .path
-                        .file_name()
-                        .unwrap()
-                        .to_str()
-                        .unwrap()
-                        .to_owned();
-                    predictions.insert(id.clone(), prediction);
-                    records.push(json!({"id":id,"probabilities":probabilities,"chunks":[response]}));
-                    let mut state = serde_json::to_value(&request.state)?;
-                    if let Some(o) = state.as_object_mut() {
-                        o.remove("labeled_examples");
-                    }
-                    chunk_states.push(state);
-                }
+            if let vs1::DecisionModel::Jev(client) = &model {
+                http = serde_json::to_value(client.stats())?;
+                records.push(json!({"dry_run":true,"mailbox":mailbox.path,"failures":mailbox.failures,"classifications":classifications}));
             }
             run_seconds = run.elapsed().as_secs_f64();
         }
@@ -625,7 +659,7 @@ fn main() -> Result<()> {
         &root.join(format!("{}.results.json", args[3])),
         &json!({"predictions":predictions,"records":records}),
     )?;
-    let summary = json!({"backend":backend,"audit_mode":audit_mode,"budget":budget,"messages":count,"retrieval_mode":retrieval_mode,"chunks":chunks,"chunk_abstentions":chunk_abstentions,"abstentions":predicted.iter().filter(|p|p.is_none()).count(),"correct":correct,"labeled":labeled,"labeled_abstentions":labeled_abstentions,"accuracy":correct as f64/labeled as f64,"metrics":metrics,"http":http,"setup_seconds":setup,"load_seconds":load_seconds,"run_seconds":run_seconds,"total_seconds":total.elapsed().as_secs_f64(),"timing":"cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"});
+    let summary = json!({"backend":backend,"audit_mode":audit_mode,"budget":budget,"context_tokens":context_tokens,"messages":count,"retrieval_mode":retrieval_mode,"chunks":chunks,"chunk_abstentions":chunk_abstentions,"abstentions":predicted.iter().filter(|p|p.is_none()).count(),"correct":correct,"labeled":labeled,"labeled_abstentions":labeled_abstentions,"accuracy":correct as f64/labeled as f64,"metrics":metrics,"http":http,"setup_seconds":setup,"load_seconds":load_seconds,"run_seconds":run_seconds,"total_seconds":total.elapsed().as_secs_f64(),"timing":"cold inference; total includes setup, load, run and result serialization; call wall excludes tokenization for native OpenJev only"});
     write_new(&root.join(format!("{}.summary.json", args[3])), &summary)?;
     eprintln!("{summary}");
     Ok(())
@@ -848,7 +882,7 @@ fn fitting_context_shrinks_text_before_dropping_labels() {
 }
 
 #[test]
-fn native_labels_reserve_only_the_context_sent_to_inference() {
+fn native_labels_send_the_same_context_as_labels() {
     let r = SystemOneRequest::new(
         json!({"email":{"subject":"target","date":"now","body":"all target text"}}),
     );
@@ -859,16 +893,172 @@ fn native_labels_reserve_only_the_context_sent_to_inference() {
         serde_json::to_value(native).unwrap(),
         serde_json::to_value(labels).unwrap()
     );
-    assert_eq!(retrieval_fit_mode("labels-native"), "labels");
-    assert_eq!(retrieval_fit_mode("labels"), "full");
-    assert_eq!(retrieval_fit_mode("matched"), "full");
-    assert_eq!(retrieval_fit_mode("none"), "none");
 }
 
-fn retrieval_fit_mode(mode: &str) -> &str {
-    match mode {
-        "none" => "none",
-        "labels-native" => "labels",
-        _ => "full",
+#[cfg(test)]
+fn make_email(body: &str) -> Email {
+    Email {
+        path: "message".into(),
+        message_id: "id".into(),
+        from: "sender".into(),
+        to: "owner".into(),
+        subject: "target".into(),
+        date: "now".into(),
+        body: body.into(),
+    }
+}
+
+#[cfg(test)]
+fn parse_category_config() -> Config {
+    Config::parse("[[rules]]\ncategory = 'bulk'\nwhat = 'announcements'\n[[rules]]\ncategory = 'ops'\nwhat = 'developer notifications'\n").unwrap()
+}
+
+#[test]
+fn splitting_checks_the_exact_audit_and_retrieval_requests() {
+    let config = parse_category_config();
+    let email = make_email(&"á😀日 ".repeat(20));
+    let examples = json!({"target\nnow":[{"subject":"example","body":"long example text","category":"bulk"}]});
+    for audit_mode in ["original", "compact1024", "compact512", "plain512"] {
+        for retrieval_mode in
+            ["none", "matched", "full", "text", "labels", "labels-native"]
+        {
+            if audit_mode == "plain512"
+                && !matches!(retrieval_mode, "none" | "matched")
+            {
+                continue;
+            }
+            let request_for = |email: &Email| {
+                retrieval_request(
+                    &audit_request(&config, email, audit_mode)?,
+                    &examples,
+                    retrieval_mode,
+                )
+            };
+            let empty = make_email("");
+            let limit = serde_json::to_string(&request_for(&empty).unwrap())
+                .unwrap()
+                .chars()
+                .count()
+                + 12;
+            let mut checked = Vec::new();
+            let (requests, jobs) = split_requests(
+                std::slice::from_ref(&email),
+                request_for,
+                |r| {
+                    let serialized = serde_json::to_string(r)?;
+                    let fits = serialized.chars().count() <= limit;
+                    if fits {
+                        checked.push(serialized);
+                    }
+                    Ok(fits)
+                },
+            )
+            .unwrap();
+            assert!(requests.len() > 1, "{audit_mode} {retrieval_mode}");
+            assert_eq!(jobs[0].offset, 0);
+            assert_eq!(
+                jobs[0].lengths.iter().sum::<usize>(),
+                email.body.chars().count()
+            );
+            let mut restored = String::new();
+            for (request, chars) in requests.iter().zip(&jobs[0].lengths) {
+                assert!(
+                    checked.contains(&serde_json::to_string(request).unwrap())
+                );
+                let state = serde_json::to_value(&request.state).unwrap();
+                let body = if audit_mode == "plain512" {
+                    state
+                        .as_str()
+                        .unwrap()
+                        .split_once("\nBody:\n")
+                        .unwrap()
+                        .1
+                        .rsplit_once("\nOwner: ")
+                        .unwrap()
+                        .0
+                } else {
+                    state["email"]["body"].as_str().unwrap()
+                };
+                assert_eq!(body.chars().count(), *chars);
+                restored.push_str(body);
+            }
+            assert_eq!(restored, email.body);
+        }
+    }
+}
+
+#[test]
+fn splitting_preserves_short_and_empty_emails_and_rejects_oversized_metadata() {
+    let config = parse_category_config();
+    let emails = [make_email("short"), make_email("")];
+    let (requests, jobs) = split_requests(
+        &emails,
+        |email| Ok(direct(&config, email)),
+        |_| Ok(true),
+    )
+    .unwrap();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(jobs[0].offset, 0);
+    assert_eq!(jobs[0].lengths, [5]);
+    assert_eq!(jobs[1].offset, 1);
+    assert_eq!(jobs[1].lengths, [0]);
+    assert!(
+        split_requests(
+            &emails,
+            |email| Ok(direct(&config, email)),
+            |_| Ok(false)
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn pooling_weights_empty_chunks_and_keeps_the_first_tied_candidate() {
+    let result = pool(&[
+        (0, json!({"ops":0.75,"bulk":0.25})),
+        (1, json!({"ops":0.25,"bulk":0.75})),
+    ]);
+    assert_eq!(result, json!({"ops":0.5,"bulk":0.5}));
+    assert_eq!(winner(&result).as_deref(), Some("ops"));
+}
+
+#[test]
+fn jev_records_preserve_chunk_evidence_usage_and_pooled_abstentions() {
+    let config = parse_category_config();
+    let email = make_email("abcd");
+    let lengths = [1, 3];
+    let probabilities = [
+        json!({"bulk":0.8,"ops":0.1,"__insufficient_evidence__":0.1}),
+        json!({"bulk":0.1,"ops":0.1,"__insufficient_evidence__":0.8}),
+    ];
+    let outputs = vec![
+        json!({"model":"jev","answers":{"category":{"type":"choice","choice":"bulk","confidence":0.4,"probabilities":probabilities[0]}},"usage":{"input_tokens":10,"output_tokens":0}}),
+        json!({"model":"jev","answers":{"category":{"type":"abstain","question_type":"choice","reason":"insufficient evidence","probabilities":probabilities[1]}},"usage":{"input_tokens":20,"output_tokens":0}}),
+    ];
+    let pooled = pool(
+        &lengths
+            .iter()
+            .copied()
+            .zip(probabilities.iter().cloned())
+            .collect::<Vec<_>>(),
+    );
+    let record = record_jev_classification(
+        &config,
+        &email,
+        &lengths,
+        &outputs,
+        &probabilities,
+        &pooled,
+    )
+    .unwrap();
+    assert_eq!(record["category"], Value::Null);
+    assert_eq!(record["probabilities"], pooled);
+    assert_eq!(record["usage"]["input_tokens"], 30);
+    assert_eq!(record["chunks"][0]["category"], "bulk");
+    assert_eq!(record["chunks"][1]["category"], Value::Null);
+    for (i, output) in outputs.iter().enumerate() {
+        assert_eq!(&record["chunks"][i]["decisions"]["provider"], output);
+        assert_eq!(record["chunks"][i]["body_chars"], lengths[i]);
+        assert_eq!(record["chunks"][i]["probabilities"], probabilities[i]);
     }
 }
