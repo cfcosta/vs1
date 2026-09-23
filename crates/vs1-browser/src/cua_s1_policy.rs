@@ -1,17 +1,21 @@
 use std::collections::HashSet;
 
 use anyhow::{Context, Result, ensure};
-use serde_json::{Value, json};
-use vs1::CuaS1Option;
+use serde::Serialize;
+use serde_json::{Map, Value, json};
+use vs1::{CuaS1Option, CuaS1OptionPrediction};
 
 use crate::policy;
 
+#[derive(Serialize)]
 pub struct Request {
     pub app: String,
     pub task_family: String,
     pub goal: String,
     pub ax_tree: String,
     pub options: Vec<(CuaS1Option, Value)>,
+    #[serde(skip)]
+    space: policy::Space,
 }
 
 pub fn build_request(
@@ -115,7 +119,63 @@ pub fn build_request(
             .context("missing textual state")?
             .into(),
         options,
+        space,
     })
+}
+
+pub fn resolve(
+    request: &Request,
+    predictions: &[CuaS1OptionPrediction],
+) -> Result<Value> {
+    ensure!(
+        predictions.len() == request.options.len()
+            && predictions.iter().zip(&request.options).all(
+                |(prediction, (option, _))| {
+                    prediction.option.element_id == option.element_id
+                }
+            ),
+        "native predictions do not match observed candidates"
+    );
+    ensure!(
+        predictions.iter().filter(|p| p.is_selected).count() == 1,
+        "native predictions must select exactly one option"
+    );
+    let probabilities: Map<String, Value> = predictions
+        .iter()
+        .map(|p| (p.option.element_id.clone(), json!(p.probability)))
+        .collect();
+    let probs: Vec<_> = predictions.iter().map(|p| p.probability).collect();
+    ensure!(
+        probs
+            .iter()
+            .all(|p| p.is_finite() && (0.0..=1.0).contains(p))
+            && (probs.iter().sum::<f32>() - 1.0).abs() < 0.02,
+        "invalid native probability distribution"
+    );
+    // Tournament winners need not maximize the hierarchical probability.
+    let selected = predictions.iter().position(|p| p.is_selected).unwrap();
+    let action = &request.options[selected].1;
+    let mut operation =
+        action["id"].as_str().context("missing ID")?.to_uppercase();
+    let mut target = Value::Null;
+    for (name, candidates) in &request.space.targets {
+        if let Some((index, _)) = candidates
+            .as_object()
+            .unwrap()
+            .iter()
+            .find(|(_, a)| a["id"] == action["id"])
+        {
+            operation = name.clone();
+            target = json!(index);
+            break;
+        }
+    }
+    Ok(
+        json!({"choice":action["id"],"operation":operation,"target":target,"action":action,
+        "confidence":vs1::head::confidence_from_probs(&probs, probs.len()),"probabilities":probabilities,
+        "options":predictions,"model":vs1::cua_s1::MODEL_NAME,
+        "usage":{"input_tokens":null,"output_tokens":0,"forward_passes":predictions[selected].forward_passes}}),
+    )
 }
 
 #[cfg(test)]
@@ -328,6 +388,175 @@ mod tests {
                 .err()
                 .unwrap();
             assert_eq!(error.to_string(), "duplicate action IDs");
+        }
+    }
+
+    fn build_predictions(
+        request: &Request,
+        selected: &str,
+    ) -> Vec<CuaS1OptionPrediction> {
+        request
+            .options
+            .iter()
+            .enumerate()
+            .map(|(index, (option, _))| CuaS1OptionPrediction {
+                letter: (b'A' + (index % 26) as u8) as char,
+                option: option.clone(),
+                logit: 0.0,
+                probability: if option.element_id == selected {
+                    1.0
+                } else {
+                    0.0
+                },
+                is_selected: option.element_id == selected,
+                forward_passes: 1,
+                dropped_state_tokens: 0,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn native_decisions_preserve_resolved_actions_and_target_indices() {
+        let page = page();
+        let native = build_request(&page, "Find a stay", &[], true).unwrap();
+        let (questions, space) =
+            policy::request(&page, "Find a stay", &[], true).unwrap();
+        for (id, operation, target) in [
+            ("e1", "TYPE_TEXT", Some("1")),
+            ("e2", "CLICK", Some("1")),
+            ("e3", "CLICK", Some("2")),
+            ("e4", "CLICK", Some("3")),
+            ("e5", "CLICK", Some("4")),
+            ("e6", "CLICK", Some("5")),
+            ("e7", "SELECT", Some("6:1")),
+            ("e8", "SELECT", Some("6:2")),
+            ("e9", "PRESS_KEY", Some("7:ArrowLeft")),
+            ("e10", "PRESS_KEY", Some("7:ArrowRight")),
+            ("scroll_down", "SCROLL_DOWN", None),
+            ("wait", "WAIT", None),
+            ("DONE", "DONE", None),
+            ("BLOCKED", "BLOCKED", None),
+        ] {
+            let predictions = build_predictions(&native, id);
+            let decision = resolve(&native, &predictions).unwrap();
+            let build_answer = |question: &str, choice: &str| {
+                let probabilities: Map<String, Value> = questions["questions"]
+                    [question]["criteria"]
+                    .as_object()
+                    .unwrap()
+                    .keys()
+                    .map(|id| {
+                        (
+                            id.clone(),
+                            json!(if id == choice { 1.0 } else { 0.0 }),
+                        )
+                    })
+                    .collect();
+                json!({"choice":choice,"confidence":1.0,"probabilities":probabilities})
+            };
+            let mut response = json!({"model":vs1::cua_s1::MODEL_NAME,"answers":{"operation":build_answer("operation", operation)}});
+            if let Some(target) = target {
+                let question = format!("{}_target", operation.to_lowercase());
+                response["answers"][&question] =
+                    build_answer(&question, target);
+            }
+            let expected =
+                policy::resolve(&questions, &space, &response).unwrap();
+            for key in [
+                "choice",
+                "operation",
+                "target",
+                "action",
+                "confidence",
+                "model",
+            ] {
+                assert_eq!(decision[key], expected[key], "{id}: {key}");
+            }
+            assert_eq!(
+                decision["probabilities"].as_object().unwrap().len(),
+                native.options.len()
+            );
+            assert_eq!(decision["probabilities"][id], 1.0);
+            assert_eq!(
+                decision["options"],
+                serde_json::to_value(&predictions).unwrap()
+            );
+            assert_eq!(
+                decision["usage"],
+                json!({"input_tokens":null,"output_tokens":0,"forward_passes":1})
+            );
+        }
+    }
+
+    #[test]
+    fn native_targets_use_the_filtered_element_indices() {
+        let page = page();
+        let history = vec![
+            json!({"before_fingerprint":"same","page_changed":false,"input":page["actions"][2]}),
+        ];
+        let request =
+            build_request(&page, "Find a stay", &history, true).unwrap();
+        let decision =
+            resolve(&request, &build_predictions(&request, "e4")).unwrap();
+        assert_eq!(decision["target"], "2");
+        assert_eq!(decision["action"], page["actions"][3]);
+    }
+
+    #[test]
+    fn native_tournament_keeps_all_options_and_uses_the_selected_winner() {
+        let mut page = page();
+        page["actions"] = json!((1..=28).map(|node| json!({"id":format!("e{node}"),"kind":"click","node":node,"role":"button","label":format!("Button {node}")})).collect::<Vec<_>>());
+        let request =
+            build_request(&page, "Choose a button", &[], true).unwrap();
+        let mut predictions = build_predictions(&request, "e1");
+        for (index, prediction) in predictions.iter_mut().enumerate() {
+            prediction.letter = (b'A' + (index % 15) as u8) as char;
+            prediction.probability = if index < 15 {
+                0.04
+            } else if index == 15 {
+                0.3
+            } else {
+                0.1 / 14.0
+            };
+            prediction.forward_passes = 3;
+            prediction.dropped_state_tokens = 20;
+        }
+        let decision = resolve(&request, &predictions).unwrap();
+        assert_eq!(decision["choice"], "e1");
+        assert_eq!(decision["action"], page["actions"][0]);
+        assert!(
+            decision["probabilities"]["e16"].as_f64().unwrap()
+                > decision["probabilities"]["e1"].as_f64().unwrap()
+        );
+        assert_eq!(decision["options"].as_array().unwrap().len(), 30);
+        assert_eq!(decision["probabilities"].as_object().unwrap().len(), 30);
+        assert_eq!(
+            decision["options"],
+            serde_json::to_value(&predictions).unwrap()
+        );
+        assert_eq!(decision["usage"]["forward_passes"], 3);
+    }
+
+    #[test]
+    fn native_decisions_reject_mismatched_candidates_and_invalid_selections() {
+        let request = build_request(&page(), "Find a stay", &[], true).unwrap();
+        let valid = build_predictions(&request, "e1");
+        let mut missing = valid.clone();
+        missing.pop();
+        let mut reordered = valid.clone();
+        reordered.swap(0, 1);
+        let mut unknown = valid.clone();
+        unknown[0].option.element_id = "invented".into();
+        let mut unselected = valid.clone();
+        unselected[0].is_selected = false;
+        let mut multiple = valid.clone();
+        multiple[1].is_selected = true;
+        let mut invalid = valid.clone();
+        invalid[0].probability = f32::NAN;
+        for predictions in
+            [missing, reordered, unknown, unselected, multiple, invalid]
+        {
+            assert!(resolve(&request, &predictions).is_err());
         }
     }
 }

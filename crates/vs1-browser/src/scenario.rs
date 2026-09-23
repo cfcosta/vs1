@@ -351,6 +351,10 @@ pub fn run(args: &crate::Cli, scenario: &Path) -> Result<()> {
     let bytes = fs::read(scenario)?;
     let plan: Plan = serde_json::from_slice(&bytes)?;
     validate(&plan)?;
+    ensure!(
+        plan.mode == Mode::Agent || args.policy == "questions",
+        "constrained scenarios support only --policy questions; use an agent-mode scenario for native policy"
+    );
     ensure!(args.max_steps > 0, "max-steps must be positive");
     ensure!(
         plan.mode != Mode::Agent || args.chooser == "model",
@@ -436,7 +440,7 @@ pub fn run(args: &crate::Cli, scenario: &Path) -> Result<()> {
             fs::write(
                 args.output.join("results.json"),
                 serde_json::to_vec_pretty(
-                    &json!({"chooser":args.chooser,"retrieval":args.retrieval,"configuration":model.as_ref().map(|m|&m.metadata),"scenario":scenario,"source_url":url.as_str(),"runs":results}),
+                    &json!({"chooser":args.chooser,"retrieval":args.retrieval,"policy":args.policy,"configuration":model.as_ref().map(|m|&m.metadata),"scenario":scenario,"source_url":url.as_str(),"runs":results}),
                 )?,
             )?;
         }

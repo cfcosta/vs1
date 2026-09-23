@@ -72,6 +72,9 @@ struct Cli {
     cdp: String,
     #[command(flatten)]
     model: ModelArgs,
+    /// Operation/target questions, or native Cua-S1 action options.
+    #[arg(long, default_value="questions", default_value_if("backend", "cua-s1", "native"), value_parser=["questions","native"])]
+    policy: String,
     /// Original Jev prompt or a shorter prompt for local checkpoint context limits.
     #[arg(long, default_value="compact", value_parser=["compact","upstream"])]
     prompt: String,
@@ -102,8 +105,23 @@ struct Cli {
     check_browser: bool,
 }
 
+impl Cli {
+    fn validate_policy(&self) -> Result<()> {
+        ensure!(
+            self.policy != "native" || self.replay.is_none(),
+            "--replay supports only --policy questions; native policy replay is not supported"
+        );
+        ensure!(
+            self.policy != "native" || self.model.backend == "cua-s1",
+            "--policy native requires --backend cua-s1"
+        );
+        Ok(())
+    }
+}
+
 fn main() -> Result<()> {
     let args = Cli::parse();
+    args.validate_policy()?;
     ensure!(
         args.repeat > 0 && args.max_steps > 0,
         "repeat and max-steps must be positive"
@@ -143,7 +161,7 @@ fn main() -> Result<()> {
         println!("{}", serde_json::to_string_pretty(&summary)?);
         summaries.push(summary);
     }
-    let report = json!({"configuration":backend.metadata,"prompt":args.prompt,"runs":summaries,
+    let report = json!({"configuration":backend.metadata,"policy":args.policy,"prompt":args.prompt,"runs":summaries,
         "timing":"First prediction after initial observation through terminal decision or failure; excludes model load, warmup, initial navigation and independent final verification.",
         "historical_baselines":{"jev_optimized_flights_ms":7092,"jev_original_flights_ms":9450,"jev_hotel_smoke_ms":1896,"jev_wikipedia_smoke_ms":2798}});
     fs::write(
@@ -218,7 +236,7 @@ fn replay(args: &Cli, backend: &Backend, path: &Path) -> Result<()> {
         measurements.push(json!({"request":index,"latencies_ms":times,"median_ms":median,
             "shape_warmup_ms":shape_warmup_ms,"inspection":inspection,"response":response}));
     }
-    let result = json!({"configuration":backend.metadata,"input":path,"runs":measurements});
+    let result = json!({"configuration":backend.metadata,"policy":args.policy,"input":path,"runs":measurements});
     fs::write(
         args.output.join("replay.json"),
         serde_json::to_vec_pretty(&result)?,
@@ -275,18 +293,42 @@ fn run_agent_page(
             if !browser.fresh(&page, None)? {
                 page = browser.observe()?;
             }
-            let (request, space) = policy::request(
-                &page,
-                goal,
-                &history,
-                args.prompt == "compact",
-            )?;
-            let inference = Instant::now();
-            let result = backend.decide(&request);
-            let latency = inference.elapsed().as_secs_f64() * 1000.0;
+            let (request, result, latency) = if args.policy == "native" {
+                #[cfg(feature = "local")]
+                {
+                    let request = cua_s1_policy::build_request(
+                        &page,
+                        goal,
+                        &history,
+                        args.prompt == "compact",
+                    )?;
+                    let inference = Instant::now();
+                    let result = backend.score_options(&request);
+                    let latency = inference.elapsed().as_secs_f64() * 1000.0;
+                    let decision = result.and_then(|predictions| {
+                        cua_s1_policy::resolve(&request, &predictions)
+                    });
+                    (serde_json::to_value(&request)?, decision, latency)
+                }
+                #[cfg(not(feature = "local"))]
+                anyhow::bail!("native policy requires --features local");
+            } else {
+                let (request, space) = policy::request(
+                    &page,
+                    goal,
+                    &history,
+                    args.prompt == "compact",
+                )?;
+                let inference = Instant::now();
+                let result = backend.decide(&request);
+                let latency = inference.elapsed().as_secs_f64() * 1000.0;
+                let decision = result.and_then(|response| {
+                    policy::resolve(&request, &space, &response)
+                });
+                (request, decision, latency)
+            };
             model_attempts.push(json!({"latency_ms":latency,"error":result.as_ref().err().map(|e|format!("{e:#}"))}));
-            let response = result?;
-            let mut decision = policy::resolve(&request, &space, &response)?;
+            let mut decision = result?;
             decision["latency_ms"] = json!(latency);
             decision["elapsed_ms"] =
                 json!(started.elapsed().as_secs_f64() * 1000.0);
@@ -451,11 +493,11 @@ fn run_agent_page(
         (latencies[(latencies.len() - 1) / 2] + latencies[latencies.len() / 2])
             / 2.0
     };
-    let summary = json!({"status":status,"elapsed_ms":elapsed_ms,"setup_ms":setup_ms,"error":error,"verification":verification,
+    let summary = json!({"status":status,"policy":args.policy,"elapsed_ms":elapsed_ms,"setup_ms":setup_ms,"error":error,"verification":verification,
         "actions":history.len(),"decisions":model_attempts.len(),"accepted_responses":decisions.len(),"decision_median_ms":median,"decision_total_ms":latencies.iter().sum::<f64>(),
         "text_calls":text_calls.len(),"text_total_ms":text_calls.iter().filter_map(|c|c["metadata"]["latency_ms"].as_f64()).sum::<f64>(),
         "cdp_calls":counts.values().sum::<usize>(),"browser":browser.version(),"recording_error":recording_error,"screenshot_error":screenshot_error});
-    let trace = json!({"summary":summary,"configuration":backend.metadata,"prompt":args.prompt,"url":url,"goal":goal,
+    let trace = json!({"summary":summary,"configuration":backend.metadata,"policy":args.policy,"prompt":args.prompt,"url":url,"goal":goal,
         "started_epoch":epoch,"history":history,"decisions":decisions,"model_attempts":model_attempts,"text_calls":text_calls,"pending_action":pending_action,
         "page":page,"final_page":final_page.ok(),"cdp":counts});
     fs::write(
@@ -468,6 +510,111 @@ fn run_agent_page(
 #[cfg(test)]
 mod scenario_cli_tests {
     use super::*;
+    #[test]
+    fn policy_defaults_to_questions_for_other_backends() {
+        let args = Cli::try_parse_from(["vs1-browser"]).unwrap();
+        assert_eq!(args.policy, "questions");
+        args.validate_policy().unwrap();
+        let mut backends = vec!["typesafe", "jev"];
+        if cfg!(feature = "local") {
+            backends.extend(["local", "laya", "openjev"]);
+        }
+        for backend in backends {
+            let args =
+                Cli::try_parse_from(["vs1-browser", "--backend", backend])
+                    .unwrap();
+            assert_eq!(args.policy, "questions");
+            args.validate_policy().unwrap();
+            let args = Cli::try_parse_from([
+                "vs1-browser",
+                "--backend",
+                backend,
+                "--policy",
+                "native",
+            ])
+            .unwrap();
+            assert_eq!(
+                args.validate_policy().unwrap_err().to_string(),
+                "--policy native requires --backend cua-s1"
+            );
+        }
+        assert!(
+            Cli::try_parse_from(["vs1-browser", "--policy", "unknown"])
+                .is_err()
+        );
+    }
+
+    #[cfg(feature = "local")]
+    #[test]
+    fn cua_s1_defaults_to_native_and_accepts_both_policies() {
+        let args = Cli::try_parse_from(["vs1-browser", "--backend", "cua-s1"])
+            .unwrap();
+        assert_eq!(args.policy, "native");
+        args.validate_policy().unwrap();
+        for policy in ["questions", "native"] {
+            let args = Cli::try_parse_from([
+                "vs1-browser",
+                "--policy",
+                policy,
+                "--backend",
+                "cua-s1",
+            ])
+            .unwrap();
+            assert_eq!(args.policy, policy);
+            args.validate_policy().unwrap();
+        }
+    }
+
+    #[test]
+    fn replay_accepts_only_questions_policy() {
+        let args =
+            Cli::try_parse_from(["vs1-browser", "--replay", "request.json"])
+                .unwrap();
+        args.validate_policy().unwrap();
+        let args = Cli::try_parse_from([
+            "vs1-browser",
+            "--replay",
+            "request.json",
+            "--policy",
+            "native",
+        ])
+        .unwrap();
+        assert!(
+            args.validate_policy()
+                .unwrap_err()
+                .to_string()
+                .contains("--replay supports only --policy questions")
+        );
+        #[cfg(feature = "local")]
+        {
+            let args = Cli::try_parse_from([
+                "vs1-browser",
+                "--backend",
+                "cua-s1",
+                "--replay",
+                "request.json",
+            ])
+            .unwrap();
+            assert!(
+                args.validate_policy()
+                    .unwrap_err()
+                    .to_string()
+                    .contains("native policy replay is not supported")
+            );
+            let args = Cli::try_parse_from([
+                "vs1-browser",
+                "--backend",
+                "cua-s1",
+                "--replay",
+                "request.json",
+                "--policy",
+                "questions",
+            ])
+            .unwrap();
+            args.validate_policy().unwrap();
+        }
+    }
+
     #[test]
     fn backend_defaults_to_jev_and_local_requires_feature() {
         let args =

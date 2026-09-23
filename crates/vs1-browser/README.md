@@ -69,8 +69,16 @@ layout: `base/<BASE_REVISION>/` and `adapter/<ADAPTER_REVISION>/text/`, with the
 pinned revisions exported by `vs1::cua_s1` (for example,
 `--backend cua-s1 --checkpoint artifacts/cua-s1`). All three local backends use
 F32 on CPU and BF16 on CUDA. `--subfolder` and `--head-max-len` are Laya-only;
-OpenJev also supports `--max-len`. Cua-S1 supports none of these three overrides.
+OpenJev and Cua-S1 also support `--max-len`.
 Replay token inspection is Laya-only and returns `null` for OpenJev and Cua-S1.
+
+`--policy questions|native` defaults to `native` for `--backend cua-s1` and
+`questions` for other backends. Native policy requires Cua-S1 and scores the
+observed action options directly, including DONE and BLOCKED. It always uses
+compact textual state; `--prompt` selects the questions policy's prompt format.
+Up to 26 options use one forward pass; larger sets use Cua-S1's tournament.
+TYPE_TEXT still asks the text helper for the field value. Use `--policy questions`
+with `--replay` or constrained scenarios; agent-mode scenarios support native.
 
 Text-helper settings for either backend:
 
@@ -95,7 +103,7 @@ budgets. Larger contexts change the inference workload and may affect quality;
 the trace records the configuration. Do not assume a wire-compatible checkpoint
 has Jev's browser skill or that a short failing run is a speedup.
 
-Each cycle submits all applicable operation/target questions in one backend call.
+With `--policy questions`, each cycle submits all applicable operation/target questions in one backend call.
 Only the chosen operation's target can execute. For local inference, single-candidate target questions
 are resolved deterministically outside the model, because `vs1` requires at least
 two options. This does not affect the operation choice.
@@ -111,6 +119,15 @@ of relying on background animation frames. Empty snapshots are held back; a clic
 opening a non-editable popup control waits for visible menu options or a dialog.
 A readiness timeout stops the run without replaying input. The CDP transport has
 its own timeout. Screenshots and foreground activation are not required.
+
+Run summaries and traces record the policy. Native decisions retain action IDs,
+operations, targets, confidence, and the full scored option list. Letters and
+logits are from the first round (letters can repeat across tournament groups);
+probabilities include tournament weights, and `is_selected` identifies the winner.
+Confidence uses the same normalized entropy as Cua-S1's questions answers.
+Native usage records forward passes and zero output tokens; input tokens are
+`null` because `score_options` does not expose that total. Each option retains
+its first-round dropped-state-token count.
 
 Visible SVG labels are included as graphic observations, even when the SVG itself
 is hidden from accessibility. Hidden ancestors and transparent labels stay
