@@ -1,4 +1,4 @@
-//! F32 delta-rule recurrence with the CPU loop's arithmetic order.
+//! F32 delta-rule recurrence with parallel reductions and a serial fallback.
 use candle_core::{
     CpuStorage,
     CudaStorage,
@@ -20,6 +20,7 @@ use candle_core::{
 struct DeltaRule {
     beta: Tensor,
     decay: Tensor,
+    is_parallel: bool,
 }
 
 impl CustomOp3 for DeltaRule {
@@ -72,16 +73,22 @@ impl CustomOp3 for DeltaRule {
         let (seq, heads, key_dim) = ql.shape().dims3()?;
         let value_dim = vl.shape().dims3()?.2;
         let dev = query.device();
+        let (kernel, columns_per_block, threads_per_block) = if self.is_parallel
+        {
+            ("apply_delta_rule_parallel_f32", 32, 256)
+        } else {
+            ("apply_delta_rule_f32", value_dim, value_dim)
+        };
         let func = dev.get_or_load_custom_func(
-            "apply_delta_rule_f32",
+            kernel,
             "vs1_delta_rule",
             include_str!(concat!(env!("OUT_DIR"), "/gated_delta.ptx")),
         )?;
         // The register-resident state can limit a block below 1024 threads.
         let max_threads = func.max_threads_per_block().w()? as usize;
-        if value_dim > max_threads {
+        if threads_per_block > max_threads {
             candle_core::bail!(
-                "delta-rule value_dim {value_dim} exceeds the kernel's block limit {max_threads}"
+                "delta-rule block size {threads_per_block} exceeds the kernel's block limit {max_threads}"
             )
         }
         let key_count = seq * heads * key_dim;
@@ -109,11 +116,12 @@ impl CustomOp3 for DeltaRule {
             .arg(&heads)
             .arg(&value_dim);
         // SAFETY: apply_delta_rule checks shapes, devices, dtype and contiguity;
-        // the kernel's block limit is checked above.
+        // parallel blocks cover complete groups of 32 value columns, and the
+        // kernel's block limit is checked above.
         unsafe {
             launch.launch(LaunchConfig {
-                grid_dim: (heads, 1, 1),
-                block_dim: (value_dim, 1, 1),
+                grid_dim: (heads, value_dim / columns_per_block as u32, 1),
+                block_dim: (threads_per_block as u32, 1, 1),
                 shared_mem_bytes: 0,
             })
         }
@@ -129,6 +137,7 @@ impl CustomOp3 for DeltaRule {
 }
 
 /// Applies the recurrence with repeated, normalized/scaled Q/K and `exp(g)` decay.
+/// Uses parallel reductions for the model's 128 value columns, serial otherwise.
 pub(crate) fn apply_delta_rule(
     query: &Tensor,
     key: &Tensor,
@@ -171,6 +180,7 @@ pub(crate) fn apply_delta_rule(
         &DeltaRule {
             beta: beta.clone(),
             decay: decay.clone(),
+            is_parallel: value_dim == 128,
         },
     )
 }
@@ -253,12 +263,14 @@ mod tests {
                     .narrow(0, padding, tensor.elem_count())?
                     .reshape(tensor.shape())
             };
-            let actual = apply_delta_rule(
-                &to_cuda(&query, 1)?,
+            let actual = to_cuda(&query, 1)?.apply_op3_no_bwd(
                 &to_cuda(&key, 2)?,
                 &to_cuda(&value, 3)?,
-                &to_cuda(&beta, 4)?,
-                &to_cuda(&decay, 5)?,
+                &DeltaRule {
+                    beta: to_cuda(&beta, 4)?,
+                    decay: to_cuda(&decay, 5)?,
+                    is_parallel: false,
+                },
             )?;
             assert_eq!(actual.dims(), expected.dims());
             assert_eq!(actual.dtype(), DType::F32);
@@ -276,6 +288,77 @@ mod tests {
                     "seq={seq}, value_dim={value_dim}, element {i}: {actual} vs {expected}"
                 );
             }
+        }
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "requires CUDA"]
+    fn parallel_delta_rule_matches_cpu() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        device.set_seed(42)?;
+        let heads = 32;
+        let key_dim = 128;
+        let value_dim = 128;
+        for seq in [1, 7, 300, 2000] {
+            let query =
+                Tensor::rand(-1f32, 1., (seq, heads, key_dim), &device)?
+                    .to_device(&Device::Cpu)?;
+            let key = Tensor::rand(-1f32, 1., (seq, heads, key_dim), &device)?
+                .to_device(&Device::Cpu)?;
+            let query =
+                (normalize_l2(&query)? * (key_dim as f64).sqrt().recip())?;
+            let key = normalize_l2(&key)?;
+            let value =
+                Tensor::rand(-1f32, 1., (seq, heads, value_dim), &device)?
+                    .to_device(&Device::Cpu)?;
+            let beta = Tensor::rand(0f32, 1., (seq, heads), &device)?
+                .to_device(&Device::Cpu)?;
+            let decay = Tensor::rand(0f32, 1., (seq, heads), &device)?
+                .to_device(&Device::Cpu)?
+                .neg()?
+                .exp()?;
+            let expected = delta_net::apply_delta_rule(
+                &query, &key, &value, &beta, &decay,
+            )?;
+            let to_cuda = |tensor: &Tensor, padding| -> Result<Tensor> {
+                let flat = tensor.flatten_all()?.to_device(&device)?;
+                let prefix = Tensor::zeros(padding, DType::F32, &device)?;
+                Tensor::cat(&[&prefix, &flat], 0)?
+                    .narrow(0, padding, tensor.elem_count())?
+                    .reshape(tensor.shape())
+            };
+            let actual = apply_delta_rule(
+                &to_cuda(&query, 1)?,
+                &to_cuda(&key, 2)?,
+                &to_cuda(&value, 3)?,
+                &to_cuda(&beta, 4)?,
+                &to_cuda(&decay, 5)?,
+            )?;
+            assert_eq!(actual.dims(), expected.dims());
+            assert_eq!(actual.dtype(), DType::F32);
+            let actual = actual
+                .flatten_all()?
+                .to_device(&Device::Cpu)?
+                .to_vec1::<f32>()?;
+            let expected = expected.flatten_all()?.to_vec1::<f32>()?;
+            let mut max_absolute_difference = 0f32;
+            let mut max_relative_difference = 0f32;
+            let mut is_close = true;
+            for (actual, expected) in actual.into_iter().zip(expected) {
+                let difference = (actual - expected).abs();
+                max_absolute_difference =
+                    max_absolute_difference.max(difference);
+                max_relative_difference = max_relative_difference
+                    .max(difference / expected.abs().max(1e-6));
+                is_close &= actual.is_finite()
+                    && expected.is_finite()
+                    && difference <= 1e-6 + 1e-5 * expected.abs();
+            }
+            println!(
+                "parallel delta-rule seq={seq}: max absolute difference {max_absolute_difference:e}, max relative difference {max_relative_difference:e} (denominator floored at 1e-6)"
+            );
+            assert!(is_close, "seq={seq}: exceeds atol=1e-6, rtol=1e-5");
         }
         Ok(())
     }
