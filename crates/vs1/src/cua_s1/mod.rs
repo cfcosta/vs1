@@ -10,6 +10,8 @@ mod lora;
 mod model;
 mod ops;
 mod prompt;
+#[cfg(feature = "cuda")]
+mod rms_norm_cuda;
 mod weights;
 
 pub use api::{

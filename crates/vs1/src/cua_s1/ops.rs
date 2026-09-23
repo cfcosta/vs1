@@ -5,6 +5,18 @@ use candle_nn::{Linear, Module};
 
 /// Zero-centered RMSNorm over the last dimension, with scale `1 + weight`.
 pub fn normalize_rms(x: &Tensor, weight: &Tensor, eps: f64) -> Result<Tensor> {
+    #[cfg(feature = "cuda")]
+    if let Some(output) = super::rms_norm_cuda::normalize_rms(x, weight, eps)? {
+        return Ok(output);
+    }
+    normalize_rms_candle(x, weight, eps)
+}
+
+pub(super) fn normalize_rms_candle(
+    x: &Tensor,
+    weight: &Tensor,
+    eps: f64,
+) -> Result<Tensor> {
     let input_dtype = x.dtype();
     let x = x.to_dtype(DType::F32)?;
     let variance = x.sqr()?.mean_keepdim(D::Minus1)?;
