@@ -1,0 +1,237 @@
+diff --git a/crates/vs1/tests/cua_s1.rs b/crates/vs1/tests/cua_s1.rs
+index 67c5bce892..cc0b522139 100644
+--- a/crates/vs1/tests/cua_s1.rs
++++ b/crates/vs1/tests/cua_s1.rs
+@@ -88,6 +88,23 @@
+     }
+ }
+ 
++// Mirrors cua_s1_policy in the vs1-browser binary; it has no shared library.
++fn drop_duplicate_options(options: &mut Vec<CuaS1Option>) -> usize {
++    let original_count = options.len();
++    let mut seen = std::collections::HashSet::new();
++    options.retain(|option| {
++        option.action == "fill"
++            || option.role == "page"
++            || matches!(option.element_id.as_str(), "DONE" | "BLOCKED")
++            || seen.insert((
++                option.role.clone(),
++                option.label.clone(),
++                option.action.clone(),
++            ))
++    });
++    original_count - options.len()
++}
++
+ #[test]
+ fn parses_wikipedia_browser_options() {
+     let case = parse_wikipedia_case();
+@@ -101,6 +118,17 @@
+ }
+ 
+ #[test]
++fn drops_duplicate_wikipedia_options() {
++    let mut case = parse_wikipedia_case();
++    assert_eq!(drop_duplicate_options(&mut case.options), 1);
++    assert_eq!(case.options.len(), 55);
++    println!(
++        "Wikipedia options: {} remain, 1 dropped",
++        case.options.len()
++    );
++}
++
++#[test]
+ fn pins_revisions_to_the_reference() {
+     let reference = parse_reference();
+     assert_eq!(BASE_REPO_ID, reference.base_model);
+@@ -387,6 +415,12 @@
+         );
+         case.options.truncate(option_count);
+     }
++    let dropped_duplicate_options =
++        if std::env::var("VS1_CUA_S1_BENCH_DEDUPE").as_deref() == Ok("1") {
++            drop_duplicate_options(&mut case.options)
++        } else {
++            0
++        };
+ 
+     let device = Device::new_cuda(0).unwrap();
+     let root =
+@@ -448,6 +482,7 @@
+         "warmup_calls": 2,
+         "iterations": iterations,
+         "option_count": case.options.len(),
++        "dropped_duplicate_options": dropped_duplicate_options,
+         "median_ms": median_ms,
+         "latencies_ms": latencies_ms,
+         "forward_passes": chosen.forward_passes,
+diff --git a/crates/vs1-browser/src/cua_s1_policy.rs b/crates/vs1-browser/src/cua_s1_policy.rs
+index b7fbe6d985..ddcd38ff15 100644
+--- a/crates/vs1-browser/src/cua_s1_policy.rs
++++ b/crates/vs1-browser/src/cua_s1_policy.rs
+@@ -14,6 +14,7 @@
+     pub goal: String,
+     pub ax_tree: String,
+     pub options: Vec<(CuaS1Option, Value)>,
++    pub dropped_duplicate_options: usize,
+     #[serde(skip)]
+     space: policy::Space,
+ }
+@@ -110,6 +111,7 @@
+             .all(|(option, _)| ids.insert(&option.element_id)),
+         "duplicate action IDs"
+     );
++    let dropped_duplicate_options = drop_duplicate_options(&mut options);
+     Ok(Request {
+         app,
+         task_family: "web_navigation".into(),
+@@ -119,10 +121,27 @@
+             .context("missing textual state")?
+             .into(),
+         options,
++        dropped_duplicate_options,
+         space,
+     })
+ }
+ 
++fn drop_duplicate_options(options: &mut Vec<(CuaS1Option, Value)>) -> usize {
++    let original_count = options.len();
++    let mut seen = HashSet::new();
++    options.retain(|(option, _)| {
++        option.action == "fill"
++            || option.role == "page"
++            || matches!(option.element_id.as_str(), "DONE" | "BLOCKED")
++            || seen.insert((
++                option.role.clone(),
++                option.label.clone(),
++                option.action.clone(),
++            ))
++    });
++    original_count - options.len()
++}
++
+ pub fn resolve(
+     request: &Request,
+     predictions: &[CuaS1OptionPrediction],
+@@ -203,6 +222,7 @@
+     fn maps_each_action_kind_and_keeps_terminals_last() {
+         let page = page();
+         let request = build_request(&page, "Find a stay", &[], true).unwrap();
++        assert_eq!(request.dropped_duplicate_options, 0);
+         let descriptions: Vec<_> = request
+             .options
+             .iter()
+@@ -268,6 +288,101 @@
+     }
+ 
+     #[test]
++    fn drops_duplicate_options_in_order_and_records_the_count() {
++        let mut page = page();
++        page["actions"] = json!([
++            {"id":"e1","kind":"click","label":"Article","role":"link","node":1},
++            {"id":"e2","kind":"click","label":"Other","role":"link","node":2},
++            {"id":"e3","kind":"click","label":"Article","role":"link","node":3},
++            {"id":"e4","kind":"click","label":"Article","role":"button","node":4},
++            {"id":"e5","kind":"click","label":"article","role":"link","node":5},
++            {"id":"e6","kind":"click","label":"Other","role":"link","node":6}
++        ]);
++        let request =
++            build_request(&page, "Read the article", &[], true).unwrap();
++        let ids: Vec<_> = request
++            .options
++            .iter()
++            .map(|(option, _)| option.element_id.as_str())
++            .collect();
++        assert_eq!(ids, ["e1", "e2", "e4", "e5", "DONE", "BLOCKED"]);
++        assert_eq!(request.dropped_duplicate_options, 2);
++        assert_eq!(
++            serde_json::to_value(&request).unwrap()["dropped_duplicate_options"],
++            2
++        );
++        let decision =
++            resolve(&request, &build_predictions(&request, "e4")).unwrap();
++        assert_eq!(decision["target"], "4");
++        assert_eq!(decision["action"], page["actions"][3]);
++        let (questions, _) =
++            policy::request(&page, "Read the article", &[], true).unwrap();
++        assert_eq!(
++            questions["questions"]["click_target"]["criteria"]
++                .as_object()
++                .unwrap()
++                .len(),
++            6
++        );
++    }
++
++    #[test]
++    fn keeps_duplicate_fills_controls_and_terminals() {
++        let mut page = page();
++        page["actions"] = json!([
++            {"id":"e1","kind":"fill","label":"Search","role":"searchbox","node":1},
++            {"id":"e2","kind":"fill","label":"Search","role":"searchbox","node":2},
++            {"id":"e3","kind":"click","label":"Search","role":"searchbox","node":1},
++            {"id":"e4","kind":"click","label":"Finish: every requirement is visibly satisfied","role":"task","node":3},
++            {"id":"e5","kind":"click","label":"Give up: no supported operation can progress","role":"task","node":4},
++            {"id":"scroll_down","kind":"scroll","label":"Scroll","delta":560},
++            {"id":"scroll_up","kind":"scroll","label":"Scroll","delta":-560}
++        ]);
++        let request = build_request(&page, "Search", &[], true).unwrap();
++        let ids: Vec<_> = request
++            .options
++            .iter()
++            .map(|(option, _)| option.element_id.as_str())
++            .collect();
++        assert_eq!(
++            ids,
++            [
++                "e1",
++                "e2",
++                "e3",
++                "e4",
++                "e5",
++                "scroll_down",
++                "scroll_up",
++                "DONE",
++                "BLOCKED"
++            ]
++        );
++        assert_eq!(request.dropped_duplicate_options, 0);
++    }
++
++    #[test]
++    fn drops_duplicate_wikipedia_options() {
++        #[derive(serde::Deserialize)]
++        struct BrowserDecision {
++            options: Vec<(CuaS1Option, Value)>,
++        }
++        let mut decision: BrowserDecision = serde_json::from_str(include_str!(
++            "../../../research/cua-s1/wikipedia-56-options.json"
++        ))
++        .unwrap();
++        assert_eq!(decision.options.len(), 56);
++        let dropped = drop_duplicate_options(&mut decision.options);
++        println!(
++            "Wikipedia options: {} remain, {dropped} dropped",
++            decision.options.len()
++        );
++        assert_eq!(dropped, 1);
++        assert_eq!(decision.options.len(), 55);
++        assert_eq!(drop_duplicate_options(&mut decision.options), 0);
++    }
++
++    #[test]
+     fn reuses_compact_state_and_preserves_prompt_fields() {
+         let page = page();
+         let history = vec![
+@@ -411,6 +526,11 @@
+                 is_selected: option.element_id == selected,
+                 forward_passes: 1,
+                 dropped_state_tokens: 0,
++                is_prefix_shared: false,
++                prefix_tokens: 0,
++                suffix_tokens: 0,
++                whole_prompt_tokens: 0,
++                prefix_sharing_fallbacks: 0,
+             })
+             .collect()
+     }

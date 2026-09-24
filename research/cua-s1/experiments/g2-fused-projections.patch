@@ -1,0 +1,485 @@
+diff --git a/crates/vs1/src/cua_s1/attention.rs b/crates/vs1/src/cua_s1/attention.rs
+index fd63ae9002..5a307626f8 100644
+--- a/crates/vs1/src/cua_s1/attention.rs
++++ b/crates/vs1/src/cua_s1/attention.rs
+@@ -3,7 +3,13 @@
+ use candle_core::{D, DType, Result, Tensor};
+ use candle_nn::{Linear, Module, ops};
+ 
+-use super::{LayerType, TextConfig, TextWeights, normalize_rms};
++use super::{
++    LayerType,
++    TextConfig,
++    TextWeights,
++    normalize_rms,
++    ops::concatenate_projections,
++};
+ use crate::SystemOneError;
+ 
+ /// Saved keys and values for one full-attention sequence.
+@@ -20,6 +26,7 @@
+     q_proj: Linear,
+     k_proj: Linear,
+     v_proj: Linear,
++    fused_qkv_proj: Option<Linear>,
+     o_proj: Linear,
+     q_norm: Tensor,
+     k_norm: Tensor,
+@@ -65,7 +72,7 @@
+             })
+             .collect();
+         let inv_freq = Tensor::new(inv_freq.as_slice(), q_weight.device())?;
+-        Ok(Self {
++        let mut attention = Self {
+             q_proj: Linear::new(q_weight, None),
+             k_proj: Linear::new(
+                 weights.linear_weight(&format!("{prefix}.k_proj.weight"))?,
+@@ -75,6 +82,7 @@
+                 weights.linear_weight(&format!("{prefix}.v_proj.weight"))?,
+                 None,
+             ),
++            fused_qkv_proj: None,
+             o_proj: Linear::new(
+                 weights.linear_weight(&format!("{prefix}.o_proj.weight"))?,
+                 None,
+@@ -86,7 +94,42 @@
+             num_kv_heads: config.num_key_value_heads,
+             head_dim: config.head_dim,
+             rms_norm_eps: config.rms_norm_eps,
+-        })
++        };
++        if attention.q_proj.weight().device().is_cuda()
++            && std::env::var("VS1_CUA_S1_SEPARATE_PROJECTIONS").as_deref()
++                != Ok("1")
++        {
++            attention.fuse_input_projections()?;
++        }
++        Ok(attention)
++    }
++
++    fn fuse_input_projections(&mut self) -> Result<()> {
++        self.fused_qkv_proj = Some(concatenate_projections(&mut [
++            &mut self.q_proj,
++            &mut self.k_proj,
++            &mut self.v_proj,
++        ])?);
++        Ok(())
++    }
++
++    fn project_input(&self, x: &Tensor) -> Result<(Tensor, Tensor, Tensor)> {
++        if let Some(projection) = &self.fused_qkv_proj {
++            let projected = projection.forward(x)?;
++            let q_dim = self.q_proj.weight().dim(0)?;
++            let k_dim = self.k_proj.weight().dim(0)?;
++            let v_dim = self.v_proj.weight().dim(0)?;
++            return Ok((
++                projected.narrow(1, 0, q_dim)?,
++                projected.narrow(1, q_dim, k_dim)?,
++                projected.narrow(1, q_dim + k_dim, v_dim)?,
++            ));
++        }
++        Ok((
++            self.q_proj.forward(x)?,
++            self.k_proj.forward(x)?,
++            self.v_proj.forward(x)?,
++        ))
+     }
+ 
+     fn attend(
+@@ -127,6 +170,7 @@
+             }
+             None => 0,
+         };
++        // Reshape packs fused Q/K views for the RMSNorm kernel's row strides.
+         let query_gate =
+             query_gate.reshape((seq, self.num_heads, 2 * self.head_dim))?;
+         // The gate follows each head's query, not all queries together.
+@@ -139,6 +183,7 @@
+         let key = key.reshape((seq, self.num_kv_heads, self.head_dim))?;
+         let key = normalize_rms(&key, &self.k_norm, self.rms_norm_eps)?
+             .transpose(0, 1)?;
++        // Pack V once for attention, so its cache releases the fused Q/K rows.
+         let value = value
+             .reshape((seq, self.num_kv_heads, self.head_dim))?
+             .transpose(0, 1)?;
+@@ -179,9 +224,7 @@
+         if seq == 0 {
+             candle_core::bail!("full attention requires a nonempty sequence")
+         }
+-        let query_gate = self.q_proj.forward(x)?;
+-        let key = self.k_proj.forward(x)?;
+-        let value = self.v_proj.forward(x)?;
++        let (query_gate, key, value) = self.project_input(x)?;
+         let (output, cache) = self.attend_with_kernel(
+             &query_gate,
+             &key,
+@@ -200,9 +243,7 @@
+         if seq == 0 {
+             candle_core::bail!("full attention requires a nonempty sequence")
+         }
+-        let query_gate = self.q_proj.forward(x)?;
+-        let key = self.k_proj.forward(x)?;
+-        let value = self.v_proj.forward(x)?;
++        let (query_gate, key, value) = self.project_input(x)?;
+         self.o_proj
+             .forward(&self.attend(&query_gate, &key, &value)?)
+     }
+@@ -322,6 +363,7 @@
+             q_proj: sample_projection(hidden_size, num_heads * head_dim * 2)?,
+             k_proj: sample_projection(hidden_size, num_kv_heads * head_dim)?,
+             v_proj: sample_projection(hidden_size, num_kv_heads * head_dim)?,
++            fused_qkv_proj: None,
+             o_proj: sample_projection(num_heads * head_dim, hidden_size)?,
+             q_norm: Tensor::zeros(head_dim, dtype, device)?,
+             k_norm: Tensor::zeros(head_dim, dtype, device)?,
+@@ -333,6 +375,44 @@
+         })
+     }
+ 
++    #[cfg(feature = "cuda")]
++    #[test]
++    #[ignore = "requires CUDA"]
++    fn fused_attention_projections_match_separate_bf16() -> Result<()> {
++        use crate::cua_s1::delta_net::tests::{
++            assert_projections_close,
++            assert_same_bits,
++        };
++
++        let device = Device::new_cuda(0)?;
++        device.set_seed(42)?;
++        let mut attention =
++            sample_attention(2560, 16, 4, 256, DType::BF16, &device)?;
++        let input = Tensor::randn(0f32, 1., (1860, 2560), &device)?
++            .to_dtype(DType::BF16)?;
++        let (query_gate, key, value) = attention.project_input(&input)?;
++        attention.fuse_input_projections()?;
++        let (fused_query_gate, fused_key, fused_value) =
++            attention.project_input(&input)?;
++        for (name, output, expected) in [
++            ("attention q_proj", &fused_query_gate, &query_gate),
++            ("attention k_proj", &fused_key, &key),
++            ("attention v_proj", &fused_value, &value),
++        ] {
++            assert_projections_close(name, output, expected)?;
++            assert!(!output.is_contiguous());
++        }
++        let output = attention.forward(&input)?;
++        let (with_cache, _) = attention.forward_with_cache(&input, None)?;
++        assert_same_bits(&output, &with_cache)?;
++        let (_, cache) =
++            attention.forward_with_cache(&input.narrow(0, 0, 1728)?, None)?;
++        let (suffix, _) = attention
++            .forward_with_cache(&input.narrow(0, 1728, 132)?, Some(&cache))?;
++        assert_eq!(suffix.dims(), [132, 2560]);
++        Ok(())
++    }
++
+     fn compare_continuation(
+         name: &str,
+         output: &Tensor,
+@@ -603,6 +683,7 @@
+                 Tensor::eye(4, DType::F32, &Device::Cpu).unwrap(),
+                 None,
+             ),
++            fused_qkv_proj: None,
+             o_proj: Linear::new(
+                 Tensor::new(
+                     &[
+diff --git a/crates/vs1/src/cua_s1/delta_net.rs b/crates/vs1/src/cua_s1/delta_net.rs
+index 1f17f5532b..b73088b727 100644
+--- a/crates/vs1/src/cua_s1/delta_net.rs
++++ b/crates/vs1/src/cua_s1/delta_net.rs
+@@ -9,6 +9,7 @@
+     TextWeights,
+     normalize_l2,
+     normalize_rms_gated,
++    ops::concatenate_projections,
+ };
+ use crate::SystemOneError;
+ 
+@@ -27,6 +28,7 @@
+     in_proj_z: Linear,
+     in_proj_b: Linear,
+     in_proj_a: Linear,
++    fused_in_proj: Option<Linear>,
+     out_proj: Linear,
+     conv_weight: Tensor,
+     a_log: Tensor,
+@@ -77,7 +79,7 @@
+                     .into(),
+             ));
+         }
+-        Ok(Self {
++        let mut mixer = Self {
+             in_proj_qkv: Linear::new(qkv_weight, None),
+             in_proj_z: Linear::new(
+                 weights.linear_weight(&format!("{prefix}.in_proj_z.weight"))?,
+@@ -91,6 +93,7 @@
+                 weights.linear_weight(&format!("{prefix}.in_proj_a.weight"))?,
+                 None,
+             ),
++            fused_in_proj: None,
+             out_proj: Linear::new(
+                 weights.linear_weight(&format!("{prefix}.out_proj.weight"))?,
+                 None,
+@@ -104,7 +107,56 @@
+             key_head_dim: config.linear_key_head_dim,
+             value_head_dim: config.linear_value_head_dim,
+             rms_norm_eps: config.rms_norm_eps,
+-        })
++        };
++        if mixer.in_proj_qkv.weight().device().is_cuda()
++            && std::env::var("VS1_CUA_S1_SEPARATE_PROJECTIONS").as_deref()
++                != Ok("1")
++        {
++            mixer.fuse_input_projections()?;
++        }
++        Ok(mixer)
++    }
++
++    fn fuse_input_projections(&mut self) -> Result<()> {
++        self.fused_in_proj = Some(concatenate_projections(&mut [
++            &mut self.in_proj_qkv,
++            &mut self.in_proj_z,
++            &mut self.in_proj_b,
++            &mut self.in_proj_a,
++        ])?);
++        Ok(())
++    }
++
++    fn project_input(
++        &self,
++        x: &Tensor,
++    ) -> Result<(Tensor, Tensor, Tensor, Tensor)> {
++        if let Some(projection) = &self.fused_in_proj {
++            let projected = projection.forward(x)?;
++            let qkv_dim = self.in_proj_qkv.weight().dim(0)?;
++            let z_dim = self.in_proj_z.weight().dim(0)?;
++            let b_dim = self.in_proj_b.weight().dim(0)?;
++            let a_dim = self.in_proj_a.weight().dim(0)?;
++            let mixed = projected.narrow(1, 0, qkv_dim)?;
++            // The BF16 causal-convolution kernel requires packed rows.
++            let mixed = if x.dtype() == DType::BF16 {
++                mixed.contiguous()?
++            } else {
++                mixed
++            };
++            return Ok((
++                mixed,
++                projected.narrow(1, qkv_dim, z_dim)?,
++                projected.narrow(1, qkv_dim + z_dim, b_dim)?,
++                projected.narrow(1, qkv_dim + z_dim + b_dim, a_dim)?,
++            ));
++        }
++        Ok((
++            self.in_proj_qkv.forward(x)?,
++            self.in_proj_z.forward(x)?,
++            self.in_proj_b.forward(x)?,
++            self.in_proj_a.forward(x)?,
++        ))
+     }
+ 
+     fn mix(&self, mixed: &Tensor, a: &Tensor, b: &Tensor) -> Result<Tensor> {
+@@ -224,11 +276,10 @@
+         if seq == 0 {
+             candle_core::bail!("DeltaNet requires a nonempty sequence")
+         }
+-        let mixed = self.in_proj_qkv.forward(x)?;
+-        let a = self.in_proj_a.forward(x)?;
+-        let b = self.in_proj_b.forward(x)?;
++        let (mixed, gate, b, a) = self.project_input(x)?;
+         let (output, state) = self.mix_with_state(&mixed, &a, &b, state)?;
+-        let gate = self.in_proj_z.forward(x)?.reshape(output.shape())?;
++        // Reshape packs the fused gate view for the gated RMSNorm kernel.
++        let gate = gate.reshape(output.shape())?;
+         let output = normalize_rms_gated(
+             &output,
+             &self.norm_weight,
+@@ -250,11 +301,9 @@
+         if seq == 0 {
+             candle_core::bail!("DeltaNet requires a nonempty sequence")
+         }
+-        let mixed = self.in_proj_qkv.forward(x)?;
+-        let a = self.in_proj_a.forward(x)?;
+-        let b = self.in_proj_b.forward(x)?;
++        let (mixed, gate, b, a) = self.project_input(x)?;
+         let output = self.mix(&mixed, &a, &b)?;
+-        let gate = self.in_proj_z.forward(x)?.reshape(output.shape())?;
++        let gate = gate.reshape(output.shape())?;
+         let output = normalize_rms_gated(
+             &output,
+             &self.norm_weight,
+@@ -483,6 +532,44 @@
+     use super::*;
+     use crate::cua_s1::normalize_rms;
+ 
++    #[cfg(feature = "cuda")]
++    pub(in crate::cua_s1) fn assert_projections_close(
++        name: &str,
++        output: &Tensor,
++        expected: &Tensor,
++    ) -> Result<()> {
++        assert_eq!(output.dtype(), DType::BF16);
++        assert_eq!(output.dtype(), expected.dtype());
++        assert_eq!(output.shape(), expected.shape());
++        let output = output
++            .to_dtype(DType::F32)?
++            .flatten_all()?
++            .to_vec1::<f32>()?;
++        let expected = expected
++            .to_dtype(DType::F32)?
++            .flatten_all()?
++            .to_vec1::<f32>()?;
++        let tolerance = 2f32.powi(-6);
++        let mut max_absolute_difference = 0f32;
++        let mut max_tolerance_ratio = 0f32;
++        let mut differing_elements = 0;
++        for (actual, expected) in output.iter().zip(&expected) {
++            assert!(actual.is_finite() && expected.is_finite(), "{name}");
++            let difference = (actual - expected).abs();
++            max_absolute_difference = max_absolute_difference.max(difference);
++            max_tolerance_ratio = max_tolerance_ratio
++                .max(difference / (tolerance + tolerance * expected.abs()));
++            differing_elements +=
++                usize::from(actual.to_bits() != expected.to_bits());
++        }
++        println!(
++            "{name}: max absolute difference {max_absolute_difference:e}, max combined-tolerance ratio {max_tolerance_ratio:e} (atol=rtol=2^-6), differing elements {differing_elements}/{}",
++            output.len()
++        );
++        assert!(max_tolerance_ratio <= 1., "{name}: exceeds BF16 tolerance");
++        Ok(())
++    }
++
+     pub(in crate::cua_s1) fn assert_same_bits(
+         output: &Tensor,
+         expected: &Tensor,
+@@ -527,6 +614,7 @@
+             in_proj_z: Linear::new(sample(&[12, 8])?, None),
+             in_proj_b: Linear::new(sample(&[4, 8])?, None),
+             in_proj_a: Linear::new(sample(&[4, 8])?, None),
++            fused_in_proj: None,
+             out_proj: Linear::new(sample(&[8, 12])?, None),
+             conv_weight: sample(&[28, 1, kernel])?,
+             a_log: sample(&[4])?,
+@@ -540,6 +628,71 @@
+         })
+     }
+ 
++    #[cfg(feature = "cuda")]
++    #[test]
++    #[ignore = "requires CUDA"]
++    fn fused_delta_net_projections_match_separate_bf16() -> Result<()> {
++        let device = Device::new_cuda(0)?;
++        device.set_seed(42)?;
++        let sample_projection = |input: usize, output| -> Result<Linear> {
++            Ok(Linear::new(
++                Tensor::randn(
++                    0f32,
++                    (input as f32).sqrt().recip(),
++                    (output, input),
++                    &device,
++                )?
++                .to_dtype(DType::BF16)?,
++                None,
++            ))
++        };
++        let mut mixer = GatedDeltaNet {
++            in_proj_qkv: sample_projection(2560, 8192)?,
++            in_proj_z: sample_projection(2560, 4096)?,
++            in_proj_b: sample_projection(2560, 32)?,
++            in_proj_a: sample_projection(2560, 32)?,
++            fused_in_proj: None,
++            out_proj: sample_projection(4096, 2560)?,
++            conv_weight: Tensor::randn(0f32, 0.25, (8192, 1, 4), &device)?
++                .to_dtype(DType::BF16)?,
++            a_log: Tensor::zeros(32, DType::BF16, &device)?,
++            dt_bias: Tensor::zeros(32, DType::BF16, &device)?,
++            norm_weight: Tensor::ones(128, DType::BF16, &device)?,
++            num_key_heads: 16,
++            num_value_heads: 32,
++            key_head_dim: 128,
++            value_head_dim: 128,
++            rms_norm_eps: 1e-6,
++        };
++        let input = Tensor::randn(0f32, 1., (1860, 2560), &device)?
++            .to_dtype(DType::BF16)?;
++        let (qkv, z, b, a) = mixer.project_input(&input)?;
++        mixer.fuse_input_projections()?;
++        let (fused_qkv, fused_z, fused_b, fused_a) =
++            mixer.project_input(&input)?;
++        for (name, output, expected) in [
++            ("DeltaNet in_proj_qkv", &fused_qkv, &qkv),
++            ("DeltaNet in_proj_z", &fused_z, &z),
++            ("DeltaNet in_proj_b", &fused_b, &b),
++            ("DeltaNet in_proj_a", &fused_a, &a),
++        ] {
++            assert_projections_close(name, output, expected)?;
++        }
++        assert!(fused_qkv.is_contiguous());
++        assert!(!fused_z.is_contiguous());
++        assert!(!fused_b.is_contiguous());
++        assert!(!fused_a.is_contiguous());
++        let output = mixer.forward(&input)?;
++        let (with_state, _) = mixer.forward_with_state(&input, None)?;
++        assert_same_bits(&output, &with_state)?;
++        let (_, state) =
++            mixer.forward_with_state(&input.narrow(0, 0, 1728)?, None)?;
++        let (suffix, _) = mixer
++            .forward_with_state(&input.narrow(0, 1728, 132)?, Some(&state))?;
++        assert_eq!(suffix.dims(), [132, 2560]);
++        Ok(())
++    }
++
+     #[test]
+     fn continues_delta_net_with_output_and_state_within_f32_tolerance()
+     -> Result<()> {
+diff --git a/crates/vs1/src/cua_s1/ops.rs b/crates/vs1/src/cua_s1/ops.rs
+index 28c401acc4..a230cdc25a 100644
+--- a/crates/vs1/src/cua_s1/ops.rs
++++ b/crates/vs1/src/cua_s1/ops.rs
+@@ -3,6 +3,21 @@
+ use candle_core::{D, DType, Result, Tensor};
+ use candle_nn::{Linear, Module};
+ 
++/// Concatenates bias-free weights, retaining separate projections as views.
++pub(super) fn concatenate_projections(
++    projections: &mut [&mut Linear],
++) -> Result<Linear> {
++    let weights: Vec<_> = projections.iter().map(|p| p.weight()).collect();
++    let weight = Tensor::cat(&weights, 0)?;
++    let mut offset = 0;
++    for projection in projections {
++        let width = projection.weight().dim(0)?;
++        **projection = Linear::new(weight.narrow(0, offset, width)?, None);
++        offset += width;
++    }
++    Ok(Linear::new(weight, None))
++}
++
+ /// Zero-centered RMSNorm over the last dimension, with scale `1 + weight`.
+ pub fn normalize_rms(x: &Tensor, weight: &Tensor, eps: f64) -> Result<Tensor> {
+     #[cfg(feature = "cuda")]
+diff --git a/research/cua-s1/README.md b/research/cua-s1/README.md
+index ae93c64e4e..74258b055d 100644
+--- a/research/cua-s1/README.md
++++ b/research/cua-s1/README.md
+@@ -46,6 +46,18 @@
+ 
+ ## Large-page scoring benchmark
+ 
++CUDA loads concatenate each DeltaNet input-projection group and each full-attention
++Q/K/V group after LoRA merging, then use one GEMM per group. CPU keeps separate
++projections. Set `VS1_CUA_S1_SEPARATE_PROJECTIONS=1` before loading the model to
++restore separate CUDA projections in the same build.
++
++The ignored `fused_delta_net_projections_match_separate_bf16` and
++`fused_attention_projections_match_separate_bf16` tests compare seeded random
++BF16 projections at the checkpoint dimensions with 1860 input rows. They print
++maximum absolute differences, maximum combined-tolerance ratios
++(`abs(fused - separate) / (2^-6 + 2^-6 * abs(separate))`), and differing-element
++counts. They also exercise fused whole-sequence and prefix/suffix layer calls.
++
+ `wikipedia-56-options.json` is a captured native browser decision with 56 options.
+ The ignored test loads the pinned local checkpoints on `cuda:0` in BF16,
+ runs two warmup calls, then times ten `score_options` calls. Device synchronization

@@ -2,6 +2,8 @@
 
 See [the 2026-09-23 benchmark comparison](benchmarks.md) for email, browser replay
 and live-task results against Jev, Laya and OpenJev.
+See [the large-page and GEMM speed experiments](speed-experiments.md) for the
+2026-09-23 measurements, retained changes and rejected patches.
 
 ## Rust option tournaments
 

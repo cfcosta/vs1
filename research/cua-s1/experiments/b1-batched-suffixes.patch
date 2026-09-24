@@ -1,0 +1,606 @@
+diff --git a/crates/vs1/src/cua_s1/api.rs b/crates/vs1/src/cua_s1/api.rs
+index 88f26deaba..4332ee8e7f 100644
+--- a/crates/vs1/src/cua_s1/api.rs
++++ b/crates/vs1/src/cua_s1/api.rs
+@@ -50,7 +50,7 @@
+     pub probability: f32,
+     /// Whether this option won the final round, with ties going to the first.
+     pub is_selected: bool,
+-    /// Total scoring passes, excluding prefix encoding; identical for every option.
++    /// Total scored prompts, excluding prefix encoding; identical for every option.
+     pub forward_passes: usize,
+     /// State tokens dropped for this option's first-round group.
+     pub dropped_state_tokens: usize,
+@@ -302,6 +302,7 @@
+     /// Probabilities multiply each group's softmax by its finalist's probability.
+     /// Use `is_selected` for the final-round winner, which can differ from argmax.
+     /// Set `VS1_CUA_S1_DISABLE_PREFIX_SHARING` to use whole-prompt passes.
++    /// Set `VS1_CUA_S1_DISABLE_SUFFIX_BATCH=1` to score group suffixes individually.
+     pub fn score_options(
+         &self,
+         app: &str,
+@@ -340,9 +341,15 @@
+         let mut suffix_tokens = 0;
+         let mut whole_prompt_tokens = 0;
+         let mut prefix_sharing_fallbacks = 0;
+-        let mut predictions = score_tournament(options, &mut |group| {
+-            let (input, dropped_state_tokens) =
+-                CuaS1Input::encode_with_max_len(
++        let should_batch_suffixes =
++            std::env::var_os("VS1_CUA_S1_DISABLE_SUFFIX_BATCH")
++                .is_none_or(|value| value != "1");
++        let mut batched_groups = Vec::new();
++        if let Some(prefix) = prefix.as_ref().filter(|_| should_batch_suffixes)
++        {
++            let mut inputs = Vec::new();
++            for group in split_options(options) {
++                let (input, dropped) = CuaS1Input::encode_with_max_len(
+                     &self.tokenizer,
+                     group,
+                     app,
+@@ -351,15 +358,64 @@
+                     goal,
+                     self.max_len,
+                 )?;
+-            let suffix_ids = match &prefix {
+-                Some(prefix) => prefix.encode_suffix(
++                let suffix =
++                    prefix.encode_suffix(&self.tokenizer, &input, dropped)?;
++                inputs.push((input, dropped, suffix));
++            }
++            let suffixes: Vec<_> = inputs
++                .iter()
++                .filter_map(|(input, _, suffix)| {
++                    suffix.as_ref().map(|ids| {
++                        (ids.as_slice(), input.letter_ids.as_slice())
++                    })
++                })
++                .collect();
++            let predictions = if suffixes.is_empty() {
++                Vec::new()
++            } else {
++                let state = self.model.encode_prefix(&prefix.input_ids)?;
++                let predictions =
++                    self.model.score_suffixes(&state, &suffixes)?;
++                suffix_tokens +=
++                    suffixes.iter().map(|(ids, _)| ids.len()).sum::<usize>();
++                usage.input_tokens += prefix.input_ids.len() + suffix_tokens;
++                prefix_state = Some(state);
++                predictions
++            };
++            let mut predictions = predictions.into_iter();
++            for (input, dropped, suffix) in inputs {
++                let prediction = suffix.and_then(|_| predictions.next());
++                batched_groups.push((input, dropped, prediction));
++            }
++        }
++        let mut batched_groups = batched_groups.into_iter();
++        let mut predictions = score_tournament(options, &mut |group| {
++            let (input, dropped_state_tokens, batched_prediction) =
++                if let Some(group) = batched_groups.next() {
++                    group
++                } else {
++                    let (input, dropped) = CuaS1Input::encode_with_max_len(
++                        &self.tokenizer,
++                        group,
++                        app,
++                        task_family,
++                        ax_tree,
++                        goal,
++                        self.max_len,
++                    )?;
++                    (input, dropped, None)
++                };
++            let suffix_ids = match (&prefix, &batched_prediction) {
++                (Some(prefix), None) => prefix.encode_suffix(
+                     &self.tokenizer,
+                     &input,
+                     dropped_state_tokens,
+                 )?,
+-                None => None,
++                _ => None,
+             };
+-            let prediction = if let Some((prefix, suffix_ids)) =
++            let prediction = if let Some(prediction) = batched_prediction {
++                prediction
++            } else if let Some((prefix, suffix_ids)) =
+                 prefix.as_ref().zip(suffix_ids)
+             {
+                 let state = match &prefix_state {
+@@ -931,6 +987,113 @@
+         );
+     }
+ 
++    #[cfg(feature = "cuda")]
++    #[test]
++    #[ignore = "requires CUDA"]
++    fn batched_wikipedia_groups_match_individual_scores_on_cuda() {
++        #[derive(Deserialize)]
++        struct BrowserDecision {
++            app: String,
++            task_family: String,
++            ax_tree: String,
++            goal: Option<String>,
++            options: Vec<(CuaS1Option, serde::de::IgnoredAny)>,
++        }
++        let case: BrowserDecision = serde_json::from_str(include_str!(
++            "../../../../research/cua-s1/wikipedia-56-options.json"
++        ))
++        .unwrap();
++        let options: Vec<_> =
++            case.options.into_iter().map(|(option, _)| option).collect();
++        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
++            .join("../../artifacts/cua-s1");
++        let model = CuaS1::try_from(
++            CuaS1::from(DEFAULT_REPO_ID)
++                .with_device(Device::new_cuda(0).unwrap())
++                .with_local_directories(
++                    root.join("base").join(BASE_REVISION),
++                    root.join("adapter").join(ADAPTER_REVISION).join("text"),
++                ),
++        )
++        .unwrap();
++        let prefix = PromptPrefix::encode(
++            &model.tokenizer,
++            &case.app,
++            &case.task_family,
++            &case.ax_tree,
++            case.goal.as_deref(),
++        )
++        .unwrap();
++        let mut suffixes = Vec::new();
++        for group in split_options(&options) {
++            let (input, dropped) = CuaS1Input::encode_with_max_len(
++                &model.tokenizer,
++                group,
++                &case.app,
++                &case.task_family,
++                &case.ax_tree,
++                case.goal.as_deref(),
++                DEFAULT_MAX_LEN,
++            )
++            .unwrap();
++            let suffix = prefix
++                .encode_suffix(&model.tokenizer, &input, dropped)
++                .unwrap()
++                .expect("Wikipedia groups must share the prefix");
++            suffixes.push((suffix, input.letter_ids));
++        }
++        assert_eq!(suffixes.len(), 3);
++        let suffixes: Vec<_> = suffixes
++            .iter()
++            .map(|(suffix_ids, letter_ids)| {
++                (suffix_ids.as_slice(), letter_ids.as_slice())
++            })
++            .collect();
++        let state = model.model.encode_prefix(&prefix.input_ids).unwrap();
++        let batched = model.model.score_suffixes(&state, &suffixes).unwrap();
++        let mut has_matching_winners = true;
++        for (group, ((suffix_ids, letter_ids), batched)) in
++            suffixes.iter().zip(batched).enumerate()
++        {
++            let individual = model
++                .model
++                .score_suffix(&state, suffix_ids, letter_ids)
++                .unwrap();
++            let mut batched_winner = 0;
++            let mut individual_winner = 0;
++            for (i, (&batched, &individual)) in batched
++                .probabilities
++                .iter()
++                .zip(&individual.probabilities)
++                .enumerate()
++            {
++                assert!(batched.is_finite() && individual.is_finite());
++                println!(
++                    "group={group}, letter={}: batched={batched:.8}, individual={individual:.8}, difference={:.8}",
++                    (b'A' + i as u8) as char,
++                    batched - individual,
++                );
++            }
++            for i in 1..letter_ids.len() {
++                if batched.probabilities[i]
++                    > batched.probabilities[batched_winner]
++                {
++                    batched_winner = i;
++                }
++                if individual.probabilities[i]
++                    > individual.probabilities[individual_winner]
++                {
++                    individual_winner = i;
++                }
++            }
++            println!(
++                "group={group}: batched_winner={batched_winner}, individual_winner={individual_winner}"
++            );
++            has_matching_winners &= batched_winner == individual_winner;
++        }
++        assert!(has_matching_winners, "batching changed a group winner");
++    }
++
+     #[test]
+     fn request_fits_counts_the_full_chat_prompt_for_every_question() {
+         let mut tokenizer = Tokenizer::new(
+diff --git a/crates/vs1/src/cua_s1/attention.rs b/crates/vs1/src/cua_s1/attention.rs
+index fd63ae9002..84be1d5279 100644
+--- a/crates/vs1/src/cua_s1/attention.rs
++++ b/crates/vs1/src/cua_s1/attention.rs
+@@ -191,6 +191,82 @@
+         )?;
+         Ok((self.o_proj.forward(&output)?, cache))
+     }
++
++    pub(super) fn forward_suffixes(
++        &self,
++        x: &Tensor,
++        lengths: &[usize],
++        cache: &KvCache,
++    ) -> Result<Tensor> {
++        let rows = x.dim(0)?;
++        let (heads, cached_len, head_dim) = cache.key.dims3()?;
++        if heads != self.num_kv_heads
++            || head_dim != self.head_dim
++            || cache.value.shape() != cache.key.shape()
++            || cache.key.dtype() != x.dtype()
++            || cache.value.dtype() != x.dtype()
++            || !cache.key.device().same_device(x.device())
++            || !cache.value.device().same_device(x.device())
++        {
++            candle_core::bail!(
++                "full attention cache has incompatible shape, dtype or device"
++            )
++        }
++        let query_gate = self.q_proj.forward(x)?.reshape((
++            rows,
++            self.num_heads,
++            2 * self.head_dim,
++        ))?;
++        let query = query_gate.narrow(D::Minus1, 0, self.head_dim)?;
++        let gate = query_gate
++            .narrow(D::Minus1, self.head_dim, self.head_dim)?
++            .reshape((rows, self.num_heads * self.head_dim))?;
++        let query = normalize_rms(&query, &self.q_norm, self.rms_norm_eps)?
++            .transpose(0, 1)?;
++        let key = self.k_proj.forward(x)?.reshape((
++            rows,
++            self.num_kv_heads,
++            self.head_dim,
++        ))?;
++        let key = normalize_rms(&key, &self.k_norm, self.rms_norm_eps)?
++            .transpose(0, 1)?;
++        let value = self
++            .v_proj
++            .forward(x)?
++            .reshape((rows, self.num_kv_heads, self.head_dim))?
++            .transpose(0, 1)?;
++        // Every suffix starts at the same absolute rotary position.
++        let positions: Vec<_> = lengths
++            .iter()
++            .flat_map(|&len| (cached_len..cached_len + len).map(|i| i as f32))
++            .collect();
++        let freqs = Tensor::new(positions.as_slice(), x.device())?
++            .unsqueeze(1)?
++            .broadcast_mul(&self.inv_freq.unsqueeze(0)?)?;
++        let freqs = Tensor::cat(&[&freqs, &freqs], D::Minus1)?;
++        let cos = freqs.cos()?.to_dtype(x.dtype())?;
++        let sin = freqs.sin()?.to_dtype(x.dtype())?;
++        let query = apply_rotary(&query, &cos, &sin)?;
++        let key = apply_rotary(&key, &cos, &sin)?;
++        let mut outputs = Vec::with_capacity(lengths.len());
++        let mut start = 0;
++        for &len in lengths {
++            // Only one suffix's combined KV is live at a time.
++            let key =
++                Tensor::cat(&[&cache.key, &key.narrow(1, start, len)?], 1)?;
++            let value =
++                Tensor::cat(&[&cache.value, &value.narrow(1, start, len)?], 1)?;
++            outputs.push(attend_causally(
++                &query.narrow(1, start, len)?,
++                &key,
++                &value,
++            )?);
++            start += len;
++        }
++        let output = Tensor::cat(&outputs, 0)?
++            .reshape((rows, self.num_heads * self.head_dim))?;
++        self.o_proj.forward(&(output * ops::sigmoid(&gate)?)?)
++    }
+ }
+ 
+ impl Module for FullAttention {
+diff --git a/crates/vs1/src/cua_s1/delta_net.rs b/crates/vs1/src/cua_s1/delta_net.rs
+index 1f17f5532b..c00a26867d 100644
+--- a/crates/vs1/src/cua_s1/delta_net.rs
++++ b/crates/vs1/src/cua_s1/delta_net.rs
+@@ -241,6 +241,85 @@
+         )?;
+         Ok((output, state))
+     }
++
++    pub(super) fn forward_suffixes(
++        &self,
++        x: &Tensor,
++        lengths: &[usize],
++        state: &DeltaNetState,
++    ) -> Result<Tensor> {
++        let rows = x.dim(0)?;
++        let mixed = self.in_proj_qkv.forward(x)?;
++        let a = self.in_proj_a.forward(x)?;
++        let b = self.in_proj_b.forward(x)?;
++        let mut convolved = Vec::with_capacity(lengths.len());
++        let mut start = 0;
++        for &len in lengths {
++            let (output, _) = convolve_causally_with_silu_with_state(
++                &mixed.narrow(0, start, len)?,
++                &self.conv_weight,
++                Some(&state.conv_input),
++            )?;
++            convolved.push(output);
++            start += len;
++        }
++        let mixed = Tensor::cat(&convolved, 0)?;
++        let (query, key, value, beta, decay) =
++            self.normalize_delta_inputs(&mixed, &a, &b)?;
++        let mut outputs = Vec::with_capacity(lengths.len());
++        let mut start = 0;
++        for &len in lengths {
++            let query = query.narrow(0, start, len)?.contiguous()?;
++            let key = key.narrow(0, start, len)?.contiguous()?;
++            let value = value.narrow(0, start, len)?;
++            let beta = beta.narrow(0, start, len)?.contiguous()?;
++            let decay = decay.narrow(0, start, len)?.contiguous()?;
++            let initial_state = Some(&state.recurrent);
++            #[cfg(feature = "cuda")]
++            let (output, _) = if x.device().is_cuda() {
++                super::delta_rule_cuda::apply_delta_rule_with_state(
++                    &query,
++                    &key,
++                    &value,
++                    &beta,
++                    &decay,
++                    initial_state,
++                )?
++            } else {
++                apply_delta_rule_with_state(
++                    &query,
++                    &key,
++                    &value,
++                    &beta,
++                    &decay,
++                    initial_state,
++                )?
++            };
++            #[cfg(not(feature = "cuda"))]
++            let (output, _) = apply_delta_rule_with_state(
++                &query,
++                &key,
++                &value,
++                &beta,
++                &decay,
++                initial_state,
++            )?;
++            outputs.push(output);
++            start += len;
++        }
++        let output = Tensor::cat(&outputs, 0)?.to_dtype(x.dtype())?;
++        let gate = self.in_proj_z.forward(x)?.reshape(output.shape())?;
++        let output = normalize_rms_gated(
++            &output,
++            &self.norm_weight,
++            &gate,
++            self.rms_norm_eps,
++        )?;
++        self.out_proj.forward(
++            &output
++                .reshape((rows, self.num_value_heads * self.value_head_dim))?,
++        )
++    }
+ }
+ 
+ impl Module for GatedDeltaNet {
+diff --git a/crates/vs1/src/cua_s1/model.rs b/crates/vs1/src/cua_s1/model.rs
+index ac71026301..ea6866c05a 100644
+--- a/crates/vs1/src/cua_s1/model.rs
++++ b/crates/vs1/src/cua_s1/model.rs
+@@ -135,6 +135,35 @@
+         )?;
+         Ok(((hidden + self.mlp.forward(&normalized)?)?, state))
+     }
++
++    fn forward_suffixes(
++        &self,
++        hidden: &Tensor,
++        lengths: &[usize],
++        state: &MixerState,
++    ) -> candle_core::Result<Tensor> {
++        let normalized =
++            normalize_rms(hidden, &self.input_layernorm, self.rms_norm_eps)?;
++        let mixed = match (&self.mixer, state) {
++            (
++                Mixer::LinearAttention(mixer),
++                MixerState::LinearAttention(state),
++            ) => mixer.forward_suffixes(&normalized, lengths, state)?,
++            (Mixer::FullAttention(mixer), MixerState::FullAttention(cache)) => {
++                mixer.forward_suffixes(&normalized, lengths, cache)?
++            }
++            _ => candle_core::bail!(
++                "prefix state does not match the decoder mixer"
++            ),
++        };
++        let hidden = (hidden + mixed)?;
++        let normalized = normalize_rms(
++            &hidden,
++            &self.post_attention_layernorm,
++            self.rms_norm_eps,
++        )?;
++        hidden + self.mlp.forward(&normalized)?
++    }
+ }
+ 
+ /// Raw letter logits and probabilities, both in the input's option order.
+@@ -269,6 +298,82 @@
+         self.read_options(&hidden, letter_ids)
+     }
+ 
++    /// Scores independent nonempty suffixes in one batch from an unchanged prefix.
++    pub fn score_suffixes(
++        &self,
++        prefix: &PrefixState,
++        suffixes: &[(&[u32], &[u32])],
++    ) -> Result<Vec<CuaS1Prediction>> {
++        if prefix.layer_states.len() != self.layers.len() {
++            return Err(SystemOneError::Config(
++                "prefix state must contain one state per decoder layer".into(),
++            ));
++        }
++        if suffixes.is_empty() {
++            return Ok(Vec::new());
++        }
++        let vocab_size = self.embed_tokens.dim(0)?;
++        let mut ids = Vec::new();
++        let mut lengths = Vec::with_capacity(suffixes.len());
++        let mut last_rows = Vec::with_capacity(suffixes.len());
++        let mut batch_letter_ids = Vec::new();
++        for &(suffix_ids, letter_ids) in suffixes {
++            if suffix_ids.is_empty() || !(1..=26).contains(&letter_ids.len()) {
++                return Err(SystemOneError::Config(
++                    "text decoder requires nonempty suffixes and 1..=26 letter token ids".into(),
++                ));
++            }
++            if letter_ids.iter().any(|&id| id as usize >= vocab_size) {
++                return Err(SystemOneError::Config(
++                    "text decoder token id is outside the embedding vocabulary"
++                        .into(),
++                ));
++            }
++            ids.extend_from_slice(suffix_ids);
++            lengths.push(suffix_ids.len());
++            last_rows.push((ids.len() - 1) as u32);
++            batch_letter_ids.extend_from_slice(letter_ids);
++        }
++        let mut hidden = self.embed(&ids)?;
++        for (layer, state) in self.layers.iter().zip(&prefix.layer_states) {
++            hidden = layer.forward_suffixes(&hidden, &lengths, state)?;
++        }
++        let last_rows = Tensor::new(last_rows.as_slice(), hidden.device())?;
++        let last = hidden.index_select(&last_rows, 0)?;
++        let last = normalize_rms(&last, &self.norm, self.rms_norm_eps)?;
++        // Project the last rows together onto only the union of requested letters.
++        batch_letter_ids.sort_unstable();
++        batch_letter_ids.dedup();
++        let letter_ids = Tensor::new(
++            batch_letter_ids.as_slice(),
++            self.embed_tokens.device(),
++        )?;
++        let embeddings = self
++            .embed_tokens
++            .index_select(&letter_ids, 0)?
++            .to_device(hidden.device())?;
++        let logits = last.matmul(&embeddings.t()?)?.to_dtype(DType::F32)?;
++        suffixes
++            .iter()
++            .enumerate()
++            .map(|(row, (_, letter_ids))| {
++                let columns: Vec<_> = letter_ids
++                    .iter()
++                    .map(|id| {
++                        batch_letter_ids.binary_search(id).unwrap() as u32
++                    })
++                    .collect();
++                let columns = Tensor::new(columns.as_slice(), logits.device())?;
++                let logits = logits.get(row)?.index_select(&columns, 0)?;
++                Ok(CuaS1Prediction {
++                    probabilities: ops::softmax_last_dim(&logits)?
++                        .to_vec1::<f32>()?,
++                    logits: logits.to_vec1::<f32>()?,
++                })
++            })
++            .collect()
++    }
++
+     fn embed(&self, ids: &[u32]) -> Result<Tensor> {
+         if ids.is_empty() {
+             return Err(SystemOneError::Config(
+@@ -558,11 +663,58 @@
+     }
+ 
+     #[test]
++    fn batched_suffixes_match_individual_scores() {
++        let model = sample_model();
++        let ids = [1, 5, 9, 2, 14];
++        let suffixes: &[(&[u32], &[u32])] = &[
++            (&[23], &[8, 2, 19, 5]),
++            (&[17, 6, 4], &[19, 8, 2]),
++            (&[3, 18, 6, 21, 12, 4, 7], &[5]),
++        ];
++        for split in [1, 3, 5] {
++            let prefix = model.encode_prefix(&ids[..split]).unwrap();
++            let individual: Vec<_> = suffixes
++                .iter()
++                .map(|(suffix_ids, letter_ids)| {
++                    model.score_suffix(&prefix, suffix_ids, letter_ids).unwrap()
++                })
++                .collect();
++            let batched = model.score_suffixes(&prefix, suffixes).unwrap();
++            assert_eq!(batched.len(), suffixes.len());
++            for (row, (batched, individual)) in
++                batched.iter().zip(&individual).enumerate()
++            {
++                for (name, actual, expected) in [
++                    ("logits", &batched.logits, &individual.logits),
++                    (
++                        "probabilities",
++                        &batched.probabilities,
++                        &individual.probabilities,
++                    ),
++                ] {
++                    let difference = max_absolute_difference(actual, expected);
++                    assert!(
++                        difference <= 1e-5,
++                        "split={split}, suffix={row}: {name} difference {difference:e} exceeds atol=1e-5"
++                    );
++                }
++                let (suffix_ids, letter_ids) = suffixes[row];
++                let repeated = model
++                    .score_suffix(&prefix, suffix_ids, letter_ids)
++                    .unwrap();
++                assert_eq!(individual.logits, repeated.logits);
++                assert_eq!(individual.probabilities, repeated.probabilities);
++            }
++        }
++    }
++
++    #[test]
+     fn rejects_invalid_prefix_and_suffix_inputs() {
+         let model = sample_model();
+         assert!(model.encode_prefix(&[]).is_err());
+         assert!(model.encode_prefix(&[32]).is_err());
+         let prefix = model.encode_prefix(&[1, 2]).unwrap();
++        assert!(model.score_suffixes(&prefix, &[]).unwrap().is_empty());
+         for (suffix, letters) in [
+             (&[][..], &[1][..]),
+             (&[32][..], &[1][..]),
+@@ -571,6 +723,11 @@
+             (&[3][..], &[1; 27][..]),
+         ] {
+             assert!(model.score_suffix(&prefix, suffix, letters).is_err());
++            assert!(
++                model
++                    .score_suffixes(&prefix, &[(&[3], &[1]), (suffix, letters)])
++                    .is_err()
++            );
+         }
+         assert_eq!(
+             model
+@@ -582,9 +739,11 @@
+         let mut incomplete = prefix.clone();
+         incomplete.layer_states.pop();
+         assert!(model.score_suffix(&incomplete, &[3], &[1]).is_err());
++        assert!(model.score_suffixes(&incomplete, &[(&[3], &[1])]).is_err());
+         let mut mismatched = prefix.clone();
+         mismatched.layer_states.swap(0, 1);
+         assert!(model.score_suffix(&mismatched, &[3], &[1]).is_err());
++        assert!(model.score_suffixes(&mismatched, &[(&[3], &[1])]).is_err());
+     }
+ 
+     #[cfg(feature = "cuda")]

@@ -1,0 +1,1020 @@
+diff --git a/crates/vs1/src/bin/vs1.rs b/crates/vs1/src/bin/vs1.rs
+index 24b50b754c..8380a61962 100644
+--- a/crates/vs1/src/bin/vs1.rs
++++ b/crates/vs1/src/bin/vs1.rs
+@@ -205,6 +205,13 @@
+     if let DecisionModel::Jev(client) = &model {
+         eprintln!("Jev calls: {}", serde_json::to_string(&client.stats())?);
+     }
++    #[cfg(feature = "cuda")]
++    if let DecisionModel::CuaS1(_) = &model {
++        eprintln!(
++            "Cua-S1 GEMM tuning: {:?}",
++            vs1::cua_s1::read_gemm_tuning_stats()
++        );
++    }
+     let responses = result?;
+     let elapsed = started.elapsed();
+     let question_count: usize =
+diff --git a/crates/vs1/src/cua_s1/attention.rs b/crates/vs1/src/cua_s1/attention.rs
+index fd63ae9002..9683026384 100644
+--- a/crates/vs1/src/cua_s1/attention.rs
++++ b/crates/vs1/src/cua_s1/attention.rs
+@@ -3,7 +3,13 @@
+ use candle_core::{D, DType, Result, Tensor};
+ use candle_nn::{Linear, Module, ops};
+ 
+-use super::{LayerType, TextConfig, TextWeights, normalize_rms};
++use super::{
++    LayerType,
++    TextConfig,
++    TextWeights,
++    normalize_rms,
++    ops::ProjectionCache,
++};
+ use crate::SystemOneError;
+ 
+ /// Saved keys and values for one full-attention sequence.
+@@ -21,6 +27,7 @@
+     k_proj: Linear,
+     v_proj: Linear,
+     o_proj: Linear,
++    pub(super) projections: ProjectionCache,
+     q_norm: Tensor,
+     k_norm: Tensor,
+     inv_freq: Tensor,
+@@ -79,6 +86,7 @@
+                 weights.linear_weight(&format!("{prefix}.o_proj.weight"))?,
+                 None,
+             ),
++            projections: ProjectionCache::default(),
+             q_norm: weights.tensor(&format!("{prefix}.q_norm.weight"))?,
+             k_norm: weights.tensor(&format!("{prefix}.k_norm.weight"))?,
+             inv_freq,
+@@ -179,9 +187,9 @@
+         if seq == 0 {
+             candle_core::bail!("full attention requires a nonempty sequence")
+         }
+-        let query_gate = self.q_proj.forward(x)?;
+-        let key = self.k_proj.forward(x)?;
+-        let value = self.v_proj.forward(x)?;
++        let query_gate = self.projections.project(x, &self.q_proj)?;
++        let key = self.projections.project(x, &self.k_proj)?;
++        let value = self.projections.project(x, &self.v_proj)?;
+         let (output, cache) = self.attend_with_kernel(
+             &query_gate,
+             &key,
+@@ -189,7 +197,7 @@
+             cache,
+             attend_causally,
+         )?;
+-        Ok((self.o_proj.forward(&output)?, cache))
++        Ok((self.projections.project(&output, &self.o_proj)?, cache))
+     }
+ }
+ 
+@@ -200,11 +208,11 @@
+         if seq == 0 {
+             candle_core::bail!("full attention requires a nonempty sequence")
+         }
+-        let query_gate = self.q_proj.forward(x)?;
+-        let key = self.k_proj.forward(x)?;
+-        let value = self.v_proj.forward(x)?;
+-        self.o_proj
+-            .forward(&self.attend(&query_gate, &key, &value)?)
++        let query_gate = self.projections.project(x, &self.q_proj)?;
++        let key = self.projections.project(x, &self.k_proj)?;
++        let value = self.projections.project(x, &self.v_proj)?;
++        self.projections
++            .project(&self.attend(&query_gate, &key, &value)?, &self.o_proj)
+     }
+ }
+ 
+@@ -323,6 +331,7 @@
+             k_proj: sample_projection(hidden_size, num_kv_heads * head_dim)?,
+             v_proj: sample_projection(hidden_size, num_kv_heads * head_dim)?,
+             o_proj: sample_projection(num_heads * head_dim, hidden_size)?,
++            projections: ProjectionCache::default(),
+             q_norm: Tensor::zeros(head_dim, dtype, device)?,
+             k_norm: Tensor::zeros(head_dim, dtype, device)?,
+             inv_freq: Tensor::new(inv_freq.as_slice(), device)?,
+@@ -616,6 +625,7 @@
+                 .unwrap(),
+                 None,
+             ),
++            projections: ProjectionCache::default(),
+             q_norm: Tensor::zeros(2, DType::F32, &Device::Cpu).unwrap(),
+             k_norm: Tensor::zeros(2, DType::F32, &Device::Cpu).unwrap(),
+             inv_freq: Tensor::new(&[1f32], &Device::Cpu).unwrap(),
+diff --git a/crates/vs1/src/cua_s1/delta_net.rs b/crates/vs1/src/cua_s1/delta_net.rs
+index 1f17f5532b..ff95af5ccd 100644
+--- a/crates/vs1/src/cua_s1/delta_net.rs
++++ b/crates/vs1/src/cua_s1/delta_net.rs
+@@ -9,6 +9,7 @@
+     TextWeights,
+     normalize_l2,
+     normalize_rms_gated,
++    ops::ProjectionCache,
+ };
+ use crate::SystemOneError;
+ 
+@@ -28,6 +29,7 @@
+     in_proj_b: Linear,
+     in_proj_a: Linear,
+     out_proj: Linear,
++    pub(super) projections: ProjectionCache,
+     conv_weight: Tensor,
+     a_log: Tensor,
+     dt_bias: Tensor,
+@@ -95,6 +97,7 @@
+                 weights.linear_weight(&format!("{prefix}.out_proj.weight"))?,
+                 None,
+             ),
++            projections: ProjectionCache::default(),
+             conv_weight,
+             a_log: weights.tensor(&format!("{prefix}.A_log"))?,
+             dt_bias: weights.tensor(&format!("{prefix}.dt_bias"))?,
+@@ -224,20 +227,24 @@
+         if seq == 0 {
+             candle_core::bail!("DeltaNet requires a nonempty sequence")
+         }
+-        let mixed = self.in_proj_qkv.forward(x)?;
+-        let a = self.in_proj_a.forward(x)?;
+-        let b = self.in_proj_b.forward(x)?;
++        let mixed = self.projections.project(x, &self.in_proj_qkv)?;
++        let a = self.projections.project(x, &self.in_proj_a)?;
++        let b = self.projections.project(x, &self.in_proj_b)?;
+         let (output, state) = self.mix_with_state(&mixed, &a, &b, state)?;
+-        let gate = self.in_proj_z.forward(x)?.reshape(output.shape())?;
++        let gate = self
++            .projections
++            .project(x, &self.in_proj_z)?
++            .reshape(output.shape())?;
+         let output = normalize_rms_gated(
+             &output,
+             &self.norm_weight,
+             &gate,
+             self.rms_norm_eps,
+         )?;
+-        let output = self.out_proj.forward(
++        let output = self.projections.project(
+             &output
+                 .reshape((seq, self.num_value_heads * self.value_head_dim))?,
++            &self.out_proj,
+         )?;
+         Ok((output, state))
+     }
+@@ -250,20 +257,24 @@
+         if seq == 0 {
+             candle_core::bail!("DeltaNet requires a nonempty sequence")
+         }
+-        let mixed = self.in_proj_qkv.forward(x)?;
+-        let a = self.in_proj_a.forward(x)?;
+-        let b = self.in_proj_b.forward(x)?;
++        let mixed = self.projections.project(x, &self.in_proj_qkv)?;
++        let a = self.projections.project(x, &self.in_proj_a)?;
++        let b = self.projections.project(x, &self.in_proj_b)?;
+         let output = self.mix(&mixed, &a, &b)?;
+-        let gate = self.in_proj_z.forward(x)?.reshape(output.shape())?;
++        let gate = self
++            .projections
++            .project(x, &self.in_proj_z)?
++            .reshape(output.shape())?;
+         let output = normalize_rms_gated(
+             &output,
+             &self.norm_weight,
+             &gate,
+             self.rms_norm_eps,
+         )?;
+-        self.out_proj.forward(
++        self.projections.project(
+             &output
+                 .reshape((seq, self.num_value_heads * self.value_head_dim))?,
++            &self.out_proj,
+         )
+     }
+ }
+@@ -528,6 +539,7 @@
+             in_proj_b: Linear::new(sample(&[4, 8])?, None),
+             in_proj_a: Linear::new(sample(&[4, 8])?, None),
+             out_proj: Linear::new(sample(&[8, 12])?, None),
++            projections: ProjectionCache::default(),
+             conv_weight: sample(&[28, 1, kernel])?,
+             a_log: sample(&[4])?,
+             dt_bias: sample(&[4])?,
+diff --git a/crates/vs1/src/cua_s1/mod.rs b/crates/vs1/src/cua_s1/mod.rs
+index d1f03f10dd..75137aa727 100644
+--- a/crates/vs1/src/cua_s1/mod.rs
++++ b/crates/vs1/src/cua_s1/mod.rs
+@@ -39,3 +39,6 @@
+ pub use ops::{Mlp, normalize_l2, normalize_rms, normalize_rms_gated};
+ pub use prompt::{CuaS1Input, CuaS1Option};
+ pub use weights::TextWeights;
++
++#[cfg(feature = "cuda")]
++pub use crate::gemm_cuda::{GemmTuningStats, read_gemm_tuning_stats};
+diff --git a/crates/vs1/src/cua_s1/model.rs b/crates/vs1/src/cua_s1/model.rs
+index ac71026301..7fa2250548 100644
+--- a/crates/vs1/src/cua_s1/model.rs
++++ b/crates/vs1/src/cua_s1/model.rs
+@@ -12,6 +12,7 @@
+     TextConfig,
+     TextWeights,
+     normalize_rms,
++    ops::ProjectionCache,
+ };
+ use crate::{Result, SystemOneError};
+ 
+@@ -174,9 +175,21 @@
+                 "embedding dimensions do not match the text config".into(),
+             ));
+         }
+-        let layers = (0..config.num_hidden_layers)
++        let mut layers = (0..config.num_hidden_layers)
+             .map(|layer| DecoderLayer::load(weights, config, layer))
+             .collect::<Result<Vec<_>>>()?;
++        let projections = ProjectionCache::default();
++        for layer in &mut layers {
++            layer.mlp.projections = projections.clone();
++            match &mut layer.mixer {
++                Mixer::LinearAttention(mixer) => {
++                    mixer.projections = projections.clone();
++                }
++                Mixer::FullAttention(mixer) => {
++                    mixer.projections = projections.clone();
++                }
++            }
++        }
+         let norm = weights.tensor("model.language_model.norm.weight")?;
+         weights.check_all_used()?;
+         Ok(Self {
+diff --git a/crates/vs1/src/cua_s1/ops.rs b/crates/vs1/src/cua_s1/ops.rs
+index 28c401acc4..01a64f09c8 100644
+--- a/crates/vs1/src/cua_s1/ops.rs
++++ b/crates/vs1/src/cua_s1/ops.rs
+@@ -3,6 +3,25 @@
+ use candle_core::{D, DType, Result, Tensor};
+ use candle_nn::{Linear, Module};
+ 
++#[derive(Clone, Default)]
++pub(super) struct ProjectionCache {
++    #[cfg(feature = "cuda")]
++    gemms: std::sync::Arc<crate::gemm_cuda::GemmCache>,
++}
++
++impl ProjectionCache {
++    pub(super) fn project(
++        &self,
++        x: &Tensor,
++        linear: &Linear,
++    ) -> Result<Tensor> {
++        #[cfg(feature = "cuda")]
++        return self.gemms.project(x, linear);
++        #[cfg(not(feature = "cuda"))]
++        linear.forward(x)
++    }
++}
++
+ /// Zero-centered RMSNorm over the last dimension, with scale `1 + weight`.
+ pub fn normalize_rms(x: &Tensor, weight: &Tensor, eps: f64) -> Result<Tensor> {
+     #[cfg(feature = "cuda")]
+@@ -77,6 +96,7 @@
+     gate_proj: Linear,
+     up_proj: Linear,
+     down_proj: Linear,
++    pub(super) projections: ProjectionCache,
+ }
+ 
+ impl Mlp {
+@@ -89,6 +109,7 @@
+             gate_proj: Linear::new(gate_weight, None),
+             up_proj: Linear::new(up_weight, None),
+             down_proj: Linear::new(down_weight, None),
++            projections: ProjectionCache::default(),
+         })
+     }
+ }
+@@ -101,11 +122,11 @@
+             self.gate_proj.weight(),
+             self.up_proj.weight(),
+         )? {
+-            return self.down_proj.forward(&gated);
++            return self.projections.project(&gated, &self.down_proj);
+         }
+         let gated =
+             (self.gate_proj.forward(x)?.silu()? * self.up_proj.forward(x)?)?;
+-        self.down_proj.forward(&gated)
++        self.projections.project(&gated, &self.down_proj)
+     }
+ }
+ 
+diff --git a/crates/vs1/src/gemm_cuda.rs b/crates/vs1/src/gemm_cuda.rs
+index b4a401018a..587c1227c0 100644
+--- a/crates/vs1/src/gemm_cuda.rs
++++ b/crates/vs1/src/gemm_cuda.rs
+@@ -1,5 +1,11 @@
+-//! Guarded output-tile adjustment for short packed BF16 encoder products.
+-use std::{cell::RefCell, collections::BTreeMap, ffi::c_void};
++//! BF16 cuBLASLt projection tuning and guarded encoder output-tile adjustment.
++use std::{
++    cell::RefCell,
++    collections::{BTreeMap, HashMap},
++    ffi::c_void,
++    sync::Mutex,
++    time::{Duration, Instant},
++};
+ 
+ use anyhow::{Result, ensure};
+ use candle_core::{
+@@ -133,16 +139,27 @@
+         &self,
+         engine: &Engine,
+     ) -> Result<Vec<sys::cublasLtMatmulHeuristicResult_t>> {
++        let mut results = self.query_algorithms(engine, 64)?;
++        results
++            .retain(|r| r.state == sys::cublasStatus_t::CUBLAS_STATUS_SUCCESS);
++        Ok(results)
++    }
++    fn query_algorithms(
++        &self,
++        engine: &Engine,
++        requested: usize,
++    ) -> Result<Vec<sys::cublasLtMatmulHeuristicResult_t>> {
++        let requested_count = i32::try_from(requested)?;
+         let pref = Pref(lt::create_matmul_pref()?);
+         let mut results = vec![
+             std::mem::MaybeUninit::<
+                 sys::cublasLtMatmulHeuristicResult_t,
+             >::uninit();
+-            64
++            requested
+         ];
+         let mut count = 0;
+         // SAFETY: live descriptors, correctly typed attribute, and space for
+-        // all 64 results requested. Preference and descriptors outlive the call.
++        // all requested results. Preference and descriptors outlive the call.
+         unsafe {
+             lt::set_matmul_pref_attribute(pref.0, sys::cublasLtMatmulPreferenceAttributes_t::CUBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES,
+                 (&WORKSPACE as *const usize).cast(), size_of::<usize>())?;
+@@ -154,21 +171,19 @@
+                 self.c.0,
+                 self.c.0,
+                 pref.0,
+-                64,
++                requested_count,
+                 results.as_mut_ptr().cast(),
+                 &mut count,
+             )
+             .result()?;
+         }
++        ensure!((0..=requested_count).contains(&count));
+         // SAFETY: cuBLASLt initialized exactly the returned count of records.
+-        let mut results: Vec<_> = results
++        Ok(results
+             .into_iter()
+             .take(count as usize)
+             .map(|r| unsafe { r.assume_init() })
+-            .collect();
+-        results
+-            .retain(|r| r.state == sys::cublasStatus_t::CUBLAS_STATUS_SUCCESS);
+-        Ok(results)
++            .collect())
+     }
+ }
+ 
+@@ -462,6 +477,212 @@
+     }
+ }
+ 
++#[derive(Debug, Clone, Copy, Default)]
++pub struct GemmTuningStats {
++    pub keys_tuned: usize,
++    pub non_default_keys: usize,
++    pub tuning_time: Duration,
++}
++
++static GEMM_TUNING_STATS: Mutex<GemmTuningStats> =
++    Mutex::new(GemmTuningStats {
++        keys_tuned: 0,
++        non_default_keys: 0,
++        tuning_time: Duration::ZERO,
++    });
++
++/// Cumulative Cua-S1 projection tuning cost across all models in this process.
++pub fn read_gemm_tuning_stats() -> GemmTuningStats {
++    *GEMM_TUNING_STATS.lock().unwrap_or_else(|e| e.into_inner())
++}
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
++struct GemmKey {
++    n: usize,
++    k: usize,
++    m: usize,
++    weight_strides: [usize; 2],
++    dtype: DType,
++    has_reduced_precision: bool,
++}
++
++struct TunedGemm {
++    plan: Option<CachedPlan>,
++    #[cfg(test)]
++    default_ms: f64,
++    #[cfg(test)]
++    chosen_ms: f64,
++}
++
++struct TuningState {
++    choices: HashMap<GemmKey, TunedGemm>,
++    engine: Engine,
++    device: candle_core::Device,
++}
++// SAFETY: GemmCache's mutex exclusively owns the descriptors and scratch buffer.
++// Engine binds the context and orders scratch reuse across host threads.
++unsafe impl Send for TuningState {}
++
++pub(crate) struct GemmCache {
++    state: Mutex<Option<TuningState>>,
++    is_enabled: bool,
++}
++
++impl Default for GemmCache {
++    fn default() -> Self {
++        Self {
++            state: Mutex::new(None),
++            is_enabled: std::env::var_os("VS1_CUA_S1_GEMM_AUTOTUNE")
++                .is_none_or(|value| value != "0"),
++        }
++    }
++}
++
++impl GemmCache {
++    pub(crate) fn project(
++        &self,
++        xs: &Tensor,
++        linear: &Linear,
++    ) -> candle_core::Result<Tensor> {
++        let weight = linear.weight();
++        if !self.is_enabled
++            || xs.rank() != 2
++            || weight.rank() != 2
++            || xs.dtype() != DType::BF16
++            || weight.dtype() != DType::BF16
++            || !xs.device().is_cuda()
++            || !xs.device().same_device(weight.device())
++            || linear.bias().is_some()
++            || !xs.is_contiguous()
++            || !weight.is_contiguous()
++            || !xs.layout().start_offset().is_multiple_of(128)
++            || !weight.layout().start_offset().is_multiple_of(128)
++        {
++            return xs.apply(linear);
++        }
++        let (m, k) = xs.dims2()?;
++        let (n, weight_k) = weight.dims2()?;
++        if m == 0 || n == 0 || k == 0 || weight_k != k {
++            return xs.apply(linear);
++        }
++        let key = GemmKey {
++            n,
++            k,
++            m,
++            weight_strides: [weight.stride()[0], weight.stride()[1]],
++            dtype: weight.dtype(),
++            has_reduced_precision:
++                candle_core::cuda_backend::gemm_reduced_precision_bf16(),
++        };
++        let mut guard = self.state.lock().map_err(err)?;
++        let started = guard.is_none().then(Instant::now);
++        if guard.is_none() {
++            *guard = Some(TuningState {
++                choices: HashMap::new(),
++                engine: Engine::new(xs).map_err(err)?,
++                device: xs.device().clone(),
++            });
++        }
++        let state = guard.as_mut().unwrap();
++        if !state.device.same_device(xs.device()) {
++            return xs.apply(linear);
++        }
++        if let std::collections::hash_map::Entry::Vacant(entry) =
++            state.choices.entry(key)
++        {
++            let started = started.unwrap_or_else(Instant::now);
++            let choice = tune_gemm(&state.engine, xs, linear).map_err(err)?;
++            let mut stats =
++                GEMM_TUNING_STATS.lock().unwrap_or_else(|e| e.into_inner());
++            stats.keys_tuned += 1;
++            stats.non_default_keys += usize::from(choice.plan.is_some());
++            stats.tuning_time += started.elapsed();
++            entry.insert(choice);
++        }
++        match &state.choices[&key].plan {
++            Some(cached) => output(
++                &state.engine,
++                &cached.plan,
++                &cached.algorithm,
++                xs,
++                linear,
++            )
++            .map_err(err),
++            None => xs.apply(linear),
++        }
++    }
++}
++
++fn measure_gemm_ms(
++    xs: &Tensor,
++    mut project: impl FnMut() -> Result<Tensor>,
++) -> Result<f64> {
++    let stream = xs.device().as_cuda_device()?.cuda_stream();
++    std::hint::black_box(project()?);
++    let mut samples = [0.; 3];
++    for sample in &mut samples {
++        stream.synchronize()?;
++        let start =
++            stream.record_event(Some(CUevent_flags::CU_EVENT_DEFAULT))?;
++        std::hint::black_box(project()?);
++        let end = stream.record_event(Some(CUevent_flags::CU_EVENT_DEFAULT))?;
++        end.synchronize()?;
++        *sample = f64::from(start.elapsed_ms(&end)?);
++    }
++    samples.sort_by(f64::total_cmp);
++    ensure!(
++        samples[1].is_finite() && samples[1] > 0.,
++        "invalid GEMM timing"
++    );
++    Ok(samples[1])
++}
++
++fn tune_gemm(
++    engine: &Engine,
++    xs: &Tensor,
++    linear: &Linear,
++) -> Result<TunedGemm> {
++    let (m, k) = xs.dims2()?;
++    let n = linear.weight().dim(0)?;
++    let plan = Plan::new([m, n, k])?;
++    let mut default_ms = measure_gemm_ms(xs, || Ok(xs.apply(linear)?))?;
++    let mut best_ms = f64::INFINITY;
++    let mut best_algorithm = None;
++    // Unsupported heuristics keep Candle's default. Never search beyond eight.
++    for candidate in plan.query_algorithms(engine, 8).unwrap_or_default() {
++        if candidate.state != sys::cublasStatus_t::CUBLAS_STATUS_SUCCESS
++            || candidate.workspaceSize > WORKSPACE
++        {
++            continue;
++        }
++        match measure_gemm_ms(xs, || {
++            output(engine, &plan, &candidate.algo, xs, linear)
++        }) {
++            Ok(ms) if ms < best_ms => {
++                best_ms = ms;
++                best_algorithm = Some(candidate.algo);
++            }
++            Ok(_) => {}
++            Err(_) => xs.device().synchronize()?,
++        }
++    }
++    // Recheck the default after GPU warmup; use the faster baseline so clock
++    // ramp-up cannot by itself qualify a candidate for the 3% saving.
++    default_ms = default_ms.min(measure_gemm_ms(xs, || Ok(xs.apply(linear)?))?);
++    let algorithm = best_algorithm.filter(|_| best_ms <= default_ms * 0.97);
++    Ok(TunedGemm {
++        #[cfg(test)]
++        default_ms,
++        #[cfg(test)]
++        chosen_ms: if algorithm.is_some() {
++            best_ms
++        } else {
++            default_ms
++        },
++        plan: algorithm.map(|algorithm| CachedPlan { plan, algorithm }),
++    })
++}
++
+ #[cfg(test)]
+ pub(crate) mod bench {
+     use std::time::Instant;
+@@ -789,8 +1010,13 @@
+         values.sort_by(f64::total_cmp);
+         (values[(values.len() - 1) / 2] + values[values.len() / 2]) / 2.0
+     }
+-    fn timing(
++    fn timing(xs: &Tensor, f: impl FnMut() -> Result<Tensor>) -> Result<f64> {
++        measure_median_ms(xs, 3, 8, f)
++    }
++    fn measure_median_ms(
+         xs: &Tensor,
++        sample_count: usize,
++        runs_per_sample: usize,
+         mut f: impl FnMut() -> Result<Tensor>,
+     ) -> Result<f64> {
+         for _ in 0..2 {
+@@ -798,17 +1024,19 @@
+         }
+         let stream = xs.device().as_cuda_device()?.cuda_stream();
+         let mut samples = vec![];
+-        for _ in 0..3 {
++        for _ in 0..sample_count {
+             stream.synchronize()?;
+             let start =
+                 stream.record_event(Some(CUevent_flags::CU_EVENT_DEFAULT))?;
+-            for _ in 0..8 {
++            for _ in 0..runs_per_sample {
+                 std::hint::black_box(f()?);
+             }
+             let end =
+                 stream.record_event(Some(CUevent_flags::CU_EVENT_DEFAULT))?;
+             end.synchronize()?;
+-            samples.push(f64::from(start.elapsed_ms(&end)?) / 8.0);
++            samples.push(
++                f64::from(start.elapsed_ms(&end)?) / runs_per_sample as f64,
++            );
+         }
+         Ok(median(&mut samples))
+     }
+@@ -833,6 +1061,300 @@
+         Ok(Value::Object(fields))
+     }
+ 
++    #[test]
++    #[ignore = "requires CUDA"]
++    fn tunes_cua_s1_projections_within_bf16_tolerance() -> Result<()> {
++        let device = candle_core::Device::new_cuda(0)?;
++        device.set_seed(42)?;
++        let cache = std::sync::Arc::new(GemmCache {
++            state: Mutex::new(None),
++            is_enabled: true,
++        });
++        let disabled = GemmCache {
++            state: Mutex::new(None),
++            is_enabled: false,
++        };
++        let assert_close = |actual: &Tensor, expected: &Tensor| -> Result<()> {
++            let tolerance = 2f32.powi(-6);
++            let actual = actual
++                .to_dtype(DType::F32)?
++                .flatten_all()?
++                .to_vec1::<f32>()?;
++            let expected = expected
++                .to_dtype(DType::F32)?
++                .flatten_all()?
++                .to_vec1::<f32>()?;
++            ensure!(actual.len() == expected.len());
++            let mut max_ratio = 0f32;
++            for (actual, expected) in actual.into_iter().zip(expected) {
++                let ratio = (actual - expected).abs()
++                    / (tolerance + tolerance * expected.abs());
++                ensure!(
++                    ratio.is_finite() && ratio <= 1.,
++                    "expected {expected}, got {actual}, tolerance ratio {ratio}"
++                );
++                max_ratio = max_ratio.max(ratio);
++            }
++            println!("maximum combined tolerance ratio: {max_ratio}");
++            Ok(())
++        };
++        let mut keys = 0;
++        for (name, n, k) in [
++            ("down_proj", 2560, 9216),
++            ("in_proj_qkv/q_proj", 8192, 2560),
++            ("in_proj_a/in_proj_b", 32, 2560),
++        ] {
++            for m in [1152, 1860] {
++                let xs = Tensor::randn(0f32, 1., (m, k), &device)?
++                    .to_dtype(DType::BF16)?;
++                let linear = Linear::new(
++                    Tensor::randn(
++                        0f32,
++                        (k as f32).sqrt().recip(),
++                        (n, k),
++                        &device,
++                    )?
++                    .to_dtype(DType::BF16)?,
++                    None,
++                );
++                let expected = xs.apply(&linear)?;
++                let before = read_gemm_tuning_stats();
++                assert_close(&cache.project(&xs, &linear)?, &expected)?;
++                let after = read_gemm_tuning_stats();
++                keys += 1;
++                ensure!(after.keys_tuned == before.keys_tuned + 1);
++                {
++                    let guard = cache.state.lock().unwrap();
++                    let state = guard.as_ref().unwrap();
++                    ensure!(state.choices.len() == keys);
++                    let chosen = state
++                        .choices
++                        .iter()
++                        .find(|(key, _)| key.n == n && key.k == k && key.m == m)
++                        .unwrap()
++                        .1;
++                    let algorithm = match &chosen.plan {
++                        Some(cached) => {
++                            ensure!(
++                                chosen.chosen_ms <= chosen.default_ms * 0.97
++                            );
++                            description(&cached.algorithm)?
++                        }
++                        None => json!("default"),
++                    };
++                    ensure!(
++                        after.non_default_keys
++                            == before.non_default_keys
++                                + usize::from(chosen.plan.is_some())
++                    );
++                    println!(
++                        "{name} M={m} N={n} K={k}: choice={algorithm}, default_ms={:.6}, chosen_ms={:.6}, speedup={:.3}, tuning_ms={:.3}",
++                        chosen.default_ms,
++                        chosen.chosen_ms,
++                        chosen.default_ms / chosen.chosen_ms,
++                        (after.tuning_time - before.tuning_time).as_secs_f64()
++                            * 1000.
++                    );
++                }
++                assert_close(&cache.project(&xs, &linear)?, &expected)?;
++                ensure!(
++                    bits(&disabled.project(&xs, &linear)?)? == bits(&expected)?
++                );
++                ensure!(disabled.state.lock().unwrap().is_none());
++
++                // Reuse the key with another layer's weights and another host
++                // thread, exercising the shared scratch-buffer completion event.
++                let other = Linear::new((linear.weight() * 0.5)?, None);
++                let expected = xs.apply(&other)?;
++                device.synchronize()?;
++                let thread_cache = cache.clone();
++                let actual = std::thread::spawn(move || {
++                    thread_cache.project(&xs, &other)
++                })
++                .join()
++                .unwrap()?;
++                assert_close(&actual, &expected)?;
++                let reused = read_gemm_tuning_stats();
++                ensure!(reused.keys_tuned == after.keys_tuned);
++                ensure!(reused.non_default_keys == after.non_default_keys);
++                ensure!(reused.tuning_time == after.tuning_time);
++            }
++        }
++        println!("process tuning totals: {:?}", read_gemm_tuning_stats());
++        Ok(())
++    }
++
++    #[test]
++    #[ignore = "requires CUDA"]
++    fn measure_cua_s1_gemms() -> Result<()> {
++        let row_counts = std::env::var("VS1_CUA_S1_GEMM_ROWS")
++            .unwrap_or_else(|_| "200,1400,1860".into())
++            .split(',')
++            .map(|rows| rows.trim().parse::<usize>())
++            .collect::<std::result::Result<Vec<_>, _>>()?;
++        ensure!(
++            row_counts.iter().all(|&rows| rows > 0),
++            "VS1_CUA_S1_GEMM_ROWS must contain positive row counts"
++        );
++        let sample_count = std::env::var("VS1_CUA_S1_GEMM_SAMPLES")
++            .unwrap_or_else(|_| "21".into())
++            .trim()
++            .parse::<usize>()?;
++        ensure!(sample_count > 0, "VS1_CUA_S1_GEMM_SAMPLES must be positive");
++        let selected_projections =
++            std::env::var("VS1_CUA_S1_GEMM_SHAPES").ok().map(|names| {
++                names
++                    .split(',')
++                    .map(|name| name.trim().to_owned())
++                    .collect::<Vec<_>>()
++            });
++        let shapes = [
++            (&["mlp.down_proj"][..], 2560, 9216),
++            (
++                &["delta_net.in_proj_qkv", "attention.q_proj"][..],
++                8192,
++                2560,
++            ),
++            (&["delta_net.in_proj_z"][..], 4096, 2560),
++            (&["delta_net.out_proj", "attention.o_proj"][..], 2560, 4096),
++            (&["attention.k_proj", "attention.v_proj"][..], 1024, 2560),
++        ];
++        if let Some(names) = &selected_projections {
++            for name in names {
++                ensure!(
++                    shapes.iter().any(|(projections, _, _)| projections
++                        .contains(&name.as_str())),
++                    "unknown VS1_CUA_S1_GEMM_SHAPES projection: {name}"
++                );
++            }
++        }
++        let report_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
++            .join("../..")
++            .join(
++                std::env::var_os("VS1_CUA_S1_GEMM_OUTPUT")
++                    .filter(|path| !path.is_empty())
++                    .context(
++                        "set VS1_CUA_S1_GEMM_OUTPUT to the JSON output path",
++                    )?,
++            );
++        std::fs::create_dir_all(report_path.parent().unwrap())?;
++        let device = candle_core::Device::new_cuda(0)?;
++        device.set_seed(42)?;
++        let seed = Tensor::zeros((1, 1), DType::BF16, &device)?;
++        let engine = Engine::new(&seed)?;
++        let mut report = json!({
++            "gpu": device.as_cuda_device()?.cuda_stream().context().name()?,
++            "cublaslt_version": unsafe { sys::cublasLtGetVersion() },
++            "input_dtype": "BF16", "output_dtype": "BF16", "compute_dtype": "F32",
++            "seed": 42, "input_distribution": "normal(0, 1)",
++            "weight_distribution": "normal(0, 1/sqrt(K))",
++            "workspace_limit_bytes": WORKSPACE, "heuristics_requested": 32,
++            "timing": "CUDA events", "warmup_runs": 2,
++            "samples": sample_count, "runs_per_sample": 1, "rows": [],
++        });
++        for (projections, n, k) in shapes {
++            if selected_projections.as_ref().is_some_and(|names| {
++                !names
++                    .iter()
++                    .any(|name| projections.contains(&name.as_str()))
++            }) {
++                continue;
++            }
++            let weight =
++                Tensor::randn(0f32, 1. / (k as f32).sqrt(), (n, k), &device)?
++                    .to_dtype(DType::BF16)?;
++            let linear = Linear::new(weight, None);
++            for &m in &row_counts {
++                let xs = Tensor::randn(0f32, 1., (m, k), &device)?
++                    .to_dtype(DType::BF16)?;
++                let plan = Plan::new([m, n, k])?;
++                let expected = xs.apply(&linear)?;
++                let default_ms =
++                    measure_median_ms(&xs, sample_count, 1, || {
++                        Ok(xs.apply(&linear)?)
++                    })?;
++                ensure!(default_ms.is_finite() && default_ms > 0.);
++                let heuristics = plan.query_algorithms(&engine, 32)?;
++                let mut candidates = vec![];
++                let mut best_ms = f64::INFINITY;
++                let mut best_candidate = None;
++                for (index, heuristic) in heuristics.iter().enumerate() {
++                    let mut candidate = json!({
++                        "heuristic_index": index,
++                        "state": format!("{:?}", heuristic.state),
++                        "workspace_bytes": heuristic.workspaceSize,
++                        "algorithm": null, "median_ms": null, "speedup": null,
++                        "is_bit_identical": null, "mismatched_elements": null,
++                        "error": null,
++                    });
++                    let measurement = (|| -> Result<f64> {
++                        ensure!(
++                            heuristic.state
++                                == sys::cublasStatus_t::CUBLAS_STATUS_SUCCESS,
++                            "heuristic returned {:?}",
++                            heuristic.state
++                        );
++                        candidate["algorithm"] = description(&heuristic.algo)?;
++                        let actual = output(
++                            &engine,
++                            &plan,
++                            &heuristic.algo,
++                            &xs,
++                            &linear,
++                        )?;
++                        let mismatches = mismatch_count(&actual, &expected)?;
++                        candidate["is_bit_identical"] = json!(mismatches == 0);
++                        candidate["mismatched_elements"] = json!(mismatches);
++                        drop(actual);
++                        let ms =
++                            measure_median_ms(&xs, sample_count, 1, || {
++                                output(
++                                    &engine,
++                                    &plan,
++                                    &heuristic.algo,
++                                    &xs,
++                                    &linear,
++                                )
++                            })?;
++                        ensure!(
++                            ms.is_finite() && ms > 0.,
++                            "invalid timing: {ms}"
++                        );
++                        Ok(ms)
++                    })();
++                    match measurement {
++                        Ok(ms) => {
++                            candidate["median_ms"] = json!(ms);
++                            candidate["speedup"] = json!(default_ms / ms);
++                            if ms < best_ms {
++                                best_ms = ms;
++                                best_candidate = Some(candidate.clone());
++                            }
++                        }
++                        Err(error) => {
++                            candidate["error"] = json!(format!("{error:#}"));
++                            device.synchronize()?;
++                        }
++                    }
++                    candidates.push(candidate);
++                }
++                let row = json!({
++                    "projections": projections, "m": m, "n": n, "k": k,
++                    "default_median_ms": default_ms,
++                    "heuristics_returned": heuristics.len(),
++                    "best_candidate": best_candidate, "candidates": candidates,
++                });
++                println!("{row}");
++                report["rows"].as_array_mut().unwrap().push(row);
++                std::fs::write(
++                    &report_path,
++                    serde_json::to_vec_pretty(&report)?,
++                )?;
++            }
++        }
++        Ok(())
++    }
++
+     struct Candidate {
+         algo: sys::cublasLtMatmulAlgo_t,
+         ms: f64,
+diff --git a/research/cua-s1/README.md b/research/cua-s1/README.md
+index ae93c64e4e..864aab017d 100644
+--- a/research/cua-s1/README.md
++++ b/research/cua-s1/README.md
+@@ -80,6 +80,36 @@
+ not be the first of those five in a tournament. Predictions retain their full
+ option fields, first-round letters and logits, and dropped-state-token counts.
+ 
++## Projection GEMM search
++
++The ignored `gemm_cuda::bench::measure_cua_s1_gemms` test compares Candle's
++default bias-free BF16 linear projection with up to 32 cuBLASLt heuristics,
++using F32 compute and the existing 64 MiB scratch workspace. It needs CUDA but
++no checkpoint. It covers M=200, 1400 and 1860 for all remaining projection
++shapes; projections with the same dimensions share a row (15 rows total).
++The CUTLASS SwiGLU gate/up projection is excluded.
++
++```sh
++VS1_CUA_S1_GEMM_OUTPUT=artifacts/cua-s1/gemm-search.json \
++  direnv exec . cargo test --release -p vs1 --features cuda --lib \
++  gemm_cuda::bench::measure_cua_s1_gemms -- --ignored --exact --nocapture --test-threads=1
++```
++
++Each candidate and the baseline get two warmup calls followed by 21 separately
++synchronized CUDA-event samples; the reported time is their median in ms.
++Timing uses the normal output-allocation path and excludes heuristic queries,
++random input generation and bit comparisons. Inputs are seeded random BF16
++activations and weights at the real matrix sizes. Exactness compares raw BF16
++output bits with Candle on those inputs; it does not gate the fastest candidate.
++
++Each row prints as JSON and is saved with GPU, library and measurement metadata
++to `VS1_CUA_S1_GEMM_OUTPUT` (required, relative to the workspace root unless
++absolute). The file is updated after each completed row. Rows include the actual
++heuristic count, all candidate configurations, timings, speedups and exactness,
++plus the best candidate. Failed candidates retain their errors and null values
++for unavailable measurements; no usable candidate leaves `best_candidate` null.
++This experiment does not change production dispatch.
++
+ ## Reference prompts
+ 
+ Regenerate from the repository root:
+diff --git a/research/cua-s1/gemm-autotune.md b/research/cua-s1/gemm-autotune.md
+new file mode 100644
+index 0000000000..33479be275
+--- /dev/null
++++ b/research/cua-s1/gemm-autotune.md
+@@ -0,0 +1,37 @@
++# G3c: runtime projection GEMM tuning
++
++CUDA/BF16 decoder projections share a mutex-protected cache per text model.
++The key contains N, K, M, weight strides, dtype and Candle's BF16 reduction
++setting. The cache is tied to its CUDA device. Biases, noncontiguous tensors,
++unaligned offsets and other dtypes use Candle directly. CUTLASS SwiGLU and
++the encoder's Retile behavior are unchanged.
++
++The first call measures Candle and up to eight cuBLASLt heuristic candidates
++on the actual input and weights. Each measurement has one warmup and three
++single-GEMM CUDA-event samples; selection uses the median. Candle is measured
++again afterward, taking the faster baseline to limit clock warmup bias.
++A candidate must take at most 97% of that baseline time. Unsupported candidates
++are skipped. Both default and non-default choices are cached across layers;
++cache hits perform no timing or heuristic query.
++
++Tuning costs at most 40 trial GEMMs per key, plus descriptor/event setup and
++synchronization, using one 64 MiB scratch buffer per model. The actual elapsed
++cost cannot be measured in the CPU-only development environment.
++`vs1::cua_s1::read_gemm_tuning_stats()` exposes process totals for `keys_tuned`,
++`non_default_keys` and wall-clock `tuning_time` (including initial scratch
++allocation and GPU waits). The CUDA CLI prints these totals after inference.
++Set `VS1_CUA_S1_GEMM_AUTOTUNE=0` before loading the model to always use Candle.
++Autotuning is enabled by default.
++
++The ignored test uses real down, QKV/query and small a/b projection dimensions
++at M = 1152 and 1860, with seeded normal inputs and scaled normal weights. It
++checks the chosen output against Candle with `atol = rtol = 2^-6`, prints each
++choice, measured speedup and tuning time, and checks cache reuse across weights
++and host threads plus the disabled path:
++
++```sh
++direnv exec . cargo test -p vs1 --features cuda tunes_cua_s1_projections_within_bf16_tolerance -- --ignored --nocapture --test-threads=1
++```
++
++This test is compiled only here. The dispatcher still needs to run it and
++measure model parity and warm end-to-end latency with autotuning on and off.

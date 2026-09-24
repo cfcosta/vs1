@@ -1,0 +1,1740 @@
+{
+  "gpu": "NVIDIA GeForce RTX 3080 Ti",
+  "cublaslt_version": 120901,
+  "input_dtype": "BF16",
+  "output_dtype": "BF16",
+  "compute_dtype": "F32",
+  "seed": 42,
+  "input_distribution": "normal(0, 1)",
+  "weight_distribution": "normal(0, 1/sqrt(K))",
+  "workspace_limit_bytes": 67108864,
+  "heuristics_requested": 32,
+  "timing": "CUDA events",
+  "warmup_runs": 2,
+  "samples": 21,
+  "runs_per_sample": 1,
+  "rows": [
+    {
+      "projections": [
+        "mlp.down_proj"
+      ],
+      "m": 200,
+      "n": 2560,
+      "k": 9216,
+      "default_median_ms": 0.1993280053138733,
+      "heuristics_returned": 5,
+      "best_candidate": {
+        "heuristic_index": 1,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 160,
+        "algorithm": {
+          "id": 6,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 11,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.1955839991569519,
+        "speedup": 1.0191427017192594,
+        "is_bit_identical": false,
+        "mismatched_elements": 225503,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 4096000,
+          "algorithm": {
+            "id": 21,
+            "tile": 23,
+            "split_k": 4,
+            "reduction": 4,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.19843199849128723,
+          "speedup": 1.0045154351586365,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 160,
+          "algorithm": {
+            "id": 6,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 11,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.1955839991569519,
+          "speedup": 1.0191427017192594,
+          "is_bit_identical": false,
+          "mismatched_elements": 225503,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 160,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 15,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.2088959962129593,
+          "speedup": 0.9541973466579422,
+          "is_bit_identical": false,
+          "mismatched_elements": 336619,
+          "error": null
+        },
+        {
+          "heuristic_index": 3,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 160,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 15,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.20787200331687927,
+          "speedup": 0.9588977935139176,
+          "is_bit_identical": false,
+          "mismatched_elements": 336619,
+          "error": null
+        },
+        {
+          "heuristic_index": 4,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 160,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 6,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.19961600005626678,
+          "speedup": 0.9985572562203816,
+          "is_bit_identical": false,
+          "mismatched_elements": 279408,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "mlp.down_proj"
+      ],
+      "m": 1400,
+      "n": 2560,
+      "k": 9216,
+      "default_median_ms": 1.4519679546356201,
+      "heuristics_returned": 4,
+      "best_candidate": {
+        "heuristic_index": 3,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 0,
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 1.0820159912109375,
+        "speedup": 1.3419098852787297,
+        "is_bit_identical": true,
+        "mismatched_elements": 0,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.4438400268554688,
+          "speedup": 1.0056293825001188,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 880,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.0881919860839844,
+          "speedup": 1.3342939235021716,
+          "is_bit_identical": false,
+          "mismatched_elements": 960923,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 10,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.0862079858779907,
+          "speedup": 1.3367310621105244,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 3,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.0820159912109375,
+          "speedup": 1.3419098852787297,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "mlp.down_proj"
+      ],
+      "m": 1860,
+      "n": 2560,
+      "k": 9216,
+      "default_median_ms": 1.3916159868240356,
+      "heuristics_returned": 7,
+      "best_candidate": {
+        "heuristic_index": 3,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 0,
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 1.3230079412460327,
+        "speedup": 1.051857621892569,
+        "is_bit_identical": true,
+        "mismatched_elements": 0,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.3527040481567383,
+          "speedup": 1.0287660399333622,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 600,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 3,
+            "reduction": 1,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.3677760362625122,
+          "speedup": 1.0174297179724443,
+          "is_bit_identical": false,
+          "mismatched_elements": 1695169,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 11,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.334272027015686,
+          "speedup": 1.0429777126757342,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 3,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.3230079412460327,
+          "speedup": 1.051857621892569,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 4,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 1200,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.405951976776123,
+          "speedup": 0.9898033573060154,
+          "is_bit_identical": false,
+          "mismatched_elements": 1275395,
+          "error": null
+        },
+        {
+          "heuristic_index": 5,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 1200,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 3,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.4141440391540527,
+          "speedup": 0.9840694782806613,
+          "is_bit_identical": false,
+          "mismatched_elements": 1695169,
+          "error": null
+        },
+        {
+          "heuristic_index": 6,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 19,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 10,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.415168046951294,
+          "speedup": 0.9833574110311516,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "delta_net.in_proj_qkv",
+        "attention.q_proj"
+      ],
+      "m": 200,
+      "n": 8192,
+      "k": 2560,
+      "default_median_ms": 0.21299199759960175,
+      "heuristics_returned": 1,
+      "best_candidate": {
+        "heuristic_index": 0,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 0,
+        "algorithm": {
+          "id": 6,
+          "tile": 24,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 9,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.2027519941329956,
+        "speedup": 1.0505050690642737,
+        "is_bit_identical": true,
+        "mismatched_elements": 0,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 6,
+            "tile": 24,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 9,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.2027519941329956,
+          "speedup": 1.0505050690642737,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "delta_net.in_proj_qkv",
+        "attention.q_proj"
+      ],
+      "m": 1400,
+      "n": 8192,
+      "k": 2560,
+      "default_median_ms": 0.9625599980354309,
+      "heuristics_returned": 6,
+      "best_candidate": {
+        "heuristic_index": 2,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 2816,
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.8529919981956482,
+        "speedup": 1.128451380636107,
+        "is_bit_identical": false,
+        "mismatched_elements": 3072156,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.9523199796676636,
+          "speedup": 1.0107527076890068,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 1408,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.9000959992408752,
+          "speedup": 1.0693970408125764,
+          "is_bit_identical": false,
+          "mismatched_elements": 3072156,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 2816,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.8529919981956482,
+          "speedup": 1.128451380636107,
+          "is_bit_identical": false,
+          "mismatched_elements": 3072156,
+          "error": null
+        },
+        {
+          "heuristic_index": 3,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 1408,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 4,
+            "reduction": 1,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.0199040174484253,
+          "speedup": 0.9437750823293584,
+          "is_bit_identical": false,
+          "mismatched_elements": 4692299,
+          "error": null
+        },
+        {
+          "heuristic_index": 4,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.8734719753265381,
+          "speedup": 1.1019929948818201,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 5,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 2816,
+          "algorithm": {
+            "id": 6,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 11,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.9676799774169922,
+          "speedup": 0.9947090158926013,
+          "is_bit_identical": false,
+          "mismatched_elements": 3072156,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "delta_net.in_proj_qkv",
+        "attention.q_proj"
+      ],
+      "m": 1860,
+      "n": 8192,
+      "k": 2560,
+      "default_median_ms": 1.1755520105361938,
+      "heuristics_returned": 5,
+      "best_candidate": {
+        "heuristic_index": 3,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 0,
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 0,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 1.1212799549102783,
+        "speedup": 1.0484018780396893,
+        "is_bit_identical": true,
+        "mismatched_elements": 0,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 6,
+            "tile": 24,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 9,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.159168004989624,
+          "speedup": 1.0141342803424913,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.1397119760513306,
+          "speedup": 1.0314465717988113,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 1920,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.2091840505599976,
+          "speedup": 0.9721861696668691,
+          "is_bit_identical": false,
+          "mismatched_elements": 4084900,
+          "error": null
+        },
+        {
+          "heuristic_index": 3,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 0,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.1212799549102783,
+          "speedup": 1.0484018780396893,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 4,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 3840,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.171455979347229,
+          "speedup": 1.00349653018225,
+          "is_bit_identical": false,
+          "mismatched_elements": 4084900,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "delta_net.in_proj_z"
+      ],
+      "m": 200,
+      "n": 4096,
+      "k": 2560,
+      "default_median_ms": 0.11059200018644333,
+      "heuristics_returned": 1,
+      "best_candidate": {
+        "heuristic_index": 0,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 512,
+        "algorithm": {
+          "id": 6,
+          "tile": 18,
+          "split_k": 3,
+          "reduction": 1,
+          "stages": 0,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.11027199774980545,
+        "speedup": 1.0029019374199053,
+        "is_bit_identical": true,
+        "mismatched_elements": 0,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 512,
+          "algorithm": {
+            "id": 6,
+            "tile": 18,
+            "split_k": 3,
+            "reduction": 1,
+            "stages": 0,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.11027199774980545,
+          "speedup": 1.0029019374199053,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "delta_net.in_proj_z"
+      ],
+      "m": 1400,
+      "n": 4096,
+      "k": 2560,
+      "default_median_ms": 0.6010559797286987,
+      "heuristics_returned": 4,
+      "best_candidate": {
+        "heuristic_index": 2,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 1408,
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.4289279878139496,
+        "speedup": 1.4012981125153596,
+        "is_bit_identical": false,
+        "mismatched_elements": 1535049,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.5846719741821289,
+          "speedup": 1.028022560119268,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 10,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.477183997631073,
+          "speedup": 1.2595895560466706,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 1408,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.4289279878139496,
+          "speedup": 1.4012981125153596,
+          "is_bit_identical": false,
+          "mismatched_elements": 1535049,
+          "error": null
+        },
+        {
+          "heuristic_index": 3,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.4710400104522705,
+          "speedup": 1.2760189503893586,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "delta_net.in_proj_z"
+      ],
+      "m": 1860,
+      "n": 4096,
+      "k": 2560,
+      "default_median_ms": 1.3627840280532837,
+      "heuristics_returned": 3,
+      "best_candidate": {
+        "heuristic_index": 1,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 1920,
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 1.3022079467773438,
+        "speedup": 1.0465179785040104,
+        "is_bit_identical": false,
+        "mismatched_elements": 2040523,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.3124799728393555,
+          "speedup": 1.0383274840416064,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 1920,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.3022079467773438,
+          "speedup": 1.0465179785040104,
+          "is_bit_identical": false,
+          "mismatched_elements": 2040523,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 21,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 10,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 1.3066240549087524,
+          "speedup": 1.0429809729382742,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "delta_net.out_proj",
+        "attention.o_proj"
+      ],
+      "m": 200,
+      "n": 2560,
+      "k": 4096,
+      "default_median_ms": 0.08601599931716919,
+      "heuristics_returned": 5,
+      "best_candidate": {
+        "heuristic_index": 1,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 160,
+        "algorithm": {
+          "id": 6,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 11,
+          "swizzle": 0,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.08278399705886841,
+        "speedup": 1.03904138931589,
+        "is_bit_identical": false,
+        "mismatched_elements": 226216,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 4096000,
+          "algorithm": {
+            "id": 21,
+            "tile": 23,
+            "split_k": 4,
+            "reduction": 4,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.08499199897050858,
+          "speedup": 1.0120481969957658,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 160,
+          "algorithm": {
+            "id": 6,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 11,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.08278399705886841,
+          "speedup": 1.03904138931589,
+          "is_bit_identical": false,
+          "mismatched_elements": 226216,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 160,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 6,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.08684799820184708,
+          "speedup": 0.9904200568590631,
+          "is_bit_identical": false,
+          "mismatched_elements": 281582,
+          "error": null
+        },
+        {
+          "heuristic_index": 3,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 160,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 15,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.09091199934482574,
+          "speedup": 0.94614572264453,
+          "is_bit_identical": false,
+          "mismatched_elements": 326139,
+          "error": null
+        },
+        {
+          "heuristic_index": 4,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 160,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 15,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.09011200070381165,
+          "speedup": 0.9545454395124844,
+          "is_bit_identical": false,
+          "mismatched_elements": 326139,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "delta_net.out_proj",
+        "attention.o_proj"
+      ],
+      "m": 1400,
+      "n": 2560,
+      "k": 4096,
+      "default_median_ms": 0.5697600245475769,
+      "heuristics_returned": 4,
+      "best_candidate": {
+        "heuristic_index": 1,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 880,
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.44441598653793335,
+        "speedup": 1.2820421447619206,
+        "is_bit_identical": false,
+        "mismatched_elements": 959465,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.5877760052680969,
+          "speedup": 0.9693489006712641,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 880,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.44441598653793335,
+          "speedup": 1.2820421447619206,
+          "is_bit_identical": false,
+          "mismatched_elements": 959465,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 10,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.44441598653793335,
+          "speedup": 1.2820421447619206,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 3,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.457504004240036,
+          "speedup": 1.2453662028467058,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "delta_net.out_proj",
+        "attention.o_proj"
+      ],
+      "m": 1860,
+      "n": 2560,
+      "k": 4096,
+      "default_median_ms": 0.6110720038414001,
+      "heuristics_returned": 7,
+      "best_candidate": {
+        "heuristic_index": 2,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 0,
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.6072319746017456,
+        "speedup": 1.0063238258198985,
+        "is_bit_identical": true,
+        "mismatched_elements": 0,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.6184960007667542,
+          "speedup": 0.987996693727768,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 600,
+          "algorithm": {
+            "id": 21,
+            "tile": 24,
+            "split_k": 3,
+            "reduction": 1,
+            "stages": 9,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.6492159962654114,
+          "speedup": 0.9412460681137973,
+          "is_bit_identical": false,
+          "mismatched_elements": 1707271,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.6072319746017456,
+          "speedup": 1.0063238258198985,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 3,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 11,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.6225919723510742,
+          "speedup": 0.9814967602839921,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 4,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 1200,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.6295999884605408,
+          "speedup": 0.9705718155039296,
+          "is_bit_identical": false,
+          "mismatched_elements": 1275344,
+          "error": null
+        },
+        {
+          "heuristic_index": 5,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 1200,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 3,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.6327999830245972,
+          "speedup": 0.9656637487893983,
+          "is_bit_identical": false,
+          "mismatched_elements": 1707271,
+          "error": null
+        },
+        {
+          "heuristic_index": 6,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 21,
+            "tile": 19,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 10,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.6500800251960754,
+          "speedup": 0.9399950470053132,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "attention.k_proj",
+        "attention.v_proj"
+      ],
+      "m": 200,
+      "n": 1024,
+      "k": 2560,
+      "default_median_ms": 0.03379200026392937,
+      "heuristics_returned": 2,
+      "best_candidate": {
+        "heuristic_index": 0,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 0,
+        "algorithm": {
+          "id": 31,
+          "tile": 15,
+          "split_k": 1,
+          "reduction": 0,
+          "stages": 17,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.03276799991726875,
+        "speedup": 1.031250010658141,
+        "is_bit_identical": true,
+        "mismatched_elements": 0,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 31,
+            "tile": 15,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 17,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.03276799991726875,
+          "speedup": 1.031250010658141,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 31,
+            "tile": 15,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 17,
+            "swizzle": 0,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.03276799991726875,
+          "speedup": 1.031250010658141,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "attention.k_proj",
+        "attention.v_proj"
+      ],
+      "m": 1400,
+      "n": 1024,
+      "k": 2560,
+      "default_median_ms": 0.20377600193023682,
+      "heuristics_returned": 3,
+      "best_candidate": {
+        "heuristic_index": 1,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 352,
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 7,
+          "reduction": 1,
+          "stages": 7,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.13407999277114868,
+        "speedup": 1.5198091655482646,
+        "is_bit_identical": false,
+        "mismatched_elements": 732682,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 0,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 1,
+            "reduction": 0,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.20572799444198608,
+          "speedup": 0.9905117798039891,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        },
+        {
+          "heuristic_index": 1,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 352,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 7,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.13407999277114868,
+          "speedup": 1.5198091655482646,
+          "is_bit_identical": false,
+          "mismatched_elements": 732682,
+          "error": null
+        },
+        {
+          "heuristic_index": 2,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 352,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 4,
+            "reduction": 1,
+            "stages": 7,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.1382399946451187,
+          "speedup": 1.4740741451369277,
+          "is_bit_identical": false,
+          "mismatched_elements": 585527,
+          "error": null
+        }
+      ]
+    },
+    {
+      "projections": [
+        "attention.k_proj",
+        "attention.v_proj"
+      ],
+      "m": 1860,
+      "n": 1024,
+      "k": 2560,
+      "default_median_ms": 0.15859200060367584,
+      "heuristics_returned": 1,
+      "best_candidate": {
+        "heuristic_index": 0,
+        "state": "CUBLAS_STATUS_SUCCESS",
+        "workspace_bytes": 480,
+        "algorithm": {
+          "id": 5,
+          "tile": 20,
+          "split_k": 2,
+          "reduction": 1,
+          "stages": 0,
+          "swizzle": 1,
+          "custom": 0,
+          "inner_shape": 0,
+          "cluster_shape": 0
+        },
+        "median_ms": 0.15667200088500977,
+        "speedup": 1.0122549000958714,
+        "is_bit_identical": true,
+        "mismatched_elements": 0,
+        "error": null
+      },
+      "candidates": [
+        {
+          "heuristic_index": 0,
+          "state": "CUBLAS_STATUS_SUCCESS",
+          "workspace_bytes": 480,
+          "algorithm": {
+            "id": 5,
+            "tile": 20,
+            "split_k": 2,
+            "reduction": 1,
+            "stages": 0,
+            "swizzle": 1,
+            "custom": 0,
+            "inner_shape": 0,
+            "cluster_shape": 0
+          },
+          "median_ms": 0.15667200088500977,
+          "speedup": 1.0122549000958714,
+          "is_bit_identical": true,
+          "mismatched_elements": 0,
+          "error": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,233 @@
+diff --git a/crates/vs1-browser/src/cua_s1_policy.rs b/crates/vs1-browser/src/cua_s1_policy.rs
+index b7fbe6d985..4dcf3b591f 100644
+--- a/crates/vs1-browser/src/cua_s1_policy.rs
++++ b/crates/vs1-browser/src/cua_s1_policy.rs
+@@ -335,17 +335,45 @@
+     }
+ 
+     #[test]
++    fn reuses_fingerprint_suppression_and_keeps_suppressed_labels() {
++        let page = page();
++        let history = vec![
++            json!({"before_fingerprint":"same","page_changed":true,
++                "input":page["actions"][2]}),
++            json!({"before_fingerprint":"same","page_changed":true,
++                "input":{"id":"wait","kind":"wait"}}),
++        ];
++        let (body, _) =
++            policy::request(&page, "Find a stay", &history, true).unwrap();
++        for compact in [false, true] {
++            let request =
++                build_request(&page, "Find a stay", &history, compact).unwrap();
++            assert!(
++                request
++                    .options
++                    .iter()
++                    .all(|(option, _)| option.element_id != "e3")
++            );
++            assert_eq!(request.ax_tree, body["state"]);
++            assert!(
++                request
++                    .ax_tree
++                    .contains("\"temporarily_unavailable\":[\"Search\"]")
++            );
++        }
++    }
++
++    #[test]
+     fn suppresses_repeated_actions_within_recent_history() {
+         let page = page();
+         let entry = json!({"before_fingerprint":"same","page_changed":true,"input":page["actions"][2]});
++        let return_entry = json!({"before_fingerprint":"changed","page_changed":true,
++            "input":{"id":"wait","kind":"wait"}});
++        let mut history = vec![];
+         for count in [1, 2] {
+-            let request = build_request(
+-                &page,
+-                "Find a stay",
+-                &vec![entry.clone(); count],
+-                true,
+-            )
+-            .unwrap();
++            history.extend([entry.clone(), return_entry.clone()]);
++            let request =
++                build_request(&page, "Find a stay", &history, true).unwrap();
+             assert_eq!(
+                 request
+                     .options
+@@ -411,6 +439,11 @@
+                 is_selected: option.element_id == selected,
+                 forward_passes: 1,
+                 dropped_state_tokens: 0,
++                is_prefix_shared: false,
++                prefix_tokens: 0,
++                suffix_tokens: 0,
++                whole_prompt_tokens: 0,
++                prefix_sharing_fallbacks: 0,
+             })
+             .collect()
+     }
+diff --git a/crates/vs1-browser/src/policy.rs b/crates/vs1-browser/src/policy.rs
+index 11ad9665b7..51fb59261e 100644
+--- a/crates/vs1-browser/src/policy.rs
++++ b/crates/vs1-browser/src/policy.rs
+@@ -109,9 +109,10 @@
+         actions.retain(|a| {
+             let matching: Vec<_> = history
+                 .iter()
++                .enumerate()
+                 .rev()
+                 .take(20)
+-                .filter(|h| {
++                .filter(|(_, h)| {
+                     h["before_fingerprint"].is_string()
+                         && h["before_fingerprint"] == page["fingerprint"]
+                         && h["input"]["node"].is_u64()
+@@ -121,13 +122,20 @@
+                             .all(|key| h["input"][key] == a[key])
+                 })
+                 .collect();
+-            let failed = a["kind"] != "fill"
++            let should_suppress = a["kind"] != "fill"
+                 && (matching.len() >= 2
+-                    || matching.iter().any(|h| h["page_changed"] == false));
+-            if failed {
++                    || matching.iter().any(|(index, h)| {
++                        let after_fingerprint = history
++                            .get(index + 1)
++                            .map(|next| &next["before_fingerprint"])
++                            .unwrap_or(&page["fingerprint"]);
++                        h["page_changed"] == false
++                            || h["before_fingerprint"] == *after_fingerprint
++                    }));
++            if should_suppress {
+                 suppressed.push(a["label"].clone());
+             }
+-            !failed
++            !should_suppress
+         });
+     }
+     let space = action_space(&available)?;
+@@ -376,9 +384,12 @@
+     fn ineffective_actions_are_suppressed_only_in_the_same_state() {
+         let mut page = page();
+         page["fingerprint"] = json!("old");
+-        let history =
+-            vec![json!({"before_fingerprint":"old","page_changed":false,
+-            "input":page["actions"][2]})];
++        let history = vec![
++            json!({"before_fingerprint":"old","page_changed":false,
++                "input":page["actions"][2]}),
++            json!({"before_fingerprint":"changed","page_changed":true,
++                "input":{"id":"wait","kind":"wait"}}),
++        ];
+         for compact in [false, true] {
+             let (body, space) =
+                 request(&page, "Search", &history, compact).unwrap();
+@@ -394,18 +405,101 @@
+         assert_eq!(space.targets["CLICK"].as_object().unwrap().len(), 2);
+     }
+     #[test]
++    fn suppresses_click_when_next_fingerprint_is_unchanged() {
++        let mut page = page();
++        page["fingerprint"] = json!("same");
++        let history = vec![
++            json!({"before_fingerprint":"same","page_changed":true,
++                "input":page["actions"][2]}),
++            json!({"before_fingerprint":"same","page_changed":true,
++                "input":{"id":"wait","kind":"wait"}}),
++        ];
++        let (body, space) = request(&page, "Search", &history, false).unwrap();
++        assert_eq!(space.targets["CLICK"].as_object().unwrap().len(), 1);
++        assert_eq!(
++            body["state"]["recovery"]["temporarily_unavailable"],
++            json!(["Go"])
++        );
++    }
++    #[test]
++    fn keeps_click_when_next_fingerprint_changed() {
++        let mut page = page();
++        page["fingerprint"] = json!("same");
++        let history = vec![
++            json!({"before_fingerprint":"same","page_changed":true,
++                "input":page["actions"][2]}),
++            json!({"before_fingerprint":"changed","page_changed":true,
++                "input":{"id":"wait","kind":"wait"}}),
++        ];
++        let (body, space) = request(&page, "Search", &history, false).unwrap();
++        assert_eq!(space.targets["CLICK"].as_object().unwrap().len(), 2);
++        assert_eq!(
++            body["state"]["recovery"]["temporarily_unavailable"],
++            json!([])
++        );
++    }
++    #[test]
++    fn keeps_fills_when_fingerprints_are_unchanged() {
++        let mut page = page();
++        page["fingerprint"] = json!("same");
++        for page_changed in [false, true] {
++            let entry = json!({"before_fingerprint":"same","page_changed":page_changed,
++                "input":page["actions"][0]});
++            let (body, space) =
++                request(&page, "Search", &[entry.clone(), entry], false)
++                    .unwrap();
++            assert_eq!(space.targets["TYPE_TEXT"]["1"], page["actions"][0]);
++            assert_eq!(
++                body["state"]["recovery"]["temporarily_unavailable"],
++                json!([])
++            );
++        }
++    }
++    #[test]
++    fn suppresses_latest_click_when_current_fingerprint_is_unchanged() {
++        let mut page = page();
++        page["fingerprint"] = json!("same");
++        let history =
++            vec![json!({"before_fingerprint":"same","page_changed":true,
++                "input":page["actions"][2]})];
++        let (body, space) = request(&page, "Search", &history, false).unwrap();
++        assert_eq!(space.targets["CLICK"].as_object().unwrap().len(), 1);
++        assert_eq!(
++            body["state"]["recovery"]["temporarily_unavailable"],
++            json!(["Go"])
++        );
++        page["fingerprint"] = json!("changed");
++        let (body, space) = request(&page, "Search", &history, false).unwrap();
++        assert_eq!(space.targets["CLICK"].as_object().unwrap().len(), 2);
++        assert_eq!(
++            body["state"]["recovery"]["temporarily_unavailable"],
++            json!([])
++        );
++    }
++    #[test]
+     fn repeated_state_cycles_offer_an_alternative() {
+         let mut page = page();
+         page["fingerprint"] = json!("same");
+         let mut old_action = page["actions"][2].clone();
+         old_action["node"] = json!(999);
+         let entry = json!({"before_fingerprint":"same", "page_changed":true, "input":old_action});
+-        let (_, first) =
+-            request(&page, "Search", std::slice::from_ref(&entry), false)
+-                .unwrap();
++        let return_entry = json!({"before_fingerprint":"changed","page_changed":true,
++            "input":{"id":"wait","kind":"wait"}});
++        let (_, first) = request(
++            &page,
++            "Search",
++            &[entry.clone(), return_entry.clone()],
++            false,
++        )
++        .unwrap();
+         assert_eq!(first.targets["CLICK"].as_object().unwrap().len(), 2);
+-        let (_, repeated) =
+-            request(&page, "Search", &[entry.clone(), entry], false).unwrap();
++        let (_, repeated) = request(
++            &page,
++            "Search",
++            &[entry.clone(), return_entry.clone(), entry, return_entry],
++            false,
++        )
++        .unwrap();
+         assert_eq!(repeated.targets["CLICK"].as_object().unwrap().len(), 1);
+     }
+     #[test]
