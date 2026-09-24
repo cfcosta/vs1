@@ -87,6 +87,12 @@
       li {
         margin: 0.5rem 0;
       }
+      .index-navigation {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        margin-bottom: 1.5rem;
+      }
     </style>
   </head>
   <body>
@@ -288,6 +294,240 @@
         };
       }
 
+      function renderEncyclopedia(variant) {
+        document.title = "Encyclopedia · Local tasks";
+        window.__taskState = { openArticle: null };
+        const articles = [
+          {
+            id: "incompleteness-theorems",
+            title: "Gödel's incompleteness theorems",
+            description: "Two theorems about the limits of formal arithmetic systems.",
+          },
+          {
+            id: "completeness-theorem",
+            title: "Gödel's completeness theorem",
+            description:
+              "A theorem connecting logical validity and provability in first-order logic.",
+          },
+          {
+            id: "incompleteness-disambiguation",
+            title: "Incompleteness (disambiguation)",
+            description: "An index of topics that share the name incompleteness.",
+          },
+          {
+            id: "incompleteness-book",
+            title: "Gödel's incompleteness theorems (book)",
+            description: "A book discussing the theorems and their history.",
+          },
+        ];
+        if (variant === "reordered") articles.splice(0, 0, articles.splice(2, 1)[0]);
+        if (variant === "not-first") articles.splice(2, 0, articles.shift());
+        root.innerHTML = `<h1>Encyclopedia</h1>
+          <form id="encyclopedia-search">
+            <label class="field">Search encyclopedia <input id="search-query" type="search" required></label>
+            <button type="submit">Search</button>
+          </form>
+          <section id="search-results" aria-live="polite"></section>`;
+        document.getElementById("encyclopedia-search").onsubmit = searchArticles;
+
+        function searchArticles(event) {
+          event.preventDefault();
+          const terms = document
+            .getElementById("search-query")
+            .value.trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean);
+          const results = articles.filter((article) =>
+            terms.some((term) => article.title.toLowerCase().includes(term)),
+          );
+          location.hash = "search-results";
+          document.getElementById("search-results").innerHTML = `<h2>Search results</h2>
+            ${results.length ? `<ul>${results.map((article) => `<li><a href="#${article.id}" data-article="${article.id}">${article.title}</a></li>`).join("")}</ul>` : "<p>No articles found.</p>"}`;
+          root.querySelectorAll("[data-article]").forEach((link) => {
+            link.onclick = (event) => {
+              event.preventDefault();
+              openArticle(articles.find((article) => article.id === link.dataset.article));
+            };
+          });
+        }
+
+        function openArticle(article) {
+          window.__taskState.openArticle = article.title;
+          location.hash = article.id;
+          document.title = `${article.title} · Local tasks`;
+          root.innerHTML = `<article id="encyclopedia-article"><h1>${article.title}</h1><p>${article.description}</p></article>
+            <button type="button" id="back-to-search">Back to search</button>`;
+          document.getElementById("back-to-search").onclick = () => {
+            location.hash = "";
+            renderEncyclopedia(variant);
+          };
+          window.scrollTo(0, 0);
+        }
+      }
+
+      function renderDocumentationIndex(variant) {
+        document.title = "Documentation index · Local tasks";
+        window.__taskState = { openPage: null };
+        const sections = [
+          {
+            id: "getting-started",
+            title: "Getting started",
+            pages: [
+              "Overview",
+              "Quickstart",
+              "Create an account",
+              "Create a project",
+              "First API request",
+              "API conventions",
+              "Sandbox setup",
+              "Production checklist",
+              "Environments",
+              "Glossary",
+            ],
+          },
+          {
+            id: "authentication",
+            title: "Authentication",
+            pages: [
+              "Authentication overview",
+              "API keys",
+              "OAuth applications",
+              "Access tokens",
+              "Refresh tokens",
+              "Token expiration",
+              "Permission scopes",
+              "Service accounts",
+              "Rotate credentials",
+              "Revoke credentials",
+            ],
+          },
+          {
+            id: "rate-limits",
+            title: "Rate limits",
+            pages: [
+              "Rate limit headers",
+              "Rate limits and quotas",
+              "Rate limit errors",
+              "Quota usage reports",
+              "Request budgets",
+              "Burst limits",
+              "Concurrent requests",
+              "Retry after headers",
+              "Backoff strategies",
+              "Request a quota increase",
+            ],
+          },
+          {
+            id: "webhooks",
+            title: "Webhooks",
+            pages: [
+              "Webhook overview",
+              "Register an endpoint",
+              "Event types",
+              "Event payloads",
+              "Verify signatures",
+              "Delivery retries",
+              "Delivery logs",
+              "Test webhooks",
+              "Replay events",
+              "Webhook rate limits",
+            ],
+          },
+          {
+            id: "errors",
+            title: "Errors",
+            pages: [
+              "Error response format",
+              "HTTP status codes",
+              "Validation errors",
+              "Authentication errors",
+              "Permission errors",
+              "Resource not found",
+              "Conflict errors",
+              "Too many requests",
+              "Server errors",
+              "Troubleshooting requests",
+            ],
+          },
+          {
+            id: "sdks",
+            title: "SDKs",
+            pages: [
+              "SDK overview",
+              "JavaScript SDK",
+              "Python SDK",
+              "Rust SDK",
+              "Go SDK",
+              "Java SDK",
+              "Ruby SDK",
+              "SDK configuration",
+              "SDK retry settings",
+              "SDK migration guide",
+            ],
+          },
+          {
+            id: "resources",
+            title: "Resources",
+            pages: [
+              "List resources",
+              "Create a resource",
+              "Update a resource",
+              "Delete a resource",
+              "Pagination",
+              "Filtering",
+              "Sorting",
+              "Resource metadata",
+              "Batch requests",
+              "Idempotency keys",
+            ],
+          },
+          {
+            id: "operations",
+            title: "Operations",
+            pages: [
+              "Audit logs",
+              "Usage dashboard",
+              "Request tracing",
+              "Health checks",
+              "Incident response",
+              "Data exports",
+              "Data retention",
+              "Regional endpoints",
+              "API versioning",
+              "Changelog",
+            ],
+          },
+        ];
+        if (variant === "shuffled") sections.reverse();
+        if (variant === "target-last") sections.push(sections.splice(2, 1)[0]);
+        root.innerHTML = `<h1>Documentation index</h1>
+          <nav class="index-navigation" aria-label="Documentation sections">
+            ${sections.map((section) => `<a href="#${section.id}" aria-label="${section.title} section">${section.title}</a>`).join("")}
+          </nav>
+          ${sections.map((section) => `<section id="${section.id}"><h2>${section.title}</h2><ul>${section.pages.map((title) => `<li><a href="#doc-${title.toLowerCase().replaceAll(" ", "-")}" data-page="${title}">${title}</a></li>`).join("")}</ul></section>`).join("")}`;
+        root.querySelectorAll("[data-page]").forEach((link) => {
+          link.onclick = (event) => {
+            event.preventDefault();
+            openDocumentationPage(link.dataset.page, link.getAttribute("href"));
+          };
+        });
+
+        function openDocumentationPage(title, hash) {
+          window.__taskState.openPage = title;
+          location.hash = hash;
+          document.title = `${title} · Local tasks`;
+          root.innerHTML = `<article id="documentation-page"><h1>${title}</h1><p>Documentation reference for ${title.toLowerCase()}.</p></article>
+            <button type="button" id="back-to-index">Back to index</button>`;
+          document.getElementById("back-to-index").onclick = () => {
+            location.hash = "";
+            renderDocumentationIndex(variant);
+            window.scrollTo(0, 0);
+          };
+          window.scrollTo(0, 0);
+        }
+      }
+
       const parameters = new URLSearchParams(location.search);
       const variant = parameters.get("variant") || "base";
       switch (parameters.get("case")) {
@@ -302,6 +542,12 @@
           break;
         case "out-of-stock":
           renderProductPage(variant);
+          break;
+        case "search-pick":
+          renderEncyclopedia(variant);
+          break;
+        case "big-index":
+          renderDocumentationIndex(variant);
           break;
         default:
           root.innerHTML =

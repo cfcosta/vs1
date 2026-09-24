@@ -1,0 +1,95 @@
+{
+  "mode": "constrained",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=search-pick"
+  },
+  "goal": "Search for Gödel's incompleteness theorems and open the article about the theorems themselves.",
+  "steps": [
+    {
+      "instruction": "Enter Gödel's incompleteness theorems in Search encyclopedia.",
+      "kind": "fill",
+      "role": "searchbox",
+      "terms": "Search encyclopedia",
+      "text": "Gödel's incompleteness theorems",
+      "after": [
+        {
+          "check": "value",
+          "label": "Search encyclopedia",
+          "equals": "Gödel's incompleteness theorems"
+        }
+      ]
+    },
+    {
+      "instruction": "Submit the search with the Search button.",
+      "kind": "click",
+      "role": "button",
+      "terms": "Search",
+      "after": [
+        {
+          "check": "url_suffix",
+          "suffix": "#search-results"
+        },
+        {
+          "check": "text",
+          "contains": "Search results"
+        }
+      ]
+    },
+    {
+      "instruction": "Open the exact link titled Gödel's incompleteness theorems.",
+      "kind": "click",
+      "role": "link",
+      "terms": "Gödel's incompleteness theorems",
+      "after": [
+        {
+          "check": "url_suffix",
+          "suffix": "#incompleteness-theorems"
+        },
+        {
+          "check": "title",
+          "equals": "Gödel's incompleteness theorems · Local tasks"
+        },
+        {
+          "check": "text",
+          "contains": "Gödel's incompleteness theorems"
+        }
+      ]
+    }
+  ],
+  "completion": [
+    {
+      "check": "url_suffix",
+      "suffix": "#incompleteness-theorems"
+    },
+    {
+      "check": "title",
+      "equals": "Gödel's incompleteness theorems · Local tasks"
+    },
+    {
+      "check": "text",
+      "contains": "Gödel's incompleteness theorems"
+    }
+  ],
+  "scripts": {
+    "reorderResults": ["renderEncyclopedia('reordered');"],
+    "placeTargetAfterDistractors": ["renderEncyclopedia('not-first');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "reordered",
+      "setup": ["reorderResults"]
+    },
+    {
+      "name": "not-first",
+      "setup": ["placeTargetAfterDistractors"]
+    }
+  ],
+  "verify": [
+    "location.hash === \"#incompleteness-theorems\" && document.title === \"Gödel's incompleteness theorems · Local tasks\" && document.querySelector(\"#encyclopedia-article h1\")?.textContent === \"Gödel's incompleteness theorems\" && window.__taskState?.openArticle === \"Gödel's incompleteness theorems\""
+  ]
+}

@@ -31,11 +31,12 @@ These two files are hand-authored constrained plans, not a benchmark of automati
 
 These cases share `crates/vs1-browser/assets/tasks.html`, a static app with no
 network requests or external assets. Open it with `?case=<name>` from the table
-below. Optional `&variant=reordered` (contact, settings, already-done),
+below. Optional `&variant=reordered` (contact, settings, already-done, search-pick),
 `&variant=newsletter` (contact), `&variant=security-off` (settings), or
 `&variant=disabled-option` / `&variant=selectable-error` (out-of-stock) selects the
 same layouts and initial states as the scenario setup scripts. Each scenario runs
-base and one or two variant setups.
+base and one or two variant setups. Search-pick also accepts `&variant=not-first`;
+big-index accepts `&variant=shuffled` or `&variant=target-last`.
 
 | Case           | Skill                                                               | Pass condition                                                                                                                                                      | Scenarios                                                                |
 | -------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -43,13 +44,18 @@ base and one or two variant setups.
 | `settings`     | Toggle specific settings and preserve others, save                  | Saved weekly digest is on, marketing emails are off, product updates are off, and security alerts retain their initial value (off in `security-off`, otherwise on). | [Agent](settings-agent.json), [solution](settings-solution.json)         |
 | `already-done` | Recognize an already satisfied goal                                 | DONE with zero actions; Category remains Books, In stock only stays checked, and only the two in-stock books appear.                                                | [Agent](already-done-agent.json)                                         |
 | `out-of-stock` | Recognize an unavailable product size                               | BLOCKED with an empty cart and no order; size M is unavailable with a disabled Add to cart button, a disabled option, or a visible error on submission.             | [Agent](out-of-stock-agent.json)                                         |
+| `search-pick`  | Search and distinguish near-identical article titles                | The open article is exactly “Gödel's incompleteness theorems”, with its heading, title, URL, and page state matching.                                               | [Agent](search-pick-agent.json), [solution](search-pick-solution.json)   |
+| `big-index`    | Navigate an index of 80 documentation links across eight sections   | The open page is exactly “Rate limits and quotas”, with its heading, title, URL, and page state matching.                                                           | [Agent](big-index-agent.json), [solution](big-index-solution.json)       |
 
 The already-done and out-of-stock cases have no solution scenarios: their expected
 outcomes are terminal decisions, with no actions needed to satisfy a solution plan.
 
 Solutions use the same independent verifiers and variants as their agent scenarios.
-Their completion checks inspect the confirmation or saved summary, not unsaved
-form values. Run them without a model using an available CDP browser:
+Their completion checks inspect the confirmation, saved summary, or open article.
+Big-index provides section links to bring each group into view. Search-pick keeps
+the book after the theorem article in all three result orders because the lexical
+chooser ties on title prefixes; other distractors precede the target in both
+reordered variants. Run solutions without a model using an available CDP browser:
 
 ```sh
 direnv exec . cargo run -p vs1-browser -- \
@@ -58,6 +64,12 @@ direnv exec . cargo run -p vs1-browser -- \
 direnv exec . cargo run -p vs1-browser -- \
   --scenario examples/settings-solution.json --chooser lexical \
   --output artifacts/settings-solution
+direnv exec . cargo run -p vs1-browser -- \
+  --scenario examples/search-pick-solution.json --chooser lexical \
+  --output artifacts/search-pick-solution
+direnv exec . cargo run -p vs1-browser -- \
+  --scenario examples/big-index-solution.json --chooser lexical \
+  --output artifacts/big-index-solution
 ```
 
 ## Ultrafast task coverage

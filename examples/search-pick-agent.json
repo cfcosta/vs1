@@ -1,0 +1,29 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=search-pick"
+  },
+  "goal": "Search for Gödel's incompleteness theorems and open the article about the theorems themselves.",
+  "scripts": {
+    "reorderResults": ["renderEncyclopedia('reordered');"],
+    "placeTargetAfterDistractors": ["renderEncyclopedia('not-first');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "reordered",
+      "setup": ["reorderResults"]
+    },
+    {
+      "name": "not-first",
+      "setup": ["placeTargetAfterDistractors"]
+    }
+  ],
+  "verify": [
+    "location.hash === \"#incompleteness-theorems\" && document.title === \"Gödel's incompleteness theorems · Local tasks\" && document.querySelector(\"#encyclopedia-article h1\")?.textContent === \"Gödel's incompleteness theorems\" && window.__taskState?.openArticle === \"Gödel's incompleteness theorems\""
+  ]
+}

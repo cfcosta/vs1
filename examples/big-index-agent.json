@@ -1,0 +1,29 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=big-index"
+  },
+  "goal": "Open the documentation page about rate limits and quotas.",
+  "scripts": {
+    "shuffleSections": ["renderDocumentationIndex('shuffled');"],
+    "placeTargetSectionLast": ["renderDocumentationIndex('target-last');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "shuffled",
+      "setup": ["shuffleSections"]
+    },
+    {
+      "name": "target-last",
+      "setup": ["placeTargetSectionLast"]
+    }
+  ],
+  "verify": [
+    "location.hash === \"#doc-rate-limits-and-quotas\" && document.title === \"Rate limits and quotas · Local tasks\" && document.querySelector(\"#documentation-page h1\")?.textContent === \"Rate limits and quotas\" && window.__taskState?.openPage === \"Rate limits and quotas\""
+  ]
+}
