@@ -36,8 +36,9 @@ These two files are hand-authored constrained plans, not a benchmark of automati
 | Wikipedia: README invocation of `examples/run.py`       | [wikipedia.json](wikipedia.json)                   | Agent |
 | Google Flights: `examples/flights.py`, demo flights tab | [flights.json](flights.json)                       | Agent |
 
-Agent mode uses the existing browser policy to choose actions and DONE from the
-observed page. Success requires DONE **and** the independent JSON verifier.
+Agent mode uses the existing browser policy to choose actions, DONE, or BLOCKED
+from the observed page. By default, success requires DONE **and** the independent
+JSON verifier. Scenarios can instead expect BLOCKED and can limit executed actions.
 The generic `examples/run.py` equivalent is an agent JSON with your own source,
 goal, and verifier. `scripts/measure_flights.py` and `scripts/record_flights.py`
 reuse the flight task; use repetitions and recording flags:
@@ -78,6 +79,14 @@ Each JSON document contains:
   `{"kind":"url","url":"https://..."}`. File paths resolve relative to the JSON
   file, not the working directory. File `query` is optional.
 - `goal`: the task description.
+- `expect_status`: agent mode only, `"done"` (default) or `"blocked"`. The final
+  status must match, and the independent verifier must still pass.
+- `max_actions`: agent mode only, an optional non-negative integer. The run fails
+  if it executes more browser actions than this limit. This checks the result;
+  `--max-steps` remains the execution budget. Model decisions, including DONE and
+  BLOCKED, do not count as actions. Use `"expect_status": "done", "max_actions": 0`
+  for a goal that is already satisfied. Omit either field to use its default;
+  explicit `null` values and both fields in constrained mode are rejected.
 - `steps`: ordered instructions with action `kind` (`click`, `fill`, `select`),
   `role`, retrieval `terms`, optional literal fill `text`, and observed `after`
   conditions. Conditions support `text`, `title`, `url_suffix`, `value`, and
@@ -107,6 +116,11 @@ those details in `variant-NN-run-NN/trace.json` plus `events.jsonl` and captures
 after successful runs and setup/verification failures. Any failed variant gives a
 nonzero exit status. Scenarios with invalid schema, unknown setup scripts, or
 missing local fixtures fail before a browser tab is opened.
+
+Each agent run's result in `results.json` includes `expectation_failures`, an array
+containing all applicable reasons: `status_mismatch`, `verifier_failure`, and
+`too_many_actions`. An empty array means those expectations passed; run or cleanup
+errors still fail the run and remain in `error` or `cleanup_error`.
 
 On NixOS, use `direnv exec . cargo ...` or `nix run .#vs1-browser -- ...`.
 The JSON files reference a fixture in this checkout; invoke them from the checkout

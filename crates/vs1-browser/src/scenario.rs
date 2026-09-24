@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::{Context, Result, ensure};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value, json};
 
 use crate::{browser, model::Backend, policy};
@@ -17,6 +17,22 @@ enum Mode {
     #[default]
     Constrained,
     Agent,
+}
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum ExpectedStatus {
+    Done,
+    Blocked,
+}
+fn deserialize_expectation<'de, D, T>(
+    deserializer: D,
+) -> Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    // Omission is allowed; an explicit null is not an expectation.
+    T::deserialize(deserializer).map(Some)
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -29,6 +45,10 @@ struct Plan {
     variants: Vec<Variant>,
     verify: Vec<String>,
     goal: String,
+    #[serde(default, deserialize_with = "deserialize_expectation")]
+    expect_status: Option<ExpectedStatus>,
+    #[serde(default, deserialize_with = "deserialize_expectation")]
+    max_actions: Option<u64>,
     #[serde(default)]
     steps: Vec<Step>,
     #[serde(default)]
@@ -86,10 +106,16 @@ fn validate(plan: &Plan) -> Result<()> {
         "scenario needs goal, verify, and variants"
     );
     match plan.mode {
-        Mode::Constrained => ensure!(
-            !plan.steps.is_empty() && !plan.completion.is_empty(),
-            "constrained mode needs steps and completion"
-        ),
+        Mode::Constrained => {
+            ensure!(
+                plan.expect_status.is_none() && plan.max_actions.is_none(),
+                "expect_status and max_actions require agent mode"
+            );
+            ensure!(
+                !plan.steps.is_empty() && !plan.completion.is_empty(),
+                "constrained mode needs steps and completion"
+            );
+        }
         Mode::Agent => ensure!(
             plan.steps.is_empty() && plan.completion.is_empty(),
             "agent mode uses goal and verify, not fixed steps or completion"
@@ -343,6 +369,26 @@ fn execute(
         "elapsed_ms":started.elapsed().as_secs_f64()*1000.0,"trace":trace}),
     )
 }
+fn evaluate_agent_result(plan: &Plan, result: &mut Value) {
+    let expected_status =
+        plan.expect_status.as_ref().unwrap_or(&ExpectedStatus::Done);
+    let mut failures = vec![];
+    if result["status"] != json!(expected_status) {
+        failures.push("status_mismatch");
+    }
+    if result["verification"]["passed"] != true {
+        failures.push("verifier_failure");
+    }
+    if plan.max_actions.is_some_and(|limit| {
+        result["actions"]
+            .as_u64()
+            .is_some_and(|actions| actions > limit)
+    }) {
+        failures.push("too_many_actions");
+    }
+    result["passed"] = json!(failures.is_empty() && result["error"].is_null());
+    result["expectation_failures"] = json!(failures);
+}
 pub fn run(args: &crate::Cli, scenario: &Path) -> Result<()> {
     ensure!(
         args.repeat > 0 && !args.output.exists(),
@@ -408,11 +454,6 @@ pub fn run(args: &crate::Cli, scenario: &Path) -> Result<()> {
                             setup,
                             Some(&plan.verify),
                         )?;
-                        summary["passed"] = json!(
-                            summary["status"] == "done"
-                                && summary["error"].is_null()
-                                && summary["verification"]["passed"] == true
-                        );
                         summary["model_calls"] = summary["decisions"].clone();
                         Ok(summary)
                     }
@@ -421,6 +462,9 @@ pub fn run(args: &crate::Cli, scenario: &Path) -> Result<()> {
             let mut result = attempt.unwrap_or_else(
                 |e| json!({"passed":false,"error":format!("{e:#}")}),
             );
+            if plan.mode == Mode::Agent {
+                evaluate_agent_result(&plan, &mut result);
+            }
             if let Err(e) = browser
                 .call("Target.closeTarget", json!({"targetId":browser.target}))
             {
@@ -447,13 +491,198 @@ pub fn run(args: &crate::Cli, scenario: &Path) -> Result<()> {
     }
     ensure!(
         results.iter().all(|r| r["result"]["passed"] == true),
-        "one or more scenario runs failed independent verification; see results.json"
+        "one or more scenario runs failed; see results.json"
     );
     Ok(())
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn parse_agent_scenario() -> Value {
+        serde_json::from_str(include_str!(
+            "../../../examples/reading-room-agent.json"
+        ))
+        .unwrap()
+    }
+    #[test]
+    fn agent_expectations_default_to_done_without_an_action_limit() {
+        let plan: Plan =
+            serde_json::from_value(parse_agent_scenario()).unwrap();
+        validate(&plan).unwrap();
+        assert!(plan.expect_status.is_none());
+        assert!(plan.max_actions.is_none());
+        let mut result = json!({"status":"done","error":null,"actions":100,
+            "verification":{"passed":true}});
+        evaluate_agent_result(&plan, &mut result);
+        assert_eq!(result["passed"], true);
+        assert_eq!(result["expectation_failures"], json!([]));
+    }
+    #[test]
+    fn agent_expectations_accept_terminal_statuses_and_nonnegative_limits() {
+        for status in ["done", "blocked"] {
+            for limit in [0, 1, u64::MAX] {
+                let mut raw = parse_agent_scenario();
+                raw["expect_status"] = json!(status);
+                raw["max_actions"] = json!(limit);
+                let plan: Plan = serde_json::from_value(raw).unwrap();
+                validate(&plan).unwrap();
+                assert_eq!(json!(plan.expect_status), status);
+                assert_eq!(plan.max_actions, Some(limit));
+            }
+        }
+    }
+    #[test]
+    fn invalid_agent_expectations_are_rejected() {
+        for (field, values) in [
+            (
+                "expect_status",
+                json!(["ready", "error", "DONE", "", 0, true, null, [], {}]),
+            ),
+            (
+                "max_actions",
+                json!([
+                    -1,
+                    1.5,
+                    1.0,
+                    "0",
+                    true,
+                    null,
+                    [],
+                    {},
+                    18446744073709551616.0
+                ]),
+            ),
+        ] {
+            for value in values.as_array().unwrap() {
+                let mut raw = parse_agent_scenario();
+                raw[field] = value.clone();
+                assert!(
+                    serde_json::from_value::<Plan>(raw).is_err(),
+                    "{field}={value}"
+                );
+            }
+        }
+    }
+    #[test]
+    fn constrained_mode_rejects_agent_expectations() {
+        for (field, value) in [
+            ("expect_status", json!("done")),
+            ("expect_status", json!("blocked")),
+            ("max_actions", json!(0)),
+            ("max_actions", json!(1)),
+        ] {
+            let mut raw: Value = serde_json::from_str(include_str!(
+                "../../../examples/hotel.json"
+            ))
+            .unwrap();
+            raw[field] = value;
+            let plan: Plan = serde_json::from_value(raw).unwrap();
+            assert_eq!(
+                validate(&plan).unwrap_err().to_string(),
+                "expect_status and max_actions require agent mode"
+            );
+        }
+    }
+    #[test]
+    fn unknown_scenario_fields_are_rejected() {
+        let mut raw = parse_agent_scenario();
+        raw["expected_status"] = json!("done");
+        assert!(serde_json::from_value::<Plan>(raw).is_err());
+    }
+    #[test]
+    fn agent_results_require_the_expected_terminal_status() {
+        for expectation in [None, Some("done"), Some("blocked")] {
+            let mut raw = parse_agent_scenario();
+            if let Some(status) = expectation {
+                raw["expect_status"] = json!(status);
+            }
+            let plan: Plan = serde_json::from_value(raw).unwrap();
+            for status in ["done", "blocked", "error", "ready"] {
+                let mut result = json!({"status":status,"error":null,"actions":0,
+                    "verification":{"passed":true}});
+                evaluate_agent_result(&plan, &mut result);
+                let matches_expectation =
+                    status == expectation.unwrap_or("done");
+                assert_eq!(result["passed"], matches_expectation);
+                assert_eq!(
+                    result["expectation_failures"],
+                    if matches_expectation {
+                        json!([])
+                    } else {
+                        json!(["status_mismatch"])
+                    }
+                );
+            }
+        }
+    }
+    #[test]
+    fn agent_action_limits_include_the_boundary_and_allow_zero_actions() {
+        for limit in [0, 2] {
+            let mut raw = parse_agent_scenario();
+            raw["max_actions"] = json!(limit);
+            let plan: Plan = serde_json::from_value(raw).unwrap();
+            for actions in 0..=limit + 1 {
+                let mut result = json!({"status":"done","error":null,"actions":actions,
+                    "decisions":10,"verification":{"passed":true}});
+                evaluate_agent_result(&plan, &mut result);
+                assert_eq!(result["passed"], actions <= limit);
+                assert_eq!(
+                    result["expectation_failures"],
+                    if actions <= limit {
+                        json!([])
+                    } else {
+                        json!(["too_many_actions"])
+                    }
+                );
+            }
+        }
+    }
+    #[test]
+    fn agent_results_require_verification_for_both_terminal_statuses() {
+        for status in ["done", "blocked"] {
+            let mut raw = parse_agent_scenario();
+            raw["expect_status"] = json!(status);
+            let plan: Plan = serde_json::from_value(raw).unwrap();
+            for verification in [
+                json!({"passed":false}),
+                json!({"passed":false,"error":"verify script failed"}),
+            ] {
+                let mut result = json!({"status":status,"error":null,"actions":0,
+                    "verification":verification});
+                evaluate_agent_result(&plan, &mut result);
+                assert_eq!(result["passed"], false);
+                assert_eq!(
+                    result["expectation_failures"],
+                    json!(["verifier_failure"])
+                );
+            }
+        }
+    }
+    #[test]
+    fn agent_results_report_all_failed_expectations() {
+        let mut raw = parse_agent_scenario();
+        raw["expect_status"] = json!("blocked");
+        raw["max_actions"] = json!(0);
+        let plan: Plan = serde_json::from_value(raw).unwrap();
+        let mut result = json!({"status":"done","error":null,"actions":1,
+            "verification":{"passed":false}});
+        evaluate_agent_result(&plan, &mut result);
+        assert_eq!(result["passed"], false);
+        assert_eq!(
+            result["expectation_failures"],
+            json!(["status_mismatch", "verifier_failure", "too_many_actions"])
+        );
+    }
+    #[test]
+    fn agent_run_errors_still_fail_when_expectations_pass() {
+        let plan: Plan =
+            serde_json::from_value(parse_agent_scenario()).unwrap();
+        let mut result = json!({"status":"done","error":"run failed","actions":0,
+            "verification":{"passed":true}});
+        evaluate_agent_result(&plan, &mut result);
+        assert_eq!(result["passed"], false);
+        assert_eq!(result["expectation_failures"], json!([]));
+    }
     #[test]
     fn scenario_files_validate_and_resolve_relative_fixtures() {
         for name in [
