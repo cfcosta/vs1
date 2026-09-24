@@ -30,6 +30,56 @@ pub struct CuaS1Input {
     pub letter_ids: Vec<u32>,
 }
 
+pub(super) struct PromptPrefix {
+    chat_text: String,
+    pub input_ids: Vec<u32>,
+}
+
+impl PromptPrefix {
+    pub(super) fn encode(
+        tokenizer: &Tokenizer,
+        app: &str,
+        task_family: &str,
+        ax_tree: &str,
+        goal: Option<&str>,
+    ) -> Result<Self> {
+        let chat_text = build_prompt_prefix(app, task_family, ax_tree, goal);
+        let input_ids = tokenizer
+            .encode(chat_text.as_str(), true)?
+            .get_ids()
+            .to_vec();
+        Ok(Self {
+            chat_text,
+            input_ids,
+        })
+    }
+
+    pub(super) fn encode_suffix(
+        &self,
+        tokenizer: &Tokenizer,
+        input: &CuaS1Input,
+        dropped_state_tokens: usize,
+    ) -> Result<Option<Vec<u32>>> {
+        if dropped_state_tokens > 0 || self.input_ids.is_empty() {
+            return Ok(None);
+        }
+        let Some(suffix) = input.chat_text.strip_prefix(&self.chat_text) else {
+            return Ok(None);
+        };
+        let suffix_ids = tokenizer.encode(suffix, false)?.get_ids().to_vec();
+        if suffix_ids.is_empty()
+            || !self
+                .input_ids
+                .iter()
+                .chain(&suffix_ids)
+                .eq(&input.input_ids)
+        {
+            return Ok(None);
+        }
+        Ok(Some(suffix_ids))
+    }
+}
+
 impl CuaS1Input {
     /// Builds a text prompt using the Qwen3.5 `tokenizer.json` tokenizer.
     /// Requires 1..=26 options per pass, a nonempty tree, and one token per letter.
@@ -146,6 +196,22 @@ fn build_prompt(
         .map(|(&letter, option)| describe_option(letter, option))
         .collect::<Vec<_>>()
         .join("\n");
+    let prefix = build_prompt_prefix(app, task_family, ax_tree, goal);
+    Ok((
+        format!(
+            "{prefix}{option_lines}\n\nAnswer with a single letter.<|im_end|>\n\
+         <|im_start|>assistant\n<think>\n"
+        ),
+        letters,
+    ))
+}
+
+fn build_prompt_prefix(
+    app: &str,
+    task_family: &str,
+    ax_tree: &str,
+    goal: Option<&str>,
+) -> String {
     let mut user = String::new();
     if let Some(goal) = goal.filter(|s| !s.is_empty()) {
         user.push_str(&format!("Goal: {goal}\n\n"));
@@ -153,16 +219,12 @@ fn build_prompt(
     user.push_str(&format!(
         "App: {app}\nTask family: {task_family}\n\n\
          Accessibility tree:\n{ax_tree}\n\n\
-         Options:\n{option_lines}\n\nAnswer with a single letter."
+         Options:\n"
     ));
-    Ok((
-        format!(
-            "<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n\
-         <|im_start|>user\n{user}<|im_end|>\n\
-         <|im_start|>assistant\n<think>\n"
-        ),
-        letters,
-    ))
+    format!(
+        "<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n\
+         <|im_start|>user\n{user}"
+    )
 }
 
 fn encode_letters(tokenizer: &Tokenizer, letters: &[char]) -> Result<Vec<u32>> {
@@ -263,6 +325,149 @@ mod tests {
             .unwrap();
             assert_eq!(text, expected.chat_text, "{}", case.name);
             assert_eq!(letters, expected.letters, "{}", case.name);
+        }
+    }
+
+    fn assert_prompt_prefix_splits(tokenizer: &Tokenizer) {
+        let (cases, _) = fixtures();
+        for case in cases {
+            let state = format!("{}\n\nOptions:\nSão Paulo 🙂", case.ax_tree);
+            let goal = Some("Choose.\n\nOptions:\nThese are part of the goal.");
+            let prefix = PromptPrefix::encode(
+                tokenizer,
+                &case.app,
+                &case.task_family,
+                &state,
+                goal,
+            )
+            .unwrap();
+            assert!(prefix.chat_text.ends_with("\n\nOptions:\n"));
+            for count in [1, 2, 13, 14, 18, 19, 26] {
+                let mut options: Vec<_> =
+                    case.options.iter().cycle().take(count).cloned().collect();
+                options[0].label.push_str("\nOptions:\ninside an option");
+                let input = CuaS1Input::encode(
+                    tokenizer,
+                    &options,
+                    &case.app,
+                    &case.task_family,
+                    &state,
+                    goal,
+                )
+                .unwrap();
+                let suffix_ids = prefix
+                    .encode_suffix(tokenizer, &input, 0)
+                    .unwrap()
+                    .unwrap();
+                assert_eq!(
+                    [&prefix.input_ids[..], &suffix_ids].concat(),
+                    input.input_ids
+                );
+                let suffix = &input.chat_text[prefix.chat_text.len()..];
+                assert!(suffix.starts_with("A. "));
+                assert!(suffix.ends_with(
+                    "\n\nAnswer with a single letter.<|im_end|>\n\
+                     <|im_start|>assistant\n<think>\n"
+                ));
+                // Even identical text cannot bypass the truncation guard.
+                assert!(
+                    prefix
+                        .encode_suffix(tokenizer, &input, 1)
+                        .unwrap()
+                        .is_none()
+                );
+                let (truncated, dropped) = CuaS1Input::encode_with_max_len(
+                    tokenizer,
+                    &options,
+                    &case.app,
+                    &case.task_family,
+                    &state,
+                    goal,
+                    input.input_ids.len() - 1,
+                )
+                .unwrap();
+                assert!(dropped > 0);
+                assert!(
+                    prefix
+                        .encode_suffix(tokenizer, &truncated, dropped)
+                        .unwrap()
+                        .is_none()
+                );
+                assert!(
+                    prefix
+                        .encode_suffix(tokenizer, &truncated, 0)
+                        .unwrap()
+                        .is_none()
+                );
+                let mut mismatched = input.clone();
+                mismatched.input_ids[0] += 1;
+                assert!(
+                    prefix
+                        .encode_suffix(tokenizer, &mismatched, 0)
+                        .unwrap()
+                        .is_none()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn splits_only_identical_untruncated_prompt_prefixes() {
+        assert_prompt_prefix_splits(&build_byte_tokenizer());
+    }
+
+    #[test]
+    #[ignore = "requires the pinned local Qwen3.5 tokenizer in artifacts/cua-s1/base"]
+    fn splits_prompt_prefixes_with_the_pinned_tokenizer() {
+        let (cases, fixtures) = fixtures();
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../artifacts/cua-s1/base")
+            .join(&fixtures.tokenizer_revision)
+            .join("tokenizer.json");
+        let tokenizer = Tokenizer::from_file(path).unwrap();
+        assert_prompt_prefix_splits(&tokenizer);
+        for (case, expected) in cases.iter().zip(&fixtures.cases) {
+            let input = CuaS1Input::encode(
+                &tokenizer,
+                &case.options,
+                &case.app,
+                &case.task_family,
+                &case.ax_tree,
+                case.goal.as_deref(),
+            )
+            .unwrap();
+            let prefix = PromptPrefix::encode(
+                &tokenizer,
+                &case.app,
+                &case.task_family,
+                &case.ax_tree,
+                case.goal.as_deref(),
+            )
+            .unwrap();
+            let suffix_ids = prefix
+                .encode_suffix(&tokenizer, &input, 0)
+                .unwrap()
+                .unwrap();
+            assert_eq!(
+                [&prefix.input_ids[..], &suffix_ids].concat(),
+                expected.input_ids
+            );
+            // Splitting inside a BPE token changes the concatenated token IDs.
+            let chat_text = "<|im_start|>s".to_string();
+            let prefix = PromptPrefix {
+                input_ids: tokenizer
+                    .encode(chat_text.as_str(), true)
+                    .unwrap()
+                    .get_ids()
+                    .to_vec(),
+                chat_text,
+            };
+            assert!(
+                prefix
+                    .encode_suffix(&tokenizer, &input, 0)
+                    .unwrap()
+                    .is_none()
+            );
         }
     }
 

@@ -17,13 +17,30 @@ finalist's recursively computed probability. The full distribution sums to one.
 `is_selected` identifies the final-round winner, which can differ from the
 highest hierarchical probability; ties within each round favor the first option.
 `letter`, `logit` and `dropped_state_tokens` describe the option's first-round
-group. `forward_passes` is the total number of model calls for the decision,
+group. `forward_passes` is the total number of scoring passes for the decision,
 repeated on each prediction: 1 for 26 options, 3 for 27, and 30 for 700.
+
+Decisions with more than 26 options encode the shared chat prefix through
+`Options:\n` once, then score each group's suffix from that state, including
+finalist rounds. Each prompt must satisfy exact token equality between the
+separately encoded prefix plus suffix and the complete prompt. A mismatch or
+state truncation uses the existing whole-prompt pass for that group.
+Set `VS1_CUA_S1_DISABLE_PREFIX_SHARING=1` to disable sharing in the same build.
+Single-group decisions always use one whole-prompt pass.
+
+Every prediction repeats decision-wide metadata: `is_prefix_shared`,
+`prefix_tokens` (encoded once), `suffix_tokens` (summed across shared passes),
+`whole_prompt_tokens` (summed across unshared passes), and
+`prefix_sharing_fallbacks` (groups that failed the sharing checks).
+Disabled sharing and single-group decisions do not count as fallbacks.
+`forward_passes` excludes the extra prefix encoding call. The three token
+counts sum to the tokens actually processed by the model.
 
 `system_one` accepts choice and score questions with at least two candidates.
 Choice uses the tournament winner; score retains the expected level over the
-hierarchical probabilities. Token usage includes every round, and dropped state
-tokens report the maximum across rounds for each question. `request_fits`
+hierarchical probabilities. Token usage includes every round, counting a shared
+prefix only once, and dropped state tokens report the maximum across rounds for
+each question. `request_fits`
 checks first-round prompts; finalist prompts enforce `max_len` when scored.
 The low-level `CuaS1Input::encode` still accepts only 1–26 options per pass.
 
@@ -43,7 +60,10 @@ VS1_CUA_S1_BENCH_OUTPUT=artifacts/cua-s1/wikipedia-56-bench.json \
 ```
 
 Set `VS1_CUA_S1_BENCH_ITERATIONS` to a positive number to change the timed call
-count. Set `VS1_CUA_S1_BENCH_OPTIONS=22` to score only the first 22 options in one
+count. Compare sharing on and off by running the benchmark with
+`VS1_CUA_S1_DISABLE_PREFIX_SHARING` unset and then set to `1`, with distinct
+output paths. The serialized predictions include sharing and fallback metadata.
+Set `VS1_CUA_S1_BENCH_OPTIONS=22` to score only the first 22 options in one
 pass, keeping the same tree and goal:
 
 ```sh

@@ -9,7 +9,15 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use tokenizers::Tokenizer;
 
-use super::{CuaS1Input, CuaS1Option, TextConfig, TextModel, TextWeights};
+use super::{
+    CuaS1Input,
+    CuaS1Option,
+    PrefixState,
+    TextConfig,
+    TextModel,
+    TextWeights,
+    prompt::PromptPrefix,
+};
 use crate::{
     Answer,
     ChoiceAnswer,
@@ -42,10 +50,20 @@ pub struct CuaS1OptionPrediction {
     pub probability: f32,
     /// Whether this option won the final round, with ties going to the first.
     pub is_selected: bool,
-    /// Total forward passes for this decision; identical for every option.
+    /// Total scoring passes, excluding prefix encoding; identical for every option.
     pub forward_passes: usize,
     /// State tokens dropped for this option's first-round group.
     pub dropped_state_tokens: usize,
+    /// Whether any group used prefix state; identical for every option.
+    pub is_prefix_shared: bool,
+    /// Tokens encoded once as shared prefix state for this decision.
+    pub prefix_tokens: usize,
+    /// Total tokens scored from shared prefix state across all rounds.
+    pub suffix_tokens: usize,
+    /// Total tokens scored by whole-prompt forward passes across all rounds.
+    pub whole_prompt_tokens: usize,
+    /// Prompts that could not share the prefix due to truncation or token mismatch.
+    pub prefix_sharing_fallbacks: usize,
 }
 
 /// Local Cua-S1 text decision model, supported on CPU/F32 and CUDA/BF16.
@@ -283,6 +301,7 @@ impl CuaS1 {
     /// Larger sets use balanced groups, recursively scoring their winners.
     /// Probabilities multiply each group's softmax by its finalist's probability.
     /// Use `is_selected` for the final-round winner, which can differ from argmax.
+    /// Set `VS1_CUA_S1_DISABLE_PREFIX_SHARING` to use whole-prompt passes.
     pub fn score_options(
         &self,
         app: &str,
@@ -304,7 +323,24 @@ impl CuaS1 {
         options: &[CuaS1Option],
     ) -> Result<(Vec<CuaS1OptionPrediction>, Usage)> {
         let mut usage = Usage::default();
-        let predictions = score_tournament(options, &mut |group| {
+        let should_share_prefix = options.len() > 26
+            && std::env::var_os("VS1_CUA_S1_DISABLE_PREFIX_SHARING").is_none();
+        let prefix = should_share_prefix
+            .then(|| {
+                PromptPrefix::encode(
+                    &self.tokenizer,
+                    app,
+                    task_family,
+                    ax_tree,
+                    goal,
+                )
+            })
+            .transpose()?;
+        let mut prefix_state = None;
+        let mut suffix_tokens = 0;
+        let mut whole_prompt_tokens = 0;
+        let mut prefix_sharing_fallbacks = 0;
+        let mut predictions = score_tournament(options, &mut |group| {
             let (input, dropped_state_tokens) =
                 CuaS1Input::encode_with_max_len(
                     &self.tokenizer,
@@ -315,8 +351,41 @@ impl CuaS1 {
                     goal,
                     self.max_len,
                 )?;
-            let prediction = self.model.forward(&input)?;
-            usage.input_tokens += input.input_ids.len();
+            let suffix_ids = match &prefix {
+                Some(prefix) => prefix.encode_suffix(
+                    &self.tokenizer,
+                    &input,
+                    dropped_state_tokens,
+                )?,
+                None => None,
+            };
+            let prediction = if let Some((prefix, suffix_ids)) =
+                prefix.as_ref().zip(suffix_ids)
+            {
+                let state = match &prefix_state {
+                    Some(state) => state,
+                    None => {
+                        let state =
+                            self.model.encode_prefix(&prefix.input_ids)?;
+                        usage.input_tokens += prefix.input_ids.len();
+                        prefix_state.insert(state)
+                    }
+                };
+                let prediction = self.model.score_suffix(
+                    state,
+                    &suffix_ids,
+                    &input.letter_ids,
+                )?;
+                suffix_tokens += suffix_ids.len();
+                usage.input_tokens += suffix_ids.len();
+                prediction
+            } else {
+                let prediction = self.model.forward(&input)?;
+                whole_prompt_tokens += input.input_ids.len();
+                usage.input_tokens += input.input_ids.len();
+                prefix_sharing_fallbacks += usize::from(should_share_prefix);
+                prediction
+            };
             if dropped_state_tokens > 0 {
                 let dropped = usage
                     .dropped_state_tokens
@@ -338,10 +407,23 @@ impl CuaS1 {
                         is_selected: false,
                         forward_passes: 1,
                         dropped_state_tokens,
+                        is_prefix_shared: false,
+                        prefix_tokens: 0,
+                        suffix_tokens: 0,
+                        whole_prompt_tokens: 0,
+                        prefix_sharing_fallbacks: 0,
                     }
                 })
                 .collect())
         })?;
+        for prediction in &mut predictions {
+            prediction.is_prefix_shared = prefix_state.is_some();
+            prediction.prefix_tokens =
+                prefix_state.as_ref().map_or(0, PrefixState::token_count);
+            prediction.suffix_tokens = suffix_tokens;
+            prediction.whole_prompt_tokens = whole_prompt_tokens;
+            prediction.prefix_sharing_fallbacks = prefix_sharing_fallbacks;
+        }
         Ok((predictions, usage))
     }
 }
@@ -589,6 +671,11 @@ mod tests {
                 is_selected: false,
                 forward_passes: 1,
                 dropped_state_tokens: 0,
+                is_prefix_shared: false,
+                prefix_tokens: 0,
+                suffix_tokens: 0,
+                whole_prompt_tokens: 0,
+                prefix_sharing_fallbacks: 0,
             })
             .collect()
     }
@@ -772,6 +859,75 @@ mod tests {
         let result = score_tournament(&[], &mut |_| panic!("no options"));
         assert!(
             matches!(result, Err(SystemOneError::Config(reason)) if reason.contains("at least one option"))
+        );
+    }
+
+    #[test]
+    #[ignore = "requires the pinned local Qwen3.5 tokenizer in artifacts/cua-s1/base"]
+    fn splits_every_wikipedia_tournament_prompt() {
+        #[derive(Deserialize)]
+        struct BrowserDecision {
+            app: String,
+            task_family: String,
+            ax_tree: String,
+            goal: Option<String>,
+            options: Vec<(CuaS1Option, serde::de::IgnoredAny)>,
+        }
+        let case: BrowserDecision = serde_json::from_str(include_str!(
+            "../../../../research/cua-s1/wikipedia-56-options.json"
+        ))
+        .unwrap();
+        let options: Vec<_> =
+            case.options.into_iter().map(|(option, _)| option).collect();
+        let tokenizer = Tokenizer::from_file(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../artifacts/cua-s1/base")
+                .join(BASE_REVISION)
+                .join("tokenizer.json"),
+        )
+        .unwrap();
+        let prefix = PromptPrefix::encode(
+            &tokenizer,
+            &case.app,
+            &case.task_family,
+            &case.ax_tree,
+            case.goal.as_deref(),
+        )
+        .unwrap();
+        let mut suffix_tokens = 0;
+        let mut whole_prompt_tokens = 0;
+        let mut passes = 0;
+        let predictions = score_tournament(&options, &mut |group| {
+            let (input, dropped) = CuaS1Input::encode_with_max_len(
+                &tokenizer,
+                group,
+                &case.app,
+                &case.task_family,
+                &case.ax_tree,
+                case.goal.as_deref(),
+                DEFAULT_MAX_LEN,
+            )?;
+            assert_eq!(dropped, 0);
+            let suffix = prefix.encode_suffix(&tokenizer, &input, dropped)?;
+            suffix_tokens +=
+                suffix.expect("prompt must share the prefix").len();
+            whole_prompt_tokens += input.input_ids.len();
+            passes += 1;
+            Ok(predict_group(
+                group,
+                &vec![1.0 / group.len() as f32; group.len()],
+            ))
+        })
+        .unwrap();
+        assert_eq!(predictions.len(), 56);
+        assert_eq!(passes, 4);
+        assert_eq!(
+            whole_prompt_tokens,
+            passes * prefix.input_ids.len() + suffix_tokens
+        );
+        println!(
+            "prefix_tokens={}, suffix_tokens={suffix_tokens}, whole_prompt_tokens_without_sharing={whole_prompt_tokens}",
+            prefix.input_ids.len()
         );
     }
 
