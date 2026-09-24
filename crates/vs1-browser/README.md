@@ -92,6 +92,10 @@ These are also the default text settings. The helper uses `OPENROUTER_API_KEY`
 by default; `TEXT_MODEL_API_KEY` overrides it when set, for example when
 `TEXT_MODEL_BASE_URL` points at another provider. If neither key is set,
 `TYPE_TEXT` fails before making a request; no field value is guessed.
+The helper requests a strict JSON schema with one required `text` field (string
+or null). OpenRouter requests also require providers to honor the schema via
+`provider.require_parameters`; other providers do not receive that routing field.
+Reply parsing remains strict, so malformed JSON or trailing commentary stops typing.
 Credentials stay in environment
 variables and are never written into configuration metadata. `.env.example` lists
 the supported variables; this executable does not automatically load `.env`.
