@@ -685,20 +685,20 @@ mod tests {
     }
     #[test]
     fn scenario_files_validate_and_resolve_relative_fixtures() {
-        for name in [
-            "hotel.json",
-            "reading-room.json",
-            "hotel-agent.json",
-            "reading-room-agent.json",
-            "wikipedia.json",
-            "flights.json",
-        ] {
-            let file = Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../examples")
-                .join(name);
-            let plan: Plan =
-                serde_json::from_slice(&fs::read(&file).unwrap()).unwrap();
-            validate(&plan).unwrap();
+        let examples =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
+        let mut files: Vec<_> = fs::read_dir(examples)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| path.extension().is_some_and(|ext| ext == "json"))
+            .collect();
+        files.sort();
+        assert!(!files.is_empty());
+        for file in files {
+            let plan: Plan = serde_json::from_slice(&fs::read(&file).unwrap())
+                .unwrap_or_else(|error| panic!("{}: {error}", file.display()));
+            validate(&plan)
+                .unwrap_or_else(|error| panic!("{}: {error}", file.display()));
             let url = plan.source.resolve(&file).unwrap();
             match plan.source {
                 Source::File { .. } => {

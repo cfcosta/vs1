@@ -1,0 +1,29 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=contact-form"
+  },
+  "goal": "Send a support request as Ana Souza, email ana@example.com, topic Billing, with the message 'Invoice 4411 was charged twice', and accept the privacy terms.",
+  "scripts": {
+    "reorderFields": ["renderContactForm('reordered');"],
+    "addNewsletter": ["renderContactForm('newsletter');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "reordered",
+      "setup": ["reorderFields"]
+    },
+    {
+      "name": "newsletter",
+      "setup": ["addNewsletter"]
+    }
+  ],
+  "verify": [
+    "location.hash === '#confirmation' && document.querySelector('#contact-confirmation h1')?.textContent === 'Support request sent' && document.getElementById('confirmation-name')?.textContent === 'Ana Souza' && document.getElementById('confirmation-email')?.textContent === 'ana@example.com' && document.getElementById('confirmation-topic')?.textContent === 'Billing' && document.getElementById('confirmation-message')?.textContent === 'Invoice 4411 was charged twice' && document.getElementById('confirmation-consent')?.textContent === 'Accepted' && window.__taskState?.submission?.hasAcceptedPrivacyTerms === true"
+  ]
+}

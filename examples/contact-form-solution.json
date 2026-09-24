@@ -1,0 +1,165 @@
+{
+  "mode": "constrained",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=contact-form"
+  },
+  "goal": "Send a support request as Ana Souza, email ana@example.com, topic Billing, with the message 'Invoice 4411 was charged twice', and accept the privacy terms.",
+  "steps": [
+    {
+      "instruction": "Enter Ana Souza in the Name field.",
+      "kind": "fill",
+      "role": "textbox",
+      "terms": "Name",
+      "text": "Ana Souza",
+      "after": [
+        {
+          "check": "value",
+          "label": "Name",
+          "equals": "Ana Souza"
+        }
+      ]
+    },
+    {
+      "instruction": "Enter ana@example.com in the Email field.",
+      "kind": "fill",
+      "role": "textbox",
+      "terms": "Email",
+      "text": "ana@example.com",
+      "after": [
+        {
+          "check": "value",
+          "label": "Email",
+          "equals": "ana@example.com"
+        }
+      ]
+    },
+    {
+      "instruction": "Choose Billing in the Topic dropdown.",
+      "kind": "select",
+      "role": "combobox",
+      "terms": "Topic Billing",
+      "after": [
+        {
+          "check": "value",
+          "label": "Topic",
+          "equals": "Billing"
+        }
+      ]
+    },
+    {
+      "instruction": "Enter Invoice 4411 was charged twice in the Message field.",
+      "kind": "fill",
+      "role": "textbox",
+      "terms": "Message",
+      "text": "Invoice 4411 was charged twice",
+      "after": [
+        {
+          "check": "value",
+          "label": "Message",
+          "equals": "Invoice 4411 was charged twice"
+        }
+      ]
+    },
+    {
+      "instruction": "Check I accept the privacy terms.",
+      "kind": "click",
+      "role": "checkbox",
+      "terms": "I accept the privacy terms",
+      "after": [
+        {
+          "check": "checked",
+          "label": "I accept the privacy terms",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "instruction": "Send the support request.",
+      "kind": "click",
+      "role": "button",
+      "terms": "Send",
+      "after": [
+        {
+          "check": "url_suffix",
+          "suffix": "#confirmation"
+        },
+        {
+          "check": "text",
+          "contains": "Support request sent"
+        },
+        {
+          "check": "text",
+          "contains": "Ana Souza"
+        },
+        {
+          "check": "text",
+          "contains": "ana@example.com"
+        },
+        {
+          "check": "text",
+          "contains": "Billing"
+        },
+        {
+          "check": "text",
+          "contains": "Invoice 4411 was charged twice"
+        },
+        {
+          "check": "text",
+          "contains": "Accepted"
+        }
+      ]
+    }
+  ],
+  "completion": [
+    {
+      "check": "url_suffix",
+      "suffix": "#confirmation"
+    },
+    {
+      "check": "text",
+      "contains": "Support request sent"
+    },
+    {
+      "check": "text",
+      "contains": "Ana Souza"
+    },
+    {
+      "check": "text",
+      "contains": "ana@example.com"
+    },
+    {
+      "check": "text",
+      "contains": "Billing"
+    },
+    {
+      "check": "text",
+      "contains": "Invoice 4411 was charged twice"
+    },
+    {
+      "check": "text",
+      "contains": "Accepted"
+    }
+  ],
+  "scripts": {
+    "reorderFields": ["renderContactForm('reordered');"],
+    "addNewsletter": ["renderContactForm('newsletter');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "reordered",
+      "setup": ["reorderFields"]
+    },
+    {
+      "name": "newsletter",
+      "setup": ["addNewsletter"]
+    }
+  ],
+  "verify": [
+    "location.hash === '#confirmation' && document.querySelector('#contact-confirmation h1')?.textContent === 'Support request sent' && document.getElementById('confirmation-name')?.textContent === 'Ana Souza' && document.getElementById('confirmation-email')?.textContent === 'ana@example.com' && document.getElementById('confirmation-topic')?.textContent === 'Billing' && document.getElementById('confirmation-message')?.textContent === 'Invoice 4411 was charged twice' && document.getElementById('confirmation-consent')?.textContent === 'Accepted' && window.__taskState?.submission?.hasAcceptedPrivacyTerms === true"
+  ]
+}

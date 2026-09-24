@@ -27,6 +27,32 @@ every variant. Each invocation needs a fresh output directory.
 
 These two files are hand-authored constrained plans, not a benchmark of automatic planning.
 
+## Local task fixtures
+
+These cases share `crates/vs1-browser/assets/tasks.html`, a static app with no
+network requests or external assets. Open it with `?case=contact-form` or
+`?case=settings`; optional `&variant=reordered`, `&variant=newsletter` (contact),
+or `&variant=security-off` (settings) selects the same layouts and initial states
+as the scenario setup scripts. Each scenario runs base and two variant setups.
+
+| Case           | Skill                                                               | Pass condition                                                                                                                                                      | Scenarios                                                                |
+| -------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `contact-form` | Fill labeled fields, select a topic, distinguish checkboxes, submit | Confirmation shows Ana Souza, ana@example.com, Billing, and exactly “Invoice 4411 was charged twice”; privacy consent was accepted.                                 | [Agent](contact-form-agent.json), [solution](contact-form-solution.json) |
+| `settings`     | Toggle specific settings and preserve others, save                  | Saved weekly digest is on, marketing emails are off, product updates are off, and security alerts retain their initial value (off in `security-off`, otherwise on). | [Agent](settings-agent.json), [solution](settings-solution.json)         |
+
+Solutions use the same independent verifiers and variants as their agent scenarios.
+Their completion checks inspect the confirmation or saved summary, not unsaved
+form values. Run them without a model using an available CDP browser:
+
+```sh
+direnv exec . cargo run -p vs1-browser -- \
+  --scenario examples/contact-form-solution.json --chooser lexical \
+  --output artifacts/contact-form-solution
+direnv exec . cargo run -p vs1-browser -- \
+  --scenario examples/settings-solution.json --chooser lexical \
+  --output artifacts/settings-solution
+```
+
 ## Ultrafast task coverage
 
 | Upstream task / entry point                             | JSON scenario                                      | Mode  |

@@ -1,0 +1,31 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=settings"
+  },
+  "goal": "Turn on the weekly digest, turn off marketing emails, leave the other notification settings unchanged, and save.",
+  "scripts": {
+    "reorderSettings": ["renderSettings('reordered');"],
+    "disableSecurityAlerts": ["renderSettings('security-off');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "reordered",
+      "setup": ["reorderSettings"]
+    },
+    {
+      "name": "security-off",
+      "setup": ["disableSecurityAlerts"]
+    }
+  ],
+  "verify": [
+    "const initialSettings = window.__taskState?.initialSettings;",
+    "const savedSettings = window.__taskState?.savedSettings;",
+    "document.querySelector('#settings-confirmation h2')?.textContent === 'Settings saved' && savedSettings?.isWeeklyDigestEnabled === true && savedSettings?.areMarketingEmailsEnabled === false && typeof initialSettings?.areSecurityAlertsEnabled === 'boolean' && savedSettings?.areSecurityAlertsEnabled === initialSettings.areSecurityAlertsEnabled && savedSettings?.areProductUpdatesEnabled === false"
+  ]
+}

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Local tasks</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          1rem system-ui,
+          sans-serif;
+        color: #343e38;
+        background: #fcfcf8;
+      }
+      header {
+        padding: 1rem 2rem;
+        border-bottom: 1px solid #dce2d8;
+      }
+      main {
+        max-width: 40rem;
+        margin: auto;
+        padding: 1.5rem 2rem;
+      }
+      h1 {
+        margin: 0 0 1rem;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      input:not([type="checkbox"]),
+      select,
+      textarea {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #d6ddcf;
+        border-radius: 0.3rem;
+        background: white;
+      }
+      .fields,
+      .field {
+        display: grid;
+        gap: 0.4rem;
+      }
+      .fields {
+        gap: 0.8rem;
+      }
+      .checkboxes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin: 1rem 0;
+      }
+      .checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      button {
+        margin-top: 1rem;
+        padding: 0.6rem 1.2rem;
+        border: 1px solid #365b45;
+        border-radius: 0.3rem;
+        background: #365b45;
+        color: white;
+        cursor: pointer;
+      }
+      dt {
+        font-weight: 600;
+        margin-top: 0.8rem;
+      }
+      dd {
+        margin: 0.2rem 0 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      li {
+        margin: 0.5rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>Local tasks</header>
+    <main id="content"></main>
+    <script>
+      const root = document.getElementById("content");
+      window.__taskState = {};
+
+      function renderContactForm(variant) {
+        document.title = "Support request · Local tasks";
+        window.__taskState = { submission: null };
+        root.innerHTML = `<h1>Support request</h1>
+          <form id="contact-form">
+            <div class="fields" id="contact-fields">
+              <label class="field">Name <input name="name" required></label>
+              <label class="field">Email <input name="email" type="email" required></label>
+              <label class="field">Topic <select name="topic"><option>General</option><option>Billing</option><option>Technical</option><option>Account</option></select></label>
+              <label class="field">Message <textarea name="message" rows="3" required></textarea></label>
+            </div>
+            <div class="checkboxes" id="contact-checkboxes">
+              <label class="checkbox"><input name="privacy" type="checkbox" required> I accept the privacy terms</label>
+            </div>
+            <button type="submit">Send</button>
+          </form>`;
+        if (variant === "reordered") {
+          const fields = document.getElementById("contact-fields");
+          for (const field of [...fields.children].reverse()) fields.append(field);
+        }
+        if (variant === "newsletter") {
+          document
+            .getElementById("contact-checkboxes")
+            .insertAdjacentHTML(
+              "afterbegin",
+              '<label class="checkbox"><input name="newsletter" type="checkbox"> Newsletter</label>',
+            );
+        }
+        document.getElementById("contact-form").onsubmit = submitContactForm;
+      }
+
+      function submitContactForm(event) {
+        event.preventDefault();
+        const fields = event.currentTarget.elements;
+        const submission = {
+          name: fields.namedItem("name").value,
+          email: fields.namedItem("email").value,
+          topic: fields.namedItem("topic").value,
+          message: fields.namedItem("message").value,
+          hasAcceptedPrivacyTerms: fields.namedItem("privacy").checked,
+        };
+        window.__taskState.submission = submission;
+        location.hash = "confirmation";
+        document.title = "Support request sent · Local tasks";
+        root.innerHTML = `<section id="contact-confirmation">
+          <h1>Support request sent</h1>
+          <dl>
+            <dt>Name</dt><dd id="confirmation-name"></dd>
+            <dt>Email</dt><dd id="confirmation-email"></dd>
+            <dt>Topic</dt><dd id="confirmation-topic"></dd>
+            <dt>Message</dt><dd id="confirmation-message"></dd>
+            <dt>Privacy terms</dt><dd id="confirmation-consent"></dd>
+          </dl>
+        </section>`;
+        for (const field of ["name", "email", "topic", "message"]) {
+          document.getElementById(`confirmation-${field}`).textContent = submission[field];
+        }
+        document.getElementById("confirmation-consent").textContent =
+          submission.hasAcceptedPrivacyTerms ? "Accepted" : "Not accepted";
+      }
+
+      function readSettings() {
+        return {
+          isWeeklyDigestEnabled: document.getElementById("weekly-digest").checked,
+          areMarketingEmailsEnabled: document.getElementById("marketing-emails").checked,
+          areSecurityAlertsEnabled: document.getElementById("security-alerts").checked,
+          areProductUpdatesEnabled: document.getElementById("product-updates").checked,
+        };
+      }
+
+      function renderSettings(variant) {
+        document.title = "Notification settings · Local tasks";
+        root.innerHTML = `<h1>Notification settings</h1>
+          <form id="settings-form">
+            <div class="fields" id="settings-fields">
+              <label class="checkbox"><input id="weekly-digest" type="checkbox"> Weekly digest</label>
+              <label class="checkbox"><input id="marketing-emails" type="checkbox" checked> Marketing emails</label>
+              <label class="checkbox"><input id="security-alerts" type="checkbox" checked> Security alerts</label>
+              <label class="checkbox"><input id="product-updates" type="checkbox"> Product updates</label>
+            </div>
+            <button type="submit">Save</button>
+          </form>
+          <section id="settings-confirmation" aria-live="polite"></section>`;
+        if (variant === "reordered") {
+          const fields = document.getElementById("settings-fields");
+          for (const field of [...fields.children].reverse()) fields.append(field);
+        }
+        if (variant === "security-off") {
+          document.getElementById("security-alerts").checked = false;
+        }
+        window.__taskState = {
+          initialSettings: Object.freeze(readSettings()),
+          savedSettings: null,
+        };
+        document.getElementById("settings-form").onsubmit = saveSettings;
+      }
+
+      function saveSettings(event) {
+        event.preventDefault();
+        const savedSettings = readSettings();
+        window.__taskState.savedSettings = savedSettings;
+        const areSecurityAlertsUnchanged =
+          savedSettings.areSecurityAlertsEnabled ===
+          window.__taskState.initialSettings.areSecurityAlertsEnabled;
+        document.getElementById("settings-confirmation").innerHTML = `<h2>Settings saved</h2>
+          <ul>
+            <li>Weekly digest: ${savedSettings.isWeeklyDigestEnabled ? "On" : "Off"}</li>
+            <li>Marketing emails: ${savedSettings.areMarketingEmailsEnabled ? "On" : "Off"}</li>
+            <li>Security alerts ${areSecurityAlertsUnchanged ? "unchanged" : "changed"}: ${savedSettings.areSecurityAlertsEnabled ? "On" : "Off"}</li>
+            <li>Product updates: ${savedSettings.areProductUpdatesEnabled ? "On" : "Off"}</li>
+          </ul>`;
+      }
+
+      const parameters = new URLSearchParams(location.search);
+      const variant = parameters.get("variant") || "base";
+      switch (parameters.get("case")) {
+        case "contact-form":
+          renderContactForm(variant);
+          break;
+        case "settings":
+          renderSettings(variant);
+          break;
+        default:
+          root.innerHTML =
+            "<h1>Unknown task</h1><p>Choose a task with the case query parameter.</p>";
+      }
+    </script>
+  </body>
+</html>

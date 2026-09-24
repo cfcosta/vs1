@@ -1,0 +1,109 @@
+{
+  "mode": "constrained",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=settings"
+  },
+  "goal": "Turn on the weekly digest, turn off marketing emails, leave the other notification settings unchanged, and save.",
+  "steps": [
+    {
+      "instruction": "Turn on the Weekly digest checkbox.",
+      "kind": "click",
+      "role": "checkbox",
+      "terms": "Weekly digest",
+      "after": [
+        {
+          "check": "checked",
+          "label": "Weekly digest",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "instruction": "Turn off the Marketing emails checkbox.",
+      "kind": "click",
+      "role": "checkbox",
+      "terms": "Marketing emails",
+      "after": [
+        {
+          "check": "checked",
+          "label": "Marketing emails",
+          "equals": false
+        }
+      ]
+    },
+    {
+      "instruction": "Save the notification settings, leaving Security alerts and Product updates unchanged.",
+      "kind": "click",
+      "role": "button",
+      "terms": "Save",
+      "after": [
+        {
+          "check": "text",
+          "contains": "Settings saved"
+        },
+        {
+          "check": "text",
+          "contains": "Weekly digest: On"
+        },
+        {
+          "check": "text",
+          "contains": "Marketing emails: Off"
+        },
+        {
+          "check": "text",
+          "contains": "Security alerts unchanged:"
+        },
+        {
+          "check": "text",
+          "contains": "Product updates: Off"
+        }
+      ]
+    }
+  ],
+  "completion": [
+    {
+      "check": "text",
+      "contains": "Settings saved"
+    },
+    {
+      "check": "text",
+      "contains": "Weekly digest: On"
+    },
+    {
+      "check": "text",
+      "contains": "Marketing emails: Off"
+    },
+    {
+      "check": "text",
+      "contains": "Security alerts unchanged:"
+    },
+    {
+      "check": "text",
+      "contains": "Product updates: Off"
+    }
+  ],
+  "scripts": {
+    "reorderSettings": ["renderSettings('reordered');"],
+    "disableSecurityAlerts": ["renderSettings('security-off');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "reordered",
+      "setup": ["reorderSettings"]
+    },
+    {
+      "name": "security-off",
+      "setup": ["disableSecurityAlerts"]
+    }
+  ],
+  "verify": [
+    "const initialSettings = window.__taskState?.initialSettings;",
+    "const savedSettings = window.__taskState?.savedSettings;",
+    "document.querySelector('#settings-confirmation h2')?.textContent === 'Settings saved' && savedSettings?.isWeeklyDigestEnabled === true && savedSettings?.areMarketingEmailsEnabled === false && typeof initialSettings?.areSecurityAlertsEnabled === 'boolean' && savedSettings?.areSecurityAlertsEnabled === initialSettings.areSecurityAlertsEnabled && savedSettings?.areProductUpdatesEnabled === false"
+  ]
+}
