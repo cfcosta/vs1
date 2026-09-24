@@ -214,3 +214,59 @@ unused click target on call 5.
 
 Sources: `artifacts/browser-bench-20260923/replay-cua-s1/replay.json` and
 `artifacts/browser-bench-20260923/replay-cua-s1-final/replay.json`.
+
+## Training-format browser policy experiment — 2026-09-24
+
+Cua-S1's own live RL loop (`libs/cua-s1/training/train_4b_rl.py`,
+`build_task`/`build_options`) formats browser steps differently from
+`--policy native`:
+
+- per-element option groups (`fill` with entity `val_i` from double-quoted goal
+  values, `click`, `skip`), limited to 11 elements ranked by label overlap with
+  the goal and admitted as whole groups within 26 letters;
+- a final `Button "Finish - task complete" -> done` option;
+- an element-line `ax_tree` (`- Role "label" value="…" @ [x0, y0, x1, y1]`);
+- app `cua_bench_basic` and family `multi_step_submit`.
+
+Commit `rl` (`1b16548a`) added this format as `--policy native-training`.
+Typed text came from the quoted goal value, with no text-helper call. `skip`
+executed nothing and counted as an unchanged step.
+
+The local suite (`research/browser-suite/run.py`, `--repeat 3 --max-steps 20`)
+ran on CUDA BF16:
+
+| Case         |   Jev (questions) |     Cua-S1 native | Cua-S1 native-training |
+| ------------ | ----------------: | ----------------: | ---------------------: |
+| already-done |               6/6 |               6/6 |                    0/6 |
+| big-index    |               9/9 |               9/9 |                    0/9 |
+| checkout     |               9/9 |               0/9 |                    0/9 |
+| contact-form |               9/9 |               6/9 |                    0/9 |
+| out-of-stock |               9/9 |               0/9 |                    3/9 |
+| paginated    |               6/9 |               6/9 |                    3/9 |
+| search-pick  |               9/9 |               9/9 |                    0/9 |
+| settings     |               9/9 |               0/9 |                    0/9 |
+| **Overall**  | **66/69 (95.7%)** | **36/69 (52.2%)** |        **6/69 (8.7%)** |
+
+The training format was **reverted**. Observed failure modes:
+
+1. **No values to type.** Fill options exist only for double-quoted goal spans.
+   The suite's goals give values unquoted or in single quotes, for example
+   `as Ana Souza, … with the message 'Invoice 4411 was charged twice'`. Form
+   cases therefore had no fill options, so contact-form repeated `click Send`.
+2. **Skip loops instead of finishing.** On big-index it opened the correct page
+   in two clicks, then chose `skip Back to index` until the stall detector
+   ended the run as blocked; already-done repeated `skip In stock only`. The RL
+   loop samples options, whereas we take the argmax, so a skip on an unchanged
+   page repeats deterministically.
+3. **No page controls or keys.** The format has no scroll, back, wait or key
+   options, which our pages sometimes need.
+
+The current native policy's remaining failures are different. Checkout selects
+size M, adds to the cart and checks out without setting quantity 2. Out-of-stock
+oscillates between sizes. Settings toggles one option, then repeats Save.
+
+Rerunning with double-quoted values in the goals would separate the format
+itself from failure mode 1. It was not run.
+
+Sources: `artifacts/browser-suite/{jev,cua-native,cua-training}/results.json`
+and per-case logs.
