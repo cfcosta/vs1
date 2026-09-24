@@ -1,0 +1,92 @@
+[
+  {
+    "state": "My subscription renewed on April 15 for ¥5,400 after the service was already down. Can I get that charge refunded?",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "criteria": [
+          "order_status",
+          "refund_request",
+          "cancel_subscription",
+          "update_payment",
+          "login_problem",
+          "shipping_delay",
+          "bug_report",
+          "speak_to_human",
+          "other"
+        ]
+      }
+    }
+  },
+  {
+    "state": "Guest in room 1408 says the AC has been out since yesterday and they want to move tonight or leave. They also asked for the incidentals hold to be released.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "criteria": [
+          "maintenance",
+          "room_change",
+          "checkout",
+          "billing",
+          "complaint",
+          "amenity_request"
+        ]
+      },
+      "priority": { "type": "choice", "criteria": ["low", "normal", "high", "urgent"] },
+      "needs_human": { "type": "noul", "instructions": null }
+    }
+  },
+  {
+    "state": "The treaty was signed in Paris in 1992. It entered into force the following year, after the last signatory ratified it.",
+    "questions": {
+      "answer": { "type": "noul", "instructions": "Did the treaty enter into force in 1992?" }
+    }
+  },
+  {
+    "state": "Please reset the card PIN. The new one never arrived and the old one is locked after three tries.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "criteria": {
+          "card_pin_change": "The customer wants a new PIN or the current PIN replaced",
+          "card_lost": "The physical card is missing",
+          "balance_inquiry": "The customer wants the current balance"
+        }
+      }
+    }
+  },
+  {
+    "state": "I finished it in two nights. The ending is earned, the middle drags, and I would still hand it to a friend",
+    "questions": {
+      "rating": {
+        "type": "score",
+        "instructions": "How much did the reader like the book?",
+        "criteria": ["hated it", "disliked it", "mixed", "liked it", "loved it"]
+      }
+    }
+  },
+  {
+    "state": {
+      "from": "compliance@group.example",
+      "subject": "Protocol update — action required today",
+      "body": "Please confirm the new retention rule is applied before Friday's audit."
+    },
+    "questions": {
+      "route": {
+        "type": "choice",
+        "instructions": "Which team owns this email?",
+        "criteria": {
+          "support": null,
+          "billing": "",
+          "legal": "contracts, compliance and audits",
+          "security": null
+        }
+      },
+      "urgent": {
+        "type": "noul",
+        "instructions": "The email needs action today.",
+        "criteria": { "true": "act today", "false": "can wait" }
+      }
+    }
+  }
+]

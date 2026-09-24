@@ -35,7 +35,9 @@ checkpoint download when constructing a Jev client.
 
 The core CLI also accepts `--backend openjev`. See [OpenJev usage and answer
 semantics](docs/openjev.md) for its explicit abstention result and for keeping
-Laya and OpenJev loaded together.
+Laya and OpenJev loaded together. `--backend gliner-decide` runs
+[GLiNER2.5-Decide](docs/gliner-decide.md), Fastino's DeBERTa-v3-large
+zero-shot classifier, locally.
 
 ```rust
 use vs1::{DecisionModel, JevClient, Question, SystemOneRequest};

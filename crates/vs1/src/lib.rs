@@ -44,6 +44,7 @@ pub mod builder;
 pub mod config;
 pub mod cua_s1;
 pub mod error;
+pub mod gliner_decide;
 pub mod head;
 pub mod model;
 pub mod modernbert;
@@ -106,6 +107,13 @@ pub use backend::DecisionModel;
 
 pub mod openjev;
 pub use cua_s1::{CuaS1, CuaS1Builder, CuaS1Option, CuaS1OptionPrediction};
+pub use gliner_decide::{
+    GlinerDecide,
+    GlinerDecideBuilder,
+    GlinerDecideInput,
+    GlinerTask,
+    GlinerTaskPrediction,
+};
 pub use openjev::{OpenJev, OpenJevBuilder, OpenJevInput, OpenJevPrediction};
 pub use types::AbstentionAnswer;
 

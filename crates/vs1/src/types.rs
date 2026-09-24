@@ -103,7 +103,7 @@ impl Description {
     }
 
     /// `true` for `""`, `null`, and nothing else.
-    fn is_blank(&self) -> bool {
+    pub(crate) fn is_blank(&self) -> bool {
         match self {
             Description::Text(text) => text.is_empty(),
             Description::Json(value) => {

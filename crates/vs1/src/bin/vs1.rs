@@ -45,11 +45,9 @@ fn main() -> anyhow::Result<()> {
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--dump-ids" => dump_ids = true,
-            "--backend" => {
-                backend = args
-                    .next()
-                    .context("--backend needs laya, openjev, cua-s1 or jev")?
-            }
+            "--backend" => backend = args.next().context(
+                "--backend needs laya, openjev, gliner-decide, cua-s1 or jev",
+            )?,
             "--model" => {
                 model_id = Some(args.next().context("--model needs a value")?)
             }
@@ -84,11 +82,12 @@ fn main() -> anyhow::Result<()> {
         }
     }
     let path = path.context(
-        "usage: vs1 [--backend laya|openjev|cua-s1|jev] [--model MODEL] [--dump-ids] [--device cpu|cuda] [--max-len TOKENS] request.json",
+        "usage: vs1 [--backend laya|openjev|gliner-decide|cua-s1|jev] [--model MODEL] [--dump-ids] [--device cpu|cuda] [--max-len TOKENS] request.json",
     )?;
     anyhow::ensure!(
-        max_len.is_none() || backend == "cua-s1",
-        "--max-len is supported only for --backend cua-s1"
+        max_len.is_none()
+            || matches!(backend.as_str(), "cua-s1" | "gliner-decide"),
+        "--max-len is supported only for --backend cua-s1 and gliner-decide"
     );
     let raw = fs::read_to_string(&path)?;
     let (requests, single): (Vec<SystemOneRequest>, bool) =
@@ -147,6 +146,37 @@ fn main() -> anyhow::Result<()> {
             );
             model.into()
         }
+        "gliner-decide" => {
+            anyhow::ensure!(
+                subfolder.is_empty(),
+                "GLiNER2.5-Decide does not use --subfolder"
+            );
+            let started = Instant::now();
+            let mut builder = vs1::GlinerDecide::from(
+                model_id
+                    .as_deref()
+                    .unwrap_or(vs1::gliner_decide::DEFAULT_REPO_ID),
+            )
+            .with_device(device(&device_name)?);
+            if let Some(dtype) = dtype {
+                builder = builder.with_dtype(dtype);
+            }
+            if let Some(size) = batch_size {
+                builder = builder.with_batch_size(size);
+            }
+            if let Some(tokens) = max_len {
+                builder = builder.with_max_len(tokens);
+            }
+            let model: vs1::GlinerDecide = builder.try_into()?;
+            eprintln!(
+                "loaded {} on {:?} as {:?} in {:.1?}",
+                model.model_name(),
+                model.device(),
+                model.dtype(),
+                started.elapsed()
+            );
+            model.into()
+        }
         "cua-s1" => {
             anyhow::ensure!(
                 !dump_ids && subfolder.is_empty() && batch_size.is_none(),
@@ -196,7 +226,9 @@ fn main() -> anyhow::Result<()> {
             );
             model.into()
         }
-        _ => bail!("--backend must be laya, openjev, cua-s1 or jev"),
+        _ => bail!(
+            "--backend must be laya, openjev, gliner-decide, cua-s1 or jev"
+        ),
     };
 
     let started = Instant::now();
@@ -221,6 +253,11 @@ fn main() -> anyhow::Result<()> {
         if dump_ids {
             let mut ids = serde_json::Map::new();
             match &model {
+                DecisionModel::GlinerDecide(local) => {
+                    let input =
+                        serde_json::to_value(local.build_input(request)?)?;
+                    ids = input.as_object().context("input object")?.clone();
+                }
                 DecisionModel::OpenJev(local) => {
                     let state = request.state.render();
                     for (id, q) in &request.questions {
