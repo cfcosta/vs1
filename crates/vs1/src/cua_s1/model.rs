@@ -3,8 +3,10 @@ use candle_nn::{Module, ops};
 
 use super::{
     CuaS1Input,
+    DeltaNetState,
     FullAttention,
     GatedDeltaNet,
+    KvCache,
     LayerType,
     Mlp,
     TextConfig,
@@ -16,6 +18,25 @@ use crate::{Result, SystemOneError};
 enum Mixer {
     LinearAttention(GatedDeltaNet),
     FullAttention(FullAttention),
+}
+
+#[derive(Debug, Clone)]
+enum MixerState {
+    LinearAttention(DeltaNetState),
+    FullAttention(KvCache),
+}
+
+/// Reusable per-layer state for a nonempty prefix encoded by one text model.
+#[derive(Debug, Clone)]
+pub struct PrefixState {
+    layer_states: Vec<MixerState>,
+    token_count: usize,
+}
+
+impl PrefixState {
+    pub fn token_count(&self) -> usize {
+        self.token_count
+    }
 }
 
 struct DecoderLayer {
@@ -74,6 +95,46 @@ impl DecoderLayer {
         )?;
         hidden + self.mlp.forward(&normalized)?
     }
+
+    fn forward_with_state(
+        &self,
+        hidden: &Tensor,
+        state: Option<&MixerState>,
+    ) -> candle_core::Result<(Tensor, MixerState)> {
+        let normalized =
+            normalize_rms(hidden, &self.input_layernorm, self.rms_norm_eps)?;
+        let (mixed, state) = match &self.mixer {
+            Mixer::LinearAttention(mixer) => {
+                let state = match state {
+                    Some(MixerState::LinearAttention(state)) => Some(state),
+                    None => None,
+                    _ => candle_core::bail!("expected DeltaNet prefix state"),
+                };
+                let (mixed, state) =
+                    mixer.forward_with_state(&normalized, state)?;
+                (mixed, MixerState::LinearAttention(state))
+            }
+            Mixer::FullAttention(mixer) => {
+                let cache = match state {
+                    Some(MixerState::FullAttention(cache)) => Some(cache),
+                    None => None,
+                    _ => candle_core::bail!(
+                        "expected full-attention prefix cache"
+                    ),
+                };
+                let (mixed, cache) =
+                    mixer.forward_with_cache(&normalized, cache)?;
+                (mixed, MixerState::FullAttention(cache))
+            }
+        };
+        let hidden = (hidden + mixed)?;
+        let normalized = normalize_rms(
+            &hidden,
+            &self.post_attention_layernorm,
+            self.rms_norm_eps,
+        )?;
+        Ok(((hidden + self.mlp.forward(&normalized)?)?, state))
+    }
 }
 
 /// Raw letter logits and probabilities, both in the input's option order.
@@ -83,7 +144,7 @@ pub struct CuaS1Prediction {
     pub probabilities: Vec<f32>,
 }
 
-/// Qwen3.5 text decoder for one unpadded sequence, without a cache.
+/// Qwen3.5 text decoder for one unpadded sequence with optional prefix reuse.
 pub struct TextModel {
     embed_tokens: Tensor,
     layers: Vec<DecoderLayer>,
@@ -162,6 +223,72 @@ impl TextModel {
         self.read_options(&hidden, &input.letter_ids)
     }
 
+    /// Encodes a nonempty prefix without the final norm or letter readout.
+    pub fn encode_prefix(&self, ids: &[u32]) -> Result<PrefixState> {
+        let mut hidden = self.embed(ids)?;
+        let mut layer_states = Vec::with_capacity(self.layers.len());
+        for layer in &self.layers {
+            let (output, state) = layer.forward_with_state(&hidden, None)?;
+            hidden = output;
+            layer_states.push(state);
+        }
+        Ok(PrefixState {
+            layer_states,
+            token_count: ids.len(),
+        })
+    }
+
+    /// Scores a nonempty suffix using an unchanged prefix from this model.
+    pub fn score_suffix(
+        &self,
+        prefix: &PrefixState,
+        suffix_ids: &[u32],
+        letter_ids: &[u32],
+    ) -> Result<CuaS1Prediction> {
+        if prefix.layer_states.len() != self.layers.len() {
+            return Err(SystemOneError::Config(
+                "prefix state must contain one state per decoder layer".into(),
+            ));
+        }
+        if !(1..=26).contains(&letter_ids.len()) {
+            return Err(SystemOneError::Config(
+                "text decoder requires 1..=26 letter token ids".into(),
+            ));
+        }
+        let vocab_size = self.embed_tokens.dim(0)?;
+        if letter_ids.iter().any(|&id| id as usize >= vocab_size) {
+            return Err(SystemOneError::Config(
+                "text decoder token id is outside the embedding vocabulary"
+                    .into(),
+            ));
+        }
+        let mut hidden = self.embed(suffix_ids)?;
+        for (layer, state) in self.layers.iter().zip(&prefix.layer_states) {
+            (hidden, _) = layer.forward_with_state(&hidden, Some(state))?;
+        }
+        self.read_options(&hidden, letter_ids)
+    }
+
+    fn embed(&self, ids: &[u32]) -> Result<Tensor> {
+        if ids.is_empty() {
+            return Err(SystemOneError::Config(
+                "text decoder requires a nonempty token sequence".into(),
+            ));
+        }
+        let vocab_size = self.embed_tokens.dim(0)?;
+        if ids.iter().any(|&id| id as usize >= vocab_size) {
+            return Err(SystemOneError::Config(
+                "text decoder token id is outside the embedding vocabulary"
+                    .into(),
+            ));
+        }
+        let ids = Tensor::new(ids, self.embed_tokens.device())?;
+        Ok(self
+            .embed_tokens
+            .index_select(&ids, 0)?
+            .to_device(self.norm.device())?)
+    }
+
     fn read_options(
         &self,
         hidden: &Tensor,
@@ -189,9 +316,12 @@ impl TextModel {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::{collections::HashMap, path::Path};
 
-    use candle_core::{Device, safetensors::MmapedSafetensors};
+    use candle_core::{
+        Device,
+        safetensors::{self, MmapedSafetensors},
+    };
     use serde::Deserialize;
 
     use super::*;
@@ -241,7 +371,7 @@ mod tests {
         probability: f32,
     }
 
-    fn load_model() -> TextModel {
+    fn load_model(device: &Device, dtype: DType) -> TextModel {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../artifacts/cua-s1");
         let base_directory =
@@ -255,12 +385,120 @@ mod tests {
         let mut weights = TextWeights::load(
             &base_directory,
             Some(&adapter_directory),
-            &Device::Cpu,
-            DType::F32,
+            device,
+            dtype,
         )
         .unwrap();
         let model = TextModel::load(&mut weights, &config).unwrap();
         assert_eq!(model.layers.len(), 32);
+        model
+    }
+
+    fn sample_model() -> TextModel {
+        let config: TextConfig = serde_json::from_value(serde_json::json!({
+            "hidden_size": 16,
+            "intermediate_size": 32,
+            "num_hidden_layers": 4,
+            "layer_types": ["linear_attention", "full_attention", "linear_attention", "full_attention"],
+            "num_attention_heads": 4,
+            "num_key_value_heads": 2,
+            "head_dim": 8,
+            "rms_norm_eps": 1e-6,
+            "vocab_size": 32,
+            "tie_word_embeddings": true,
+            "attn_output_gate": true,
+            "linear_num_key_heads": 2,
+            "linear_num_value_heads": 4,
+            "linear_key_head_dim": 4,
+            "linear_value_head_dim": 4,
+            "linear_conv_kernel_dim": 4,
+            "rope_parameters": {
+                "rope_theta": 10_000_000.,
+                "partial_rotary_factor": 0.25
+            }
+        }))
+        .unwrap();
+        let mut tensors = HashMap::new();
+        let mut seed = 0x9e37_79b9_7f4a_7c15u64;
+        let mut sample_weight = |name: String, dims: &[usize]| {
+            let values: Vec<_> = (0..dims.iter().product::<usize>())
+                .map(|_| {
+                    seed ^= seed << 13;
+                    seed ^= seed >> 7;
+                    seed ^= seed << 17;
+                    ((seed >> 40) as f32 / (1u64 << 24) as f32 - 0.5) * 0.5
+                })
+                .collect();
+            tensors.insert(
+                name,
+                Tensor::from_vec(values, dims, &Device::Cpu).unwrap(),
+            );
+        };
+        sample_weight(
+            "model.language_model.embed_tokens.weight".into(),
+            &[32, 16],
+        );
+        sample_weight("model.language_model.norm.weight".into(), &[16]);
+        for (layer, kind) in config.layer_types.iter().enumerate() {
+            let prefix = format!("model.language_model.layers.{layer}");
+            for (name, dims) in [
+                ("input_layernorm.weight", &[16][..]),
+                ("post_attention_layernorm.weight", &[16][..]),
+                ("mlp.gate_proj.weight", &[32, 16][..]),
+                ("mlp.up_proj.weight", &[32, 16][..]),
+                ("mlp.down_proj.weight", &[16, 32][..]),
+            ] {
+                sample_weight(format!("{prefix}.{name}"), dims);
+            }
+            let mixer_weights: &[(&str, &[usize])] = match kind {
+                LayerType::LinearAttention => &[
+                    ("linear_attn.in_proj_qkv.weight", &[32, 16]),
+                    ("linear_attn.in_proj_z.weight", &[16, 16]),
+                    ("linear_attn.in_proj_b.weight", &[4, 16]),
+                    ("linear_attn.in_proj_a.weight", &[4, 16]),
+                    ("linear_attn.out_proj.weight", &[16, 16]),
+                    ("linear_attn.conv1d.weight", &[32, 1, 4]),
+                    ("linear_attn.A_log", &[4]),
+                    ("linear_attn.dt_bias", &[4]),
+                    ("linear_attn.norm.weight", &[4]),
+                ],
+                LayerType::FullAttention => &[
+                    ("self_attn.q_proj.weight", &[64, 16]),
+                    ("self_attn.k_proj.weight", &[16, 16]),
+                    ("self_attn.v_proj.weight", &[16, 16]),
+                    ("self_attn.o_proj.weight", &[16, 32]),
+                    ("self_attn.q_norm.weight", &[8]),
+                    ("self_attn.k_norm.weight", &[8]),
+                ],
+            };
+            for (name, dims) in mixer_weights {
+                sample_weight(format!("{prefix}.{name}"), dims);
+            }
+        }
+        let directory = std::env::temp_dir().join(format!(
+            "vs1-cua-s1-prefix-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id(),
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        safetensors::save(&tensors, directory.join("model.safetensors"))
+            .unwrap();
+        let weight_map: HashMap<_, _> = tensors
+            .keys()
+            .map(|name| (name, "model.safetensors"))
+            .collect();
+        std::fs::write(
+            directory.join("model.safetensors.index.json"),
+            serde_json::to_vec(&serde_json::json!({"weight_map": weight_map}))
+                .unwrap(),
+        )
+        .unwrap();
+        let mut weights =
+            TextWeights::load(&directory, None, &Device::Cpu, DType::F32)
+                .unwrap();
+        let model = TextModel::load(&mut weights, &config).unwrap();
+        drop(weights);
+        std::fs::remove_dir_all(directory).unwrap();
         model
     }
 
@@ -283,6 +521,145 @@ mod tests {
                 (actual - expected).abs()
             })
             .fold(0., f32::max)
+    }
+
+    #[test]
+    fn reuses_prefix_state_for_different_suffixes() {
+        let model = sample_model();
+        let ids = [1, 5, 9, 2, 14, 7, 3, 18, 6, 21, 12, 4];
+        let letter_ids = [8, 2, 19, 5];
+        for split in [1, 2, 3, 4, 7, 11] {
+            let prefix = model.encode_prefix(&ids[..split]).unwrap();
+            assert_eq!(prefix.token_count(), split);
+            assert_eq!(prefix.layer_states.len(), model.layers.len());
+            let mut predictions = Vec::new();
+            for suffix in [&ids[split..], &[23, 17, 6][..], &ids[split..]] {
+                let input = CuaS1Input {
+                    chat_text: String::new(),
+                    input_ids: [&ids[..split], suffix].concat(),
+                    letters: vec!['A', 'B', 'C', 'D'],
+                    letter_ids: letter_ids.to_vec(),
+                };
+                let whole = model.forward(&input).unwrap();
+                let prediction =
+                    model.score_suffix(&prefix, suffix, &letter_ids).unwrap();
+                let difference = max_absolute_difference(
+                    &prediction.probabilities,
+                    &whole.probabilities,
+                );
+                println!(
+                    "split={split}, suffix={suffix:?}: max probability difference {difference:e}"
+                );
+                assert!(difference <= 1e-5, "split={split}: exceeds atol=1e-5");
+                predictions.push(prediction.probabilities);
+            }
+            assert_eq!(predictions[0], predictions[2]);
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_prefix_and_suffix_inputs() {
+        let model = sample_model();
+        assert!(model.encode_prefix(&[]).is_err());
+        assert!(model.encode_prefix(&[32]).is_err());
+        let prefix = model.encode_prefix(&[1, 2]).unwrap();
+        for (suffix, letters) in [
+            (&[][..], &[1][..]),
+            (&[32][..], &[1][..]),
+            (&[3][..], &[][..]),
+            (&[3][..], &[32][..]),
+            (&[3][..], &[1; 27][..]),
+        ] {
+            assert!(model.score_suffix(&prefix, suffix, letters).is_err());
+        }
+        assert_eq!(
+            model
+                .score_suffix(&prefix, &[3], &[1])
+                .unwrap()
+                .probabilities,
+            [1.]
+        );
+        let mut incomplete = prefix.clone();
+        incomplete.layer_states.pop();
+        assert!(model.score_suffix(&incomplete, &[3], &[1]).is_err());
+        let mut mismatched = prefix.clone();
+        mismatched.layer_states.swap(0, 1);
+        assert!(model.score_suffix(&mismatched, &[3], &[1]).is_err());
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires CUDA"]
+    fn prefix_matches_whole_fixture_predictions_on_cuda_bf16() {
+        let device = Device::new_cuda(0).unwrap();
+        let model = load_model(&device, DType::BF16);
+        let tokenizer = tokenizers::Tokenizer::from_file(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../artifacts/cua-s1/base")
+                .join(super::super::BASE_REVISION)
+                .join("tokenizer.json"),
+        )
+        .unwrap();
+        let mut has_matching_top_options = true;
+        let mut max_probability_difference = 0f32;
+        for prompt in load_prompts() {
+            let name = prompt.name.clone();
+            let input = prompt.into_input();
+            let options_start =
+                input.chat_text.find("\nOptions:\n").unwrap() + 1;
+            let prefix_ids = tokenizer
+                .encode(&input.chat_text[..options_start], true)
+                .unwrap();
+            let split = prefix_ids.len();
+            assert_eq!(prefix_ids.get_ids(), &input.input_ids[..split]);
+            let prefix = model.encode_prefix(prefix_ids.get_ids()).unwrap();
+            let prediction = model
+                .score_suffix(
+                    &prefix,
+                    &input.input_ids[split..],
+                    &input.letter_ids,
+                )
+                .unwrap();
+            let whole = model.forward(&input).unwrap();
+            let difference = max_absolute_difference(
+                &prediction.probabilities,
+                &whole.probabilities,
+            );
+            max_probability_difference =
+                max_probability_difference.max(difference);
+            let top_option = |values: &[f32]| {
+                values
+                    .iter()
+                    .enumerate()
+                    .max_by(|(_, a), (_, b)| a.total_cmp(b))
+                    .unwrap()
+                    .0
+            };
+            let top = top_option(&prediction.probabilities);
+            let expected_top = top_option(&whole.probabilities);
+            let has_matching_top_option = top == expected_top;
+            has_matching_top_options &= has_matching_top_option;
+            let tolerance = 1. / 64.;
+            let is_close = prediction
+                .probabilities
+                .iter()
+                .zip(&whole.probabilities)
+                .all(|(actual, expected)| {
+                    (actual - expected).abs()
+                        <= tolerance + tolerance * expected.abs()
+                });
+            println!(
+                "{name}: split={split}, max probability difference {difference:e}, top {} (whole {}), top agrees={has_matching_top_option}, within atol=rtol=2^-6: {is_close}",
+                input.letters[top], input.letters[expected_top]
+            );
+        }
+        println!(
+            "all 6 cases: max probability difference {max_probability_difference:e}"
+        );
+        assert!(
+            has_matching_top_options,
+            "top option differs from whole-prompt forward"
+        );
     }
 
     #[test]
@@ -351,7 +728,7 @@ mod tests {
     #[test]
     #[ignore = "requires pinned artifacts/cua-s1 weights and layer dump, about 20 GB RAM"]
     fn reproduces_every_dumped_decoder_layer() {
-        let model = load_model();
+        let model = load_model(&Device::Cpu, DType::F32);
         let input = load_prompts().remove(0).into_input();
         let root = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../artifacts/cua-s1");
@@ -402,7 +779,7 @@ mod tests {
     #[test]
     #[ignore = "requires pinned artifacts/cua-s1 weights, about 20 GB RAM"]
     fn reproduces_all_reference_option_predictions() {
-        let model = load_model();
+        let model = load_model(&Device::Cpu, DType::F32);
         let reference: Reference = serde_json::from_str(include_str!(
             "../../../../research/cua-s1/probabilities-f32.json"
         ))
