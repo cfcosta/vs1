@@ -30,15 +30,22 @@ These two files are hand-authored constrained plans, not a benchmark of automati
 ## Local task fixtures
 
 These cases share `crates/vs1-browser/assets/tasks.html`, a static app with no
-network requests or external assets. Open it with `?case=contact-form` or
-`?case=settings`; optional `&variant=reordered`, `&variant=newsletter` (contact),
-or `&variant=security-off` (settings) selects the same layouts and initial states
-as the scenario setup scripts. Each scenario runs base and two variant setups.
+network requests or external assets. Open it with `?case=<name>` from the table
+below. Optional `&variant=reordered` (contact, settings, already-done),
+`&variant=newsletter` (contact), `&variant=security-off` (settings), or
+`&variant=disabled-option` / `&variant=selectable-error` (out-of-stock) selects the
+same layouts and initial states as the scenario setup scripts. Each scenario runs
+base and one or two variant setups.
 
 | Case           | Skill                                                               | Pass condition                                                                                                                                                      | Scenarios                                                                |
 | -------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `contact-form` | Fill labeled fields, select a topic, distinguish checkboxes, submit | Confirmation shows Ana Souza, ana@example.com, Billing, and exactly “Invoice 4411 was charged twice”; privacy consent was accepted.                                 | [Agent](contact-form-agent.json), [solution](contact-form-solution.json) |
 | `settings`     | Toggle specific settings and preserve others, save                  | Saved weekly digest is on, marketing emails are off, product updates are off, and security alerts retain their initial value (off in `security-off`, otherwise on). | [Agent](settings-agent.json), [solution](settings-solution.json)         |
+| `already-done` | Recognize an already satisfied goal                                 | DONE with zero actions; Category remains Books, In stock only stays checked, and only the two in-stock books appear.                                                | [Agent](already-done-agent.json)                                         |
+| `out-of-stock` | Recognize an unavailable product size                               | BLOCKED with an empty cart and no order; size M is unavailable with a disabled Add to cart button, a disabled option, or a visible error on submission.             | [Agent](out-of-stock-agent.json)                                         |
+
+The already-done and out-of-stock cases have no solution scenarios: their expected
+outcomes are terminal decisions, with no actions needed to satisfy a solution plan.
 
 Solutions use the same independent verifiers and variants as their agent scenarios.
 Their completion checks inspect the confirmation or saved summary, not unsaved

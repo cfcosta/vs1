@@ -1,0 +1,27 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=already-done"
+  },
+  "goal": "Show only in-stock books.",
+  "expect_status": "done",
+  "max_actions": 0,
+  "scripts": {
+    "reorderFilters": ["renderProductList('reordered');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "reordered",
+      "setup": ["reorderFilters"]
+    }
+  ],
+  "verify": [
+    "const products = [...document.querySelectorAll('#product-results li')].map(product => product.textContent);",
+    "document.getElementById('category')?.value === 'Books' && document.getElementById('in-stock-only')?.checked === true && products.length === 2 && products.includes('River stories · Books · In stock') && products.includes('Garden notes · Books · In stock')"
+  ]
+}

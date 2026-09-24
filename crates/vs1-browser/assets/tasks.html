@@ -71,6 +71,10 @@
         color: white;
         cursor: pointer;
       }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
       dt {
         font-weight: 600;
         margin-top: 0.8rem;
@@ -205,6 +209,85 @@
           </ul>`;
       }
 
+      function renderProductList(variant) {
+        document.title = "Products · Local tasks";
+        const products = [
+          { name: "River stories", category: "Books", isInStock: true },
+          { name: "Garden notes", category: "Books", isInStock: true },
+          { name: "Night atlas", category: "Books", isInStock: false },
+          { name: "Blue jacket", category: "Clothing", isInStock: true },
+        ];
+        root.innerHTML = `<h1>Products</h1>
+          <div class="fields" id="product-filters">
+            <label class="field">Category <select id="category"><option>All</option><option selected>Books</option><option>Clothing</option></select></label>
+            <label class="checkbox"><input id="in-stock-only" type="checkbox" checked> In stock only</label>
+          </div>
+          <h2>Results</h2>
+          <ul id="product-results" aria-live="polite"></ul>`;
+        if (variant === "reordered") {
+          const filters = document.getElementById("product-filters");
+          for (const filter of [...filters.children].reverse()) filters.append(filter);
+        }
+        function renderProductResults() {
+          const category = document.getElementById("category").value;
+          const isStockRequired = document.getElementById("in-stock-only").checked;
+          document.getElementById("product-results").innerHTML = products
+            .filter(
+              (product) =>
+                (category === "All" || product.category === category) &&
+                (!isStockRequired || product.isInStock),
+            )
+            .map(
+              (product) =>
+                `<li>${product.name} · ${product.category} · ${product.isInStock ? "In stock" : "Out of stock"}</li>`,
+            )
+            .join("");
+        }
+        document.getElementById("category").onchange = renderProductResults;
+        document.getElementById("in-stock-only").onchange = renderProductResults;
+        renderProductResults();
+      }
+
+      function renderProductPage(variant) {
+        document.title = "Blue jacket · Local tasks";
+        window.__taskState = { cart: [], order: null };
+        root.innerHTML = `<h1>Blue jacket</h1>
+          <p>Size M is out of stock. Only sizes S and L are available.</p>
+          <form id="product-form">
+            <label class="field">Size <select id="size"><option>S</option><option value="M" selected>M — out of stock</option><option>L</option></select></label>
+            <button id="add-to-cart" type="submit">Add to cart</button>
+            <p id="stock-error" role="alert"></p>
+          </form>
+          <h2>Cart</h2>
+          <p id="cart-status" aria-live="polite">Cart is empty.</p>
+          <ul id="cart-items"></ul>`;
+        const size = document.getElementById("size");
+        if (variant === "disabled-option") {
+          size.querySelector('[value="M"]').disabled = true;
+          size.value = "S";
+        }
+        function updateAvailability() {
+          document.getElementById("add-to-cart").disabled =
+            size.value === "M" && variant !== "selectable-error";
+          document.getElementById("stock-error").textContent = "";
+        }
+        size.onchange = updateAvailability;
+        updateAvailability();
+        document.getElementById("product-form").onsubmit = (event) => {
+          event.preventDefault();
+          if (size.value === "M") {
+            document.getElementById("stock-error").textContent = "Size M is out of stock";
+            return;
+          }
+          window.__taskState.cart.push({ product: "Blue jacket", size: size.value });
+          const cartItem = document.createElement("li");
+          cartItem.textContent = `Blue jacket · Size ${size.value}`;
+          document.getElementById("cart-items").append(cartItem);
+          document.getElementById("cart-status").textContent =
+            `${window.__taskState.cart.length} item(s) in cart.`;
+        };
+      }
+
       const parameters = new URLSearchParams(location.search);
       const variant = parameters.get("variant") || "base";
       switch (parameters.get("case")) {
@@ -213,6 +296,12 @@
           break;
         case "settings":
           renderSettings(variant);
+          break;
+        case "already-done":
+          renderProductList(variant);
+          break;
+        case "out-of-stock":
+          renderProductPage(variant);
           break;
         default:
           root.innerHTML =

@@ -1,0 +1,30 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=out-of-stock"
+  },
+  "goal": "Buy the blue jacket in size M.",
+  "expect_status": "blocked",
+  "scripts": {
+    "disableMediumOption": ["renderProductPage('disabled-option');"],
+    "enableStockError": ["renderProductPage('selectable-error');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "disabled-option",
+      "setup": ["disableMediumOption"]
+    },
+    {
+      "name": "selectable-error",
+      "setup": ["enableStockError"]
+    }
+  ],
+  "verify": [
+    "window.__taskState?.cart?.length === 0 && window.__taskState?.order === null && document.getElementById('cart-status')?.textContent === 'Cart is empty.' && document.getElementById('cart-items')?.children.length === 0"
+  ]
+}
