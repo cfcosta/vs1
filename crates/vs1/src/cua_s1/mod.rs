@@ -16,6 +16,8 @@ mod ops;
 mod prompt;
 #[cfg(feature = "cuda")]
 mod rms_norm_cuda;
+#[cfg(feature = "cuda")]
+mod swiglu_cuda;
 mod weights;
 
 pub use api::{

@@ -95,6 +95,14 @@ impl Mlp {
 
 impl Module for Mlp {
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
+        #[cfg(feature = "cuda")]
+        if let Some(gated) = super::swiglu_cuda::project_swiglu(
+            x,
+            self.gate_proj.weight(),
+            self.up_proj.weight(),
+        )? {
+            return self.down_proj.forward(&gated);
+        }
         let gated =
             (self.gate_proj.forward(x)?.silu()? * self.up_proj.forward(x)?)?;
         self.down_proj.forward(&gated)
@@ -283,6 +291,122 @@ mod tests {
             // Second row: gate = [-1, 1, -2], up = [0, -2, -1].
             assert_values(&output, &expected, 1e-6);
         }
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires CUDA"]
+    fn projects_dual_swiglu_like_candle_at_model_shapes() -> Result<()> {
+        use super::super::swiglu_cuda::project_swiglu;
+
+        fn compare_with_candle(
+            stage: &str,
+            rows: usize,
+            actual: &Tensor,
+            expected: &Tensor,
+        ) -> Result<f32> {
+            assert_eq!(actual.shape(), expected.shape());
+            assert_eq!(actual.dtype(), DType::BF16);
+            let actual = actual
+                .flatten_all()?
+                .to_dtype(DType::F32)?
+                .to_vec1::<f32>()?;
+            let expected = expected
+                .flatten_all()?
+                .to_dtype(DType::F32)?
+                .to_vec1::<f32>()?;
+            let mut differing_elements = 0;
+            let mut max_absolute_difference = 0f32;
+            let mut max_tolerance_ratio = 0f32;
+            for (&actual, &expected) in actual.iter().zip(&expected) {
+                assert!(actual.is_finite() && expected.is_finite());
+                differing_elements +=
+                    usize::from(actual.to_bits() != expected.to_bits());
+                let difference = (actual - expected).abs();
+                max_absolute_difference =
+                    max_absolute_difference.max(difference);
+                // Combined tolerance: |actual - expected| / (atol + rtol * |expected|).
+                let tolerance = (1. + expected.abs()) / 64.;
+                max_tolerance_ratio =
+                    max_tolerance_ratio.max(difference / tolerance);
+            }
+            println!(
+                "dual SwiGLU {stage}, m={rows}: max absolute difference {max_absolute_difference:e}, max tolerance ratio {max_tolerance_ratio:e} (atol=rtol=2^-6), differing elements {differing_elements}/{}",
+                actual.len(),
+            );
+            Ok(max_tolerance_ratio)
+        }
+
+        let device = Device::new_cuda(0)?;
+        device.set_seed(713)?;
+        let gate_weight =
+            Tensor::randn(0f32, 1. / 2560f32.sqrt(), (9217, 2560), &device)?
+                .to_dtype(DType::BF16)?
+                .narrow(0, 1, 9216)?;
+        let up_weight =
+            Tensor::randn(0f32, 1. / 2560f32.sqrt(), (9218, 2560), &device)?
+                .to_dtype(DType::BF16)?
+                .narrow(0, 2, 9216)?;
+        let down_weight =
+            Tensor::randn(0f32, 1. / 9216f32.sqrt(), (2560, 9216), &device)?
+                .to_dtype(DType::BF16)?;
+        let mlp = Mlp::new(gate_weight, up_weight, down_weight)?;
+        let mut max_tolerance_ratio = 0f32;
+        for rows in [1, 129, 1860, 4096] {
+            // Exercise aligned nonzero storage offsets and the model's 3D input.
+            let x = Tensor::randn(0f32, 1., (rows + 1, 2560), &device)?
+                .to_dtype(DType::BF16)?
+                .narrow(0, 1, rows)?
+                .unsqueeze(0)?;
+            let expected_gated = (mlp.gate_proj.forward(&x)?.silu()?
+                * mlp.up_proj.forward(&x)?)?;
+            let actual_gated = project_swiglu(
+                &x,
+                mlp.gate_proj.weight(),
+                mlp.up_proj.weight(),
+            )?
+            .expect("dual SwiGLU path must be eligible");
+            max_tolerance_ratio = max_tolerance_ratio.max(compare_with_candle(
+                "intermediate",
+                rows,
+                &actual_gated,
+                &expected_gated,
+            )?);
+            max_tolerance_ratio = max_tolerance_ratio.max(compare_with_candle(
+                "full MLP",
+                rows,
+                &mlp.forward(&x)?,
+                &mlp.down_proj.forward(&expected_gated)?,
+            )?);
+        }
+        assert!(max_tolerance_ratio <= 1., "{max_tolerance_ratio:e}");
+
+        // A contiguous slice can still violate CUTLASS's 16-byte alignment.
+        let unaligned = Tensor::zeros(2561, DType::BF16, &device)?
+            .narrow(0, 1, 2560)?
+            .reshape((1, 2560))?;
+        assert!(
+            project_swiglu(
+                &unaligned,
+                mlp.gate_proj.weight(),
+                mlp.up_proj.weight(),
+            )?
+            .is_none()
+        );
+        let expected = mlp.down_proj.forward(
+            &(mlp.gate_proj.forward(&unaligned)?.silu()?
+                * mlp.up_proj.forward(&unaligned)?)?,
+        )?;
+        assert_eq!(
+            compare_with_candle(
+                "unaligned fallback",
+                1,
+                &mlp.forward(&unaligned)?,
+                &expected
+            )?,
+            0.,
+        );
+        Ok(())
     }
 
     #[test]

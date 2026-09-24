@@ -4,6 +4,7 @@
 #include <cutlass/gemm/device/gemm.h>
 #include <cutlass/epilogue/thread/linear_combination.h>
 #include <cuda_runtime.h>
+#include <cuda_bf16.h>
 using B = cutlass::bfloat16_t;
 __device__ unsigned short mul_bf16(unsigned short a,unsigned short b) {
     unsigned short c;
@@ -95,6 +96,52 @@ extern "C" int vs1_cutlass_dual_geglu(void const*x,void const*wa,void const*wg,v
         {static_cast<B const*>(wg),k},{D,n},{nullptr,n},{D,n});
     DualGeGlu op;
     auto valid=op.can_implement(args); if(valid!=cutlass::Status::kSuccess)return int(valid);
+    valid=op.initialize(args,nullptr,static_cast<cudaStream_t>(stream));
+    if(valid!=cutlass::Status::kSuccess)return 100+int(valid);
+    return int(op(static_cast<cudaStream_t>(stream)));
+}
+
+struct RoundedSwiGluPair {
+    using ElementOutput=B; using ElementAccumulator=B; using ElementCompute=float;
+    static int const kCount=8;
+    using FragmentOutput=cutlass::Array<B,kCount>;
+    using FragmentAccumulator=cutlass::Array<B,kCount>;
+    struct Params {};
+    CUTLASS_HOST_DEVICE RoundedSwiGluPair(Params const &) {}
+    CUTLASS_DEVICE FragmentOutput operator()(FragmentAccumulator const& gate,FragmentAccumulator const& up) const {
+        FragmentOutput out;
+        CUTLASS_PRAGMA_UNROLL
+        for(int i=0;i<kCount;++i) {
+            auto g=__ushort_as_bfloat16(B(gate[i]).raw());
+            auto u=__ushort_as_bfloat16(B(up[i]).raw());
+            // Candle 0.11.0 silu_fwd<__nv_bfloat16>: exp, add and div
+            // each round to BF16; bmul_bf16 rounds the final product too.
+            auto denominator=__hadd(__float2bfloat16(1.0f),hexp(__hneg(g)));
+            auto silu=__hdiv(g,denominator);
+            out[i]=B::bitcast(__bfloat16_as_ushort(__hmul(silu,u)));
+        }
+        return out;
+    }
+};
+using DualSwiGlu=cutlass::gemm::device::DualGemm<B,cutlass::layout::RowMajor,B,
+    cutlass::layout::ColumnMajor,cutlass::layout::ColumnMajor,B,cutlass::layout::RowMajor,float,
+    cutlass::arch::OpClassTensorOp,cutlass::arch::Sm80,
+    cutlass::gemm::GemmShape<128,64,32>,cutlass::gemm::GemmShape<64,32,32>,
+    cutlass::gemm::GemmShape<16,8,16>,RoundOnly,RoundOnly,RoundedSwiGluPair,
+    cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle<1>,3,false,false,false>;
+static_assert(2560 % DualSwiGlu::kAlignmentA == 0 && 2560 % DualSwiGlu::kAlignmentB == 0);
+static_assert(9216 % DualSwiGlu::kAlignmentC == 0);
+extern "C" int vs1_cutlass_dual_swiglu(void const*x,void const*wg,void const*wu,void*out,int m,int n,int k,void*stream) {
+    if(m<=0 || n!=9216 || k!=2560)return -1;
+    auto A=static_cast<B const*>(x);
+    auto D=static_cast<B*>(out);
+    // RoundOnly does not read C; neither separate projection is stored.
+    typename DualSwiGlu::Arguments args(cutlass::gemm::DualGemmMode::kGemm,{m,n,k},
+        {A,k},{static_cast<B const*>(wg),k},{D,n},{nullptr,n},
+        {static_cast<B const*>(wu),k},{D,n},{nullptr,n},{D,n});
+    DualSwiGlu op;
+    // -1 means unsupported before launch, so Rust can use Candle instead.
+    auto valid=op.can_implement(args); if(valid!=cutlass::Status::kSuccess)return -1;
     valid=op.initialize(args,nullptr,static_cast<cudaStream_t>(stream));
     if(valid!=cutlass::Status::kSuccess)return 100+int(valid);
     return int(op(static_cast<cudaStream_t>(stream)));
