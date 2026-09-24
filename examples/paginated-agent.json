@@ -1,0 +1,29 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=paginated"
+  },
+  "goal": "Open the product page for the Walnut desk organizer.",
+  "scripts": {
+    "lengthenCatalogPage": ["renderProductCatalog('long-page');"],
+    "placeTargetOnPageTwo": ["renderProductCatalog('page-2');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "long-page",
+      "setup": ["lengthenCatalogPage"]
+    },
+    {
+      "name": "page-2",
+      "setup": ["placeTargetOnPageTwo"]
+    }
+  ],
+  "verify": [
+    "location.hash === '#product-walnut-desk-organizer' && document.title === 'Walnut desk organizer · Local tasks' && document.querySelector('#catalog-product h1')?.textContent === 'Walnut desk organizer' && window.__taskState?.openProduct === 'Walnut desk organizer'"
+  ]
+}

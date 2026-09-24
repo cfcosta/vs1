@@ -1,0 +1,35 @@
+{
+  "mode": "agent",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=checkout"
+  },
+  "goal": "Buy the Canvas backpack in size M, quantity 2: add it to the cart, set the quantity to 2, and go to checkout. Leave any unrelated items already in the cart unchanged.",
+  "scripts": {
+    "fillExistingCart": ["renderBackpackProduct('existing-cart');"],
+    "selectInitialLargeSize": ["renderBackpackProduct('size-l');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "existing-cart",
+      "setup": ["fillExistingCart"]
+    },
+    {
+      "name": "size-l",
+      "setup": ["selectInitialLargeSize"]
+    }
+  ],
+  "verify": [
+    "const initialCart = window.__taskState?.initialCart;",
+    "const cart = window.__taskState?.cart;",
+    "const order = window.__taskState?.order;",
+    "const expectedOrder = [...(initialCart || []), { product: 'Canvas backpack', size: 'M', quantity: 2 }];",
+    "const summary = [...document.querySelectorAll('#checkout-summary li')].map(row => row.textContent);",
+    "const matchesExpectedOrder = cartItems => Array.isArray(cartItems) && cartItems.length === expectedOrder.length && cartItems.every((cartItem, index) => cartItem.product === expectedOrder[index].product && cartItem.size === expectedOrder[index].size && cartItem.quantity === expectedOrder[index].quantity);",
+    "location.hash === '#checkout' && document.title === 'Checkout · Local tasks' && document.querySelector('#checkout-summary h1')?.textContent === 'Checkout' && Array.isArray(initialCart) && matchesExpectedOrder(cart) && matchesExpectedOrder(order) && summary.length === expectedOrder.length && summary.every((text, index) => text === `${expectedOrder[index].product} · Size ${expectedOrder[index].size} · Quantity ${expectedOrder[index].quantity}`)"
+  ]
+}

@@ -93,6 +93,9 @@
         gap: 0.5rem 1rem;
         margin-bottom: 1.5rem;
       }
+      .long-catalog li {
+        min-height: 9rem;
+      }
     </style>
   </head>
   <body>
@@ -528,6 +531,162 @@
         }
       }
 
+      function renderProductCatalog(variant) {
+        const products = [
+          "Ceramic pencil cup",
+          "Linen notebook",
+          "Brass bookmark",
+          "Cork desk mat",
+          "Oak letter tray",
+          "Glass paperweight",
+          "Felt cable pouch",
+          "Maple pen stand",
+          "Cotton tote bag",
+          "Bamboo monitor stand",
+          "Stone coaster set",
+          "Leather journal",
+          "Steel ruler",
+          "Birch bookends",
+          "Wool chair cushion",
+          "Copper clip holder",
+          "Canvas tool roll",
+          "Porcelain mug",
+          "Cedar storage box",
+          "Aluminum laptop stand",
+          "Recycled paper planner",
+          "Rubber doorstop",
+          "Ash picture frame",
+          "Silicone cable ties",
+          "Woven storage basket",
+          "Concrete planter",
+          "Acacia serving tray",
+          "Pocket sketchbook",
+          "Travel pen case",
+        ];
+        const targetIndex = variant === "long-page" ? 9 : variant === "page-2" ? 10 : 20;
+        products.splice(targetIndex, 0, "Walnut desk organizer");
+        let pageNumber = 1;
+        window.__taskState = { pageNumber, openProduct: null };
+        renderCatalogPage();
+
+        function renderCatalogPage() {
+          window.__taskState.pageNumber = pageNumber;
+          window.__taskState.openProduct = null;
+          location.hash = `catalog-page-${pageNumber}`;
+          document.title = "Product catalog · Local tasks";
+          root.innerHTML = `<h1>Product catalog</h1>
+            <p>Page ${pageNumber} of 3 · 10 products per page</p>
+            <nav aria-label="Catalog pages">
+              <button type="button" id="previous-page" ${pageNumber === 1 ? "disabled" : ""}>Previous</button>
+              <button type="button" id="next-page" ${pageNumber === 3 ? "disabled" : ""}>Next</button>
+            </nav>
+            <ul id="catalog-products" class="${variant === "long-page" ? "long-catalog" : ""}">
+              ${products
+                .slice((pageNumber - 1) * 10, pageNumber * 10)
+                .map(
+                  (product) =>
+                    `<li><a href="#product-${product.toLowerCase().replaceAll(" ", "-")}" data-product="${product}">${product}</a></li>`,
+                )
+                .join("")}
+            </ul>`;
+          document.getElementById("previous-page").onclick = () => {
+            pageNumber -= 1;
+            renderCatalogPage();
+          };
+          document.getElementById("next-page").onclick = () => {
+            pageNumber += 1;
+            renderCatalogPage();
+          };
+          root.querySelectorAll("[data-product]").forEach((link) => {
+            link.onclick = (event) => {
+              event.preventDefault();
+              openCatalogProduct(link.dataset.product, link.getAttribute("href"));
+            };
+          });
+          window.scrollTo(0, 0);
+        }
+
+        function openCatalogProduct(product, hash) {
+          window.__taskState.openProduct = product;
+          location.hash = hash;
+          document.title = `${product} · Local tasks`;
+          root.innerHTML = `<article id="catalog-product"><h1>${product}</h1><p>Home and office collection.</p></article>
+            <button type="button" id="back-to-catalog">Back to catalog</button>`;
+          document.getElementById("back-to-catalog").onclick = renderCatalogPage;
+          window.scrollTo(0, 0);
+        }
+      }
+
+      function renderBackpackProduct(variant) {
+        const initialCart =
+          variant === "existing-cart"
+            ? [{ product: "Steel water bottle", size: "One size", quantity: 1 }]
+            : [];
+        window.__taskState = {
+          initialCart: Object.freeze(initialCart.map((cartItem) => Object.freeze({ ...cartItem }))),
+          cart: initialCart.map((cartItem) => ({ ...cartItem })),
+          order: null,
+        };
+        location.hash = "backpack";
+        document.title = "Canvas backpack · Local tasks";
+        root.innerHTML = `<h1>Canvas backpack</h1>
+          <p>A canvas backpack for everyday use.</p>
+          <form id="backpack-form">
+            <label class="field">Size <select id="backpack-size"><option>S</option><option>M</option><option>L</option></select></label>
+            <button type="submit">Add to cart</button>
+          </form>`;
+        if (variant === "size-l") document.getElementById("backpack-size").value = "L";
+        document.getElementById("backpack-form").onsubmit = addBackpackToCart;
+        window.scrollTo(0, 0);
+
+        function addBackpackToCart(event) {
+          event.preventDefault();
+          window.__taskState.cart.push({
+            product: "Canvas backpack",
+            size: document.getElementById("backpack-size").value,
+            quantity: 1,
+          });
+          renderCart();
+        }
+
+        function renderCart() {
+          location.hash = "cart";
+          document.title = "Cart · Local tasks";
+          root.innerHTML = `<h1>Cart</h1>
+            <p>Use Update to save quantity changes before checkout.</p>
+            <form id="cart-form">
+              <ul id="backpack-cart">
+                ${window.__taskState.cart.map((cartItem, index) => `<li><p>${cartItem.product} · Size ${cartItem.size} · Quantity ${cartItem.quantity}</p><label class="field">${cartItem.product} quantity <input id="cart-quantity-${index}" type="number" min="1" step="1" required value="${cartItem.quantity}"></label></li>`).join("")}
+              </ul>
+              <button type="submit">Update</button>
+              <button type="button" id="checkout">Checkout</button>
+            </form>`;
+          document.getElementById("cart-form").onsubmit = updateCart;
+          document.getElementById("checkout").onclick = openCheckout;
+          window.scrollTo(0, 0);
+        }
+
+        function updateCart(event) {
+          event.preventDefault();
+          window.__taskState.cart.forEach((cartItem, index) => {
+            cartItem.quantity = Number(document.getElementById(`cart-quantity-${index}`).value);
+          });
+          renderCart();
+        }
+
+        function openCheckout() {
+          const order = window.__taskState.cart.map((cartItem) => ({ ...cartItem }));
+          window.__taskState.order = order;
+          location.hash = "checkout";
+          document.title = "Checkout · Local tasks";
+          root.innerHTML = `<section id="checkout-summary"><h1>Checkout</h1>
+            <h2>Order summary</h2>
+            <ul>${order.map((cartItem) => `<li>${cartItem.product} · Size ${cartItem.size} · Quantity ${cartItem.quantity}</li>`).join("")}</ul>
+          </section>`;
+          window.scrollTo(0, 0);
+        }
+      }
+
       const parameters = new URLSearchParams(location.search);
       const variant = parameters.get("variant") || "base";
       switch (parameters.get("case")) {
@@ -548,6 +707,12 @@
           break;
         case "big-index":
           renderDocumentationIndex(variant);
+          break;
+        case "paginated":
+          renderProductCatalog(variant);
+          break;
+        case "checkout":
+          renderBackpackProduct(variant);
           break;
         default:
           root.innerHTML =

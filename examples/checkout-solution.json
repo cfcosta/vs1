@@ -1,0 +1,134 @@
+{
+  "mode": "constrained",
+  "source": {
+    "kind": "file",
+    "path": "../crates/vs1-browser/assets/tasks.html",
+    "query": "case=checkout"
+  },
+  "goal": "Buy the Canvas backpack in size M, quantity 2: add it to the cart, set the quantity to 2, and go to checkout. Leave any unrelated items already in the cart unchanged.",
+  "steps": [
+    {
+      "instruction": "Select size M for the Canvas backpack.",
+      "kind": "select",
+      "role": "combobox",
+      "terms": "Size M",
+      "after": [
+        {
+          "check": "value",
+          "label": "Size",
+          "equals": "M"
+        }
+      ]
+    },
+    {
+      "instruction": "Add the Canvas backpack to the cart.",
+      "kind": "click",
+      "role": "button",
+      "terms": "Add to cart",
+      "after": [
+        {
+          "check": "url_suffix",
+          "suffix": "#cart"
+        },
+        {
+          "check": "text",
+          "contains": "Canvas backpack · Size M · Quantity 1"
+        }
+      ]
+    },
+    {
+      "instruction": "Set the Canvas backpack quantity to 2, leaving other quantities unchanged.",
+      "kind": "fill",
+      "role": "spinbutton",
+      "terms": "Canvas backpack quantity",
+      "text": "2",
+      "after": [
+        {
+          "check": "value",
+          "label": "Canvas backpack quantity",
+          "equals": "2"
+        }
+      ]
+    },
+    {
+      "instruction": "Save the cart quantity with Update.",
+      "kind": "click",
+      "role": "button",
+      "terms": "Update",
+      "after": [
+        {
+          "check": "text",
+          "contains": "Canvas backpack · Size M · Quantity 2"
+        }
+      ]
+    },
+    {
+      "instruction": "Go to checkout with the Canvas backpack in size M, quantity 2.",
+      "kind": "click",
+      "role": "button",
+      "terms": "Checkout",
+      "after": [
+        {
+          "check": "url_suffix",
+          "suffix": "#checkout"
+        },
+        {
+          "check": "title",
+          "equals": "Checkout · Local tasks"
+        },
+        {
+          "check": "text",
+          "contains": "Order summary"
+        },
+        {
+          "check": "text",
+          "contains": "Canvas backpack · Size M · Quantity 2"
+        }
+      ]
+    }
+  ],
+  "completion": [
+    {
+      "check": "url_suffix",
+      "suffix": "#checkout"
+    },
+    {
+      "check": "title",
+      "equals": "Checkout · Local tasks"
+    },
+    {
+      "check": "text",
+      "contains": "Order summary"
+    },
+    {
+      "check": "text",
+      "contains": "Canvas backpack · Size M · Quantity 2"
+    }
+  ],
+  "scripts": {
+    "fillExistingCart": ["renderBackpackProduct('existing-cart');"],
+    "selectInitialLargeSize": ["renderBackpackProduct('size-l');"]
+  },
+  "variants": [
+    {
+      "name": "base"
+    },
+    {
+      "name": "existing-cart",
+      "setup": ["fillExistingCart"]
+    },
+    {
+      "name": "size-l",
+      "setup": ["selectInitialLargeSize"]
+    }
+  ],
+  "verify": [
+    "const initialCart = window.__taskState?.initialCart;",
+    "const cart = window.__taskState?.cart;",
+    "const order = window.__taskState?.order;",
+    "const expectedOrder = [...(initialCart || []), { product: 'Canvas backpack', size: 'M', quantity: 2 }];",
+    "const summary = [...document.querySelectorAll('#checkout-summary li')].map(row => row.textContent);",
+    "const matchesExpectedOrder = cartItems => Array.isArray(cartItems) && cartItems.length === expectedOrder.length && cartItems.every((cartItem, index) => cartItem.product === expectedOrder[index].product && cartItem.size === expectedOrder[index].size && cartItem.quantity === expectedOrder[index].quantity);",
+    "location.hash === '#checkout' && document.title === 'Checkout · Local tasks' && document.querySelector('#checkout-summary h1')?.textContent === 'Checkout' && Array.isArray(initialCart) && matchesExpectedOrder(cart) && matchesExpectedOrder(order) && summary.length === expectedOrder.length && summary.every((text, index) => text === `${expectedOrder[index].product} · Size ${expectedOrder[index].size} · Quantity ${expectedOrder[index].quantity}`)"
+  ]
+}

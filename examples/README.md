@@ -37,6 +37,8 @@ below. Optional `&variant=reordered` (contact, settings, already-done, search-pi
 same layouts and initial states as the scenario setup scripts. Each scenario runs
 base and one or two variant setups. Search-pick also accepts `&variant=not-first`;
 big-index accepts `&variant=shuffled` or `&variant=target-last`.
+Paginated accepts `&variant=long-page` (target last on page 1, below the fold) or
+`&variant=page-2`; checkout accepts `&variant=existing-cart` or `&variant=size-l`.
 
 | Case           | Skill                                                               | Pass condition                                                                                                                                                      | Scenarios                                                                |
 | -------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -46,11 +48,15 @@ big-index accepts `&variant=shuffled` or `&variant=target-last`.
 | `out-of-stock` | Recognize an unavailable product size                               | BLOCKED with an empty cart and no order; size M is unavailable with a disabled Add to cart button, a disabled option, or a visible error on submission.             | [Agent](out-of-stock-agent.json)                                         |
 | `search-pick`  | Search and distinguish near-identical article titles                | The open article is exactly “Gödel's incompleteness theorems”, with its heading, title, URL, and page state matching.                                               | [Agent](search-pick-agent.json), [solution](search-pick-solution.json)   |
 | `big-index`    | Navigate an index of 80 documentation links across eight sections   | The open page is exactly “Rate limits and quotas”, with its heading, title, URL, and page state matching.                                                           | [Agent](big-index-agent.json), [solution](big-index-solution.json)       |
+| `paginated`    | Navigate catalog pages and scroll to an offscreen product           | The detail view shows exactly “Walnut desk organizer”, with its heading, title, URL, and page state matching.                                                       | [Agent](paginated-agent.json), [solution](paginated-solution.json)       |
+| `checkout`     | Select a size, add to cart, update quantity, and open checkout      | Checkout shows Canvas backpack, size M, quantity 2; any pre-existing cart item remains unchanged in both cart and order summary.                                    | [Agent](checkout-agent.json), [solution](checkout-solution.json)         |
 
 The already-done and out-of-stock cases have no solution scenarios: their expected
 outcomes are terminal decisions, with no actions needed to satisfy a solution plan.
 
-Solutions use the same independent verifiers and variants as their agent scenarios.
+Solutions use the same independent verifiers as their agent scenarios. Paginated's
+solution covers the base variant (Next, Next, product link); the other solutions
+cover all their agent variants.
 Their completion checks inspect the confirmation, saved summary, or open article.
 Big-index provides section links to bring each group into view. Search-pick keeps
 the book after the theorem article in all three result orders because the lexical
@@ -70,6 +76,12 @@ direnv exec . cargo run -p vs1-browser -- \
 direnv exec . cargo run -p vs1-browser -- \
   --scenario examples/big-index-solution.json --chooser lexical \
   --output artifacts/big-index-solution
+direnv exec . cargo run -p vs1-browser -- \
+  --scenario examples/paginated-solution.json --chooser lexical \
+  --output artifacts/paginated-solution
+direnv exec . cargo run -p vs1-browser -- \
+  --scenario examples/checkout-solution.json --chooser lexical \
+  --output artifacts/checkout-solution
 ```
 
 ## Ultrafast task coverage
