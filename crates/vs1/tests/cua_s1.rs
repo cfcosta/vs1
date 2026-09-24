@@ -88,6 +88,65 @@ fn parse_wikipedia_case() -> Case {
     }
 }
 
+// Same rule as trim_visible_text in vs1-browser/src/cua_s1_policy.rs.
+fn trim_visible_text(state: &str) -> (String, usize) {
+    let Some((before_visible, visible)) = state.split_once("\nVisible text: ")
+    else {
+        return (state.into(), 0);
+    };
+    let Some((visible, after_visible)) = visible.rsplit_once("\nGraphics: ")
+    else {
+        return (state.into(), 0);
+    };
+    let Some(controls) = before_visible
+        .split_once("\nControls:\n")
+        .and_then(|(_, controls)| controls.rsplit_once("\nRecent actions: "))
+        .map(|(controls, _)| controls)
+    else {
+        return (state.into(), 0);
+    };
+    let labels: std::collections::HashSet<_> = controls
+        .split("\n[")
+        .filter_map(|control| {
+            let (_, control) = control.split_once("] ")?;
+            let (_, control) = control.split_once(' ')?;
+            let (label, _) = control.split_once(" value=")?;
+            Some(label.trim())
+        })
+        .collect();
+    let mut removed_visible_text_lines = 0;
+    let visible = visible
+        .split('\n')
+        .filter(|line| {
+            if labels.contains(line.trim()) {
+                removed_visible_text_lines += 1;
+                false
+            } else {
+                true
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    (
+        format!(
+            "{before_visible}\nVisible text: {visible}\nGraphics: {after_visible}"
+        ),
+        removed_visible_text_lines,
+    )
+}
+
+#[test]
+fn trims_duplicate_visible_text_from_the_wikipedia_fixture() {
+    let case = parse_wikipedia_case();
+    let (trimmed, removed) = trim_visible_text(&case.ax_tree);
+    assert_eq!(removed, 33);
+    assert_eq!(case.ax_tree.chars().count(), 5094);
+    assert_eq!(trimmed.chars().count(), 4453);
+    assert!(trimmed.contains("Visible text: Jump to content\nContents\n"));
+    assert!(trimmed.contains("\nFormal systems\n"));
+    assert_eq!(trim_visible_text(&trimmed), (trimmed, 0));
+}
+
 #[test]
 fn parses_wikipedia_browser_options() {
     let case = parse_wikipedia_case();
@@ -379,6 +438,14 @@ fn measures_wikipedia_scoring_on_cuda() {
         "VS1_CUA_S1_BENCH_ITERATIONS must be positive"
     );
     let mut case = parse_wikipedia_case();
+    let removed_visible_text_lines =
+        if std::env::var("VS1_CUA_S1_BENCH_TRIM").as_deref() == Ok("1") {
+            let (ax_tree, removed) = trim_visible_text(&case.ax_tree);
+            case.ax_tree = ax_tree;
+            removed
+        } else {
+            0
+        };
     if let Some(value) = std::env::var_os("VS1_CUA_S1_BENCH_OPTIONS") {
         let option_count = value.to_str().unwrap().parse::<usize>().unwrap();
         assert!(
@@ -448,6 +515,9 @@ fn measures_wikipedia_scoring_on_cuda() {
         "warmup_calls": 2,
         "iterations": iterations,
         "option_count": case.options.len(),
+        "removed_visible_text_lines": removed_visible_text_lines,
+        "prefix_tokens": chosen.prefix_tokens,
+        "suffix_tokens": chosen.suffix_tokens,
         "median_ms": median_ms,
         "latencies_ms": latencies_ms,
         "forward_passes": chosen.forward_passes,

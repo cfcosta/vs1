@@ -13,9 +13,57 @@ pub struct Request {
     pub task_family: String,
     pub goal: String,
     pub ax_tree: String,
+    pub removed_visible_text_lines: usize,
     pub options: Vec<(CuaS1Option, Value)>,
     #[serde(skip)]
     space: policy::Space,
+}
+
+fn trim_visible_text(state: &str) -> (String, usize) {
+    let Some((before_visible, visible)) = state.split_once("\nVisible text: ")
+    else {
+        return (state.into(), 0);
+    };
+    let Some((visible, after_visible)) = visible.rsplit_once("\nGraphics: ")
+    else {
+        return (state.into(), 0);
+    };
+    let Some(controls) = before_visible
+        .split_once("\nControls:\n")
+        .and_then(|(_, controls)| controls.rsplit_once("\nRecent actions: "))
+        .map(|(controls, _)| controls)
+    else {
+        return (state.into(), 0);
+    };
+    // Control labels can span lines; only the complete label is a match.
+    let labels: HashSet<_> = controls
+        .split("\n[")
+        .filter_map(|control| {
+            let (_, control) = control.split_once("] ")?;
+            let (_, control) = control.split_once(' ')?;
+            let (label, _) = control.split_once(" value=")?;
+            Some(label.trim())
+        })
+        .collect();
+    let mut removed_visible_text_lines = 0;
+    let visible = visible
+        .split('\n')
+        .filter(|line| {
+            if labels.contains(line.trim()) {
+                removed_visible_text_lines += 1;
+                false
+            } else {
+                true
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    (
+        format!(
+            "{before_visible}\nVisible text: {visible}\nGraphics: {after_visible}"
+        ),
+        removed_visible_text_lines,
+    )
 }
 
 pub fn build_request(
@@ -26,6 +74,9 @@ pub fn build_request(
 ) -> Result<Request> {
     // Cua-S1 always needs textual state, including for upstream policy prompts.
     let (body, space) = policy::request(page, goal, history, true)?;
+    let (ax_tree, removed_visible_text_lines) = trim_visible_text(
+        body["state"].as_str().context("missing textual state")?,
+    );
     let title = page["title"].as_str().unwrap_or("");
     let app = if title.is_empty() {
         let url = page["url"]
@@ -114,10 +165,8 @@ pub fn build_request(
         app,
         task_family: "web_navigation".into(),
         goal: goal.into(),
-        ax_tree: body["state"]
-            .as_str()
-            .context("missing textual state")?
-            .into(),
+        ax_tree,
+        removed_visible_text_lines,
         options,
         space,
     })
@@ -181,6 +230,40 @@ pub fn resolve(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn removes_visible_text_lines_matching_trimmed_control_labels() {
+        let state = "Goal: Find a stay\nPage: Stays\nControls:\n[1] button   Search  value=\"\"\n[2] link Log in value=null\nRecent actions: []\nVisible text: \tSearch \nIntro\n Log in\t\nSearch\n\nEnd\nGraphics: []\nRecovery: {}";
+        let (trimmed, removed) = trim_visible_text(state);
+        assert_eq!(removed, 3);
+        assert_eq!(
+            trimmed,
+            state.replace(
+                "\tSearch \nIntro\n Log in\t\nSearch\n\nEnd",
+                "Intro\n\nEnd"
+            )
+        );
+    }
+
+    #[test]
+    fn keeps_near_matches_and_multiline_control_fragments() {
+        let state = "Goal: Find a stay\nPage: Stays\nControls:\n[1] button Search value=\"\"\n[2] link Log in value=null\n[3] link 1 \n\t Formal systems value=\"\"\nRecent actions: []\nVisible text: search\nSearch results\nLog  in\nFormal systems\n1\nGraphics: []\nRecovery: {}";
+        assert_eq!(trim_visible_text(state), (state.into(), 0));
+    }
+
+    #[test]
+    fn preserves_other_sections_and_the_visible_text_header() {
+        let state = "Goal: Search\nPage: Search\nControls:\n[1] button Search value=\"\"\nRecent actions: [\"Search\"]\nVisible text: Search\nGraphics: [\"Search\"]\nRecovery: Search\n";
+        let (trimmed, removed) = trim_visible_text(state);
+        assert_eq!(removed, 1);
+        assert_eq!(
+            trimmed,
+            state.replace("Visible text: Search", "Visible text: ")
+        );
+        for state in ["", "Goal: Search\nVisible text: Search"] {
+            assert_eq!(trim_visible_text(state), (state.into(), 0));
+        }
+    }
 
     fn page() -> Value {
         json!({"url":"https://travel.example.test/stays","title":"Stays","text":"Find a stay","fingerprint":"same","actions":[
@@ -288,6 +371,35 @@ mod tests {
             assert_eq!(request.task_family, "web_navigation");
             assert_eq!(request.goal, "Find a stay in Lisbon");
             assert_eq!(request.ax_tree, body["state"]);
+        }
+    }
+
+    #[test]
+    fn trims_only_native_state_and_serializes_removed_line_count() {
+        let mut page = page();
+        page["text"] = json!("Search\nFind a stay\nSearch");
+        let (body, _) =
+            policy::request(&page, "Find a stay", &[], true).unwrap();
+        assert!(
+            body["state"].as_str().unwrap().contains(
+                "Visible text: Search\nFind a stay\nSearch\nGraphics: "
+            )
+        );
+        for compact in [false, true] {
+            let request =
+                build_request(&page, "Find a stay", &[], compact).unwrap();
+            assert_eq!(
+                request.ax_tree,
+                body["state"].as_str().unwrap().replace(
+                    "Visible text: Search\nFind a stay\nSearch",
+                    "Visible text: Find a stay"
+                )
+            );
+            assert_eq!(request.removed_visible_text_lines, 2);
+            assert_eq!(
+                serde_json::to_value(&request).unwrap()["removed_visible_text_lines"],
+                2
+            );
         }
     }
 
@@ -411,6 +523,11 @@ mod tests {
                 is_selected: option.element_id == selected,
                 forward_passes: 1,
                 dropped_state_tokens: 0,
+                is_prefix_shared: false,
+                prefix_tokens: 0,
+                suffix_tokens: 0,
+                whole_prompt_tokens: 0,
+                prefix_sharing_fallbacks: 0,
             })
             .collect()
     }
