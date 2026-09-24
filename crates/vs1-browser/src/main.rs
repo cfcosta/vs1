@@ -1,8 +1,6 @@
 mod browser;
 #[cfg(feature = "local")]
 pub mod cua_s1_policy;
-#[cfg(feature = "local")]
-pub mod cua_s1_training_policy;
 mod model;
 mod policy;
 mod scenario;
@@ -74,8 +72,8 @@ struct Cli {
     cdp: String,
     #[command(flatten)]
     model: ModelArgs,
-    /// Operation/target questions, native Cua-S1 options, or training-format options.
-    #[arg(long, default_value="questions", default_value_if("backend", "cua-s1", "native"), value_parser=["questions","native","native-training"])]
+    /// Operation/target questions, or native Cua-S1 action options.
+    #[arg(long, default_value="questions", default_value_if("backend", "cua-s1", "native"), value_parser=["questions","native"])]
     policy: String,
     /// Original Jev prompt or a shorter prompt for local checkpoint context limits.
     #[arg(long, default_value="compact", value_parser=["compact","upstream"])]
@@ -110,14 +108,12 @@ struct Cli {
 impl Cli {
     fn validate_policy(&self) -> Result<()> {
         ensure!(
-            self.policy == "questions" || self.replay.is_none(),
-            "--replay supports only --policy questions; {} policy replay is not supported",
-            self.policy
+            self.policy != "native" || self.replay.is_none(),
+            "--replay supports only --policy questions; native policy replay is not supported"
         );
         ensure!(
-            self.policy == "questions" || self.model.backend == "cua-s1",
-            "--policy {} requires --backend cua-s1",
-            self.policy
+            self.policy != "native" || self.model.backend == "cua-s1",
+            "--policy native requires --backend cua-s1"
         );
         Ok(())
     }
@@ -307,13 +303,7 @@ fn run_agent_page(
                         args.prompt == "compact",
                     )?;
                     let inference = Instant::now();
-                    let result = backend.score_options(
-                        &request.app,
-                        &request.task_family,
-                        &request.ax_tree,
-                        Some(&request.goal),
-                        &request.options,
-                    );
+                    let result = backend.score_options(&request);
                     let latency = inference.elapsed().as_secs_f64() * 1000.0;
                     let decision = result.and_then(|predictions| {
                         cua_s1_policy::resolve(&request, &predictions)
@@ -322,29 +312,6 @@ fn run_agent_page(
                 }
                 #[cfg(not(feature = "local"))]
                 anyhow::bail!("native policy requires --features local");
-            } else if args.policy == "native-training" {
-                #[cfg(feature = "local")]
-                {
-                    let request =
-                        cua_s1_training_policy::build_request(&page, goal)?;
-                    let inference = Instant::now();
-                    let result = backend.score_options(
-                        &request.app,
-                        &request.task_family,
-                        &request.ax_tree,
-                        request.goal.as_deref(),
-                        &request.options,
-                    );
-                    let latency = inference.elapsed().as_secs_f64() * 1000.0;
-                    let decision = result.and_then(|predictions| {
-                        cua_s1_training_policy::resolve(&request, &predictions)
-                    });
-                    (serde_json::to_value(&request)?, decision, latency)
-                }
-                #[cfg(not(feature = "local"))]
-                anyhow::bail!(
-                    "native-training policy requires --features local"
-                );
             } else {
                 let (request, space) = policy::request(
                     &page,
@@ -386,10 +353,7 @@ fn run_agent_page(
             let action = &decision["action"];
             let mut text = None;
             let mut helper = Value::Null;
-            if let Some(value) = decision["text"].as_str() {
-                text = Some(value.to_owned());
-                helper = json!({"source":"goal_quote"});
-            } else if action["kind"] == "fill" {
+            if action["kind"] == "fill" {
                 if !browser.fresh(&page, None)? {
                     return Err(
                         Stale("page changed before text generation").into()
@@ -422,33 +386,29 @@ fn run_agent_page(
                     helper = metadata;
                 }
             }
-            let is_skip = operation == "SKIP";
-            if !is_skip {
-                pending_action = json!({"action":action,"text":text,"execution":"attempted"});
-                writeln!(event_log, "{}", pending_action)?;
-                event_log.flush()?;
-                browser.act(action, &page, text.as_deref())?;
-            }
+            pending_action =
+                json!({"action":action,"text":text,"execution":"attempted"});
+            writeln!(event_log, "{}", pending_action)?;
+            event_log.flush()?;
+            browser.act(action, &page, text.as_deref())?;
             pending_action = Value::Null;
             pending_text = None;
             let entry = json!({"step":history.len()+1,"action":action["label"],"kind":action["kind"],"choice":action["id"],
                 "operation":operation,"target":decision["target"],"text":text,"text_helper":helper,
                 "input":action,"before_fingerprint":page["fingerprint"],
-                "latency_ms":latency,"executed_ms":started.elapsed().as_secs_f64()*1000.0,"page_changed":if is_skip { json!(false) } else { Value::Null }});
+                "latency_ms":latency,"executed_ms":started.elapsed().as_secs_f64()*1000.0,"page_changed":null});
             // Persist successful execution before observation or settling can fail.
             writeln!(
                 event_log,
                 "{}",
-                json!({"execution":if is_skip { "skipped" } else { "confirmed" },"entry":entry})
+                json!({"execution":"confirmed","entry":entry})
             )?;
             event_log.flush()?;
             history.push(entry);
-            if !is_skip {
-                let previous = page["fingerprint"].clone();
-                page = browser.observe_effect(&page)?;
-                let last = history.last_mut().unwrap();
-                last["page_changed"] = json!(page["fingerprint"] != previous);
-            }
+            let previous = page["fingerprint"].clone();
+            page = browser.observe_effect(&page)?;
+            let last = history.last_mut().unwrap();
+            last["page_changed"] = json!(page["fingerprint"] != previous);
             if args.screenshots {
                 browser.screenshot(&folder.join(format!(
                     "{:06}.jpg",
@@ -565,20 +525,18 @@ mod scenario_cli_tests {
                     .unwrap();
             assert_eq!(args.policy, "questions");
             args.validate_policy().unwrap();
-            for policy in ["native", "native-training"] {
-                let args = Cli::try_parse_from([
-                    "vs1-browser",
-                    "--backend",
-                    backend,
-                    "--policy",
-                    policy,
-                ])
-                .unwrap();
-                assert_eq!(
-                    args.validate_policy().unwrap_err().to_string(),
-                    format!("--policy {policy} requires --backend cua-s1")
-                );
-            }
+            let args = Cli::try_parse_from([
+                "vs1-browser",
+                "--backend",
+                backend,
+                "--policy",
+                "native",
+            ])
+            .unwrap();
+            assert_eq!(
+                args.validate_policy().unwrap_err().to_string(),
+                "--policy native requires --backend cua-s1"
+            );
         }
         assert!(
             Cli::try_parse_from(["vs1-browser", "--policy", "unknown"])
@@ -588,12 +546,12 @@ mod scenario_cli_tests {
 
     #[cfg(feature = "local")]
     #[test]
-    fn cua_s1_defaults_to_native_and_accepts_all_policies() {
+    fn cua_s1_defaults_to_native_and_accepts_both_policies() {
         let args = Cli::try_parse_from(["vs1-browser", "--backend", "cua-s1"])
             .unwrap();
         assert_eq!(args.policy, "native");
         args.validate_policy().unwrap();
-        for policy in ["questions", "native", "native-training"] {
+        for policy in ["questions", "native"] {
             let args = Cli::try_parse_from([
                 "vs1-browser",
                 "--policy",
@@ -613,22 +571,20 @@ mod scenario_cli_tests {
             Cli::try_parse_from(["vs1-browser", "--replay", "request.json"])
                 .unwrap();
         args.validate_policy().unwrap();
-        for policy in ["native", "native-training"] {
-            let args = Cli::try_parse_from([
-                "vs1-browser",
-                "--replay",
-                "request.json",
-                "--policy",
-                policy,
-            ])
-            .unwrap();
-            assert_eq!(
-                args.validate_policy().unwrap_err().to_string(),
-                format!(
-                    "--replay supports only --policy questions; {policy} policy replay is not supported"
-                )
-            );
-        }
+        let args = Cli::try_parse_from([
+            "vs1-browser",
+            "--replay",
+            "request.json",
+            "--policy",
+            "native",
+        ])
+        .unwrap();
+        assert!(
+            args.validate_policy()
+                .unwrap_err()
+                .to_string()
+                .contains("--replay supports only --policy questions")
+        );
         #[cfg(feature = "local")]
         {
             let args = Cli::try_parse_from([

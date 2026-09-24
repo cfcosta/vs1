@@ -188,18 +188,23 @@ impl Backend {
     #[cfg(feature = "local")]
     pub fn score_options(
         &self,
-        app: &str,
-        task_family: &str,
-        ax_tree: &str,
-        goal: Option<&str>,
-        options: &[(vs1::CuaS1Option, Value)],
+        request: &crate::cua_s1_policy::Request,
     ) -> Result<Vec<vs1::CuaS1OptionPrediction>> {
         let Some(DecisionModel::CuaS1(model)) = &self.model else {
             bail!("native policy requires the Cua-S1 backend");
         };
-        let options: Vec<_> =
-            options.iter().map(|(option, _)| option.clone()).collect();
-        Ok(model.score_options(app, task_family, ax_tree, goal, &options)?)
+        let options: Vec<_> = request
+            .options
+            .iter()
+            .map(|(option, _)| option.clone())
+            .collect();
+        Ok(model.score_options(
+            &request.app,
+            &request.task_family,
+            &request.ax_tree,
+            Some(&request.goal),
+            &options,
+        )?)
     }
 
     pub fn inspect(&self, _body: &Value) -> Result<Value> {

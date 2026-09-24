@@ -3958,7 +3958,6 @@ dependencies = [
  "base64 0.22.1",
  "candle-core",
  "clap",
- "regex",
  "reqwest",
  "serde",
  "serde_json",
