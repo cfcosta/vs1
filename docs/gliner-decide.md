@@ -71,4 +71,7 @@ GLiNER2 marker strings (`[P]`, `[L]`, `[SEP_TEXT]`, `[DESCRIPTION]`, …) in
 question IDs, instructions, labels, descriptions or state are rejected. Labels
 must be distinct and non-empty, and each question needs at least two.
 
-Parity evidence is in [the validation report](../research/gliner-decide/README.md).
+Parity evidence and the email and browser benchmark results are in [the
+validation report](../research/gliner-decide/README.md). On email, the
+`compact512` mode scored higher than the 1024-token budget, and the browser
+question policy did not work.

@@ -68,6 +68,65 @@ Upstream answers the model card's treaty example ("Did the treaty enter into
 force in 1992?") with `yes` at 0.996. The card lists `no` as a potential
 output. vs1 reproduces upstream, not the card.
 
+## Benchmarks (2026-09-25)
+
+Single runs on an RTX 3080 Ti in BF16 at commit `ad1dffb`. No accuracy or
+latency claim here is paired or repeated across processes.
+
+### Email
+
+The frozen 200-message set in
+`~/.local/state/vs1-email/three-backends-200-20260921/` has 156 labeled
+messages. Runs `20260925-gliner-decide` and
+`20260925-gliner-decide-compact512`, compared with the latest runs of the
+other backends:
+
+| Backend       | Mode       | Budget | Chunks | Correct | Accuracy | Run seconds |
+| ------------- | ---------- | ------ | ------ | ------- | -------- | ----------- |
+| gliner-decide | original   | 1024   | 546    | 100/156 | 64.1%    | 124.2       |
+| gliner-decide | compact512 | 512    | 1000   | 108/156 | 69.2%    | 68.0        |
+| laya          | original   | 1024   | 352    | 89/156  | 57.1%    | 22.3        |
+| cua-s1        | original   | 4096   | 216    | 127/156 | 81.4%    | 61.9        |
+| jev (hosted)  | original   | 8192   | 212    | 143/156 | 91.7%    | 7.6         |
+
+The shorter budget and short descriptions scored 8 more messages and ran
+1.8× faster, although they made nearly twice as many chunks. With the 1024
+budget, each 8-request batch of about 1023 tokens took about 1.7 s, or 215 ms
+per question. That is far slower than the 4–8 ms per question on the short
+parity inputs. Long-input cost in the encoder has not been profiled.
+
+In `original` mode, the most common errors were `bulk` → `capture` (6),
+`other` → `careers` (5), `other` → `capture` (5), `bulk` → `careers` (4) and
+`income` → `receipts` (4). Jev's errors are mostly `other` against a
+specific category. GLiNER also confuses `bulk` with specific categories.
+
+### Browser
+
+The suite in `research/browser-suite/` ran with `--repeat 3 --max-steps 20`
+and `--backend gliner-decide --device cuda --policy questions --max-len 1024`.
+The output is in `artifacts/browser-suite/gliner-decide/`.
+
+| Backend                | Passed | Rate  |
+| ---------------------- | ------ | ----- |
+| gliner-decide          | 9/69   | 13.0% |
+| laya                   | 9/69   | 13.0% |
+| cua-s1 (native policy) | 36/69  | 52.2% |
+| jev (hosted)           | 66/69  | 95.7% |
+
+Only `out-of-stock` passed (9/9). That case expects the agent to report
+`blocked`. Every other case ended as `blocked` or exhausted its actions:
+
+- On `checkout` and `contact-form`, the model toggled one control back and
+  forth (Size M ↔ S, or Topic Technical ↔ Account ↔ Billing).
+- On `already-done` and `big-index`, it stopped after one or two actions.
+
+The question policy makes no progress with this model. The median decision
+latency was 79 ms, against 324 ms for hosted Jev.
+
+The first browser attempt ran without `/run/opengl-driver/lib` on
+`LD_LIBRARY_PATH`. Every run failed at startup with `CUDA_ERROR_STUB_LIBRARY`,
+so that attempt was deleted and rerun. It is not a model result.
+
 ## Reproduce
 
 ```sh
