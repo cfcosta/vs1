@@ -20,10 +20,17 @@ cargo run --release -p vs1 --features cuda -- \
 target/release/vs1 --backend gliner-decide --dump-ids research/gliner-decide/request.json
 ```
 
-`--batch-size` sets requests per forward pass (default 8). `--max-len` sets the
-token budget per request (default 512). Only F32 is supported, on CPU, CUDA and
-Metal. candle's DeBERTa attention builds its mask in F32, so BF16 would need
-a patched encoder.
+`--batch-size` sets requests per forward pass (default 8). Requests are sorted
+by length before batching, and responses keep input order. `--max-len` sets the
+token budget per request (default 512).
+
+CUDA defaults to BF16. CPU and Metal use F32. `--dtype f32` selects reference
+precision on CUDA, and BF16 requires CUDA. The encoder is vs1's copy of
+candle's DeBERTa-v2 (`crates/vs1/src/deberta.rs`). Its matmuls run in the
+weight dtype. Attention scores, position terms, the mask and the softmax run in
+F32. BF16 is approximate. On 33 validation questions, it kept every label, and
+the largest probability difference from upstream F32 was 0.0094. This is a
+measured tolerance, not a guarantee for all inputs.
 
 ## How requests map to the model
 
@@ -56,7 +63,9 @@ Questions, labels and descriptions are always kept whole. If they do not fit in
 rest. The dropped subword count is reported per question in
 `usage.dropped_state_tokens`, and `request_fits` returns false in that case.
 Upstream does not truncate by default. The 512 default is DeBERTa-v3's
-pretraining length. Longer budgets run, but they are not validated.
+pretraining length. The model uses only relative positions, so longer budgets
+run. One 742-token request matched upstream in validation. Quality at longer
+lengths has not been measured.
 
 GLiNER2 marker strings (`[P]`, `[L]`, `[SEP_TEXT]`, `[DESCRIPTION]`, …) in
 question IDs, instructions, labels, descriptions or state are rejected. Labels

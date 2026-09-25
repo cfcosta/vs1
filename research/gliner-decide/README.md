@@ -14,15 +14,51 @@ requests, bare and described choices, a score scale, noul with and without
 criteria, null instructions, a JSON state, non-ASCII text and a state without
 final punctuation.
 
-| Run (2026-09-24)       | Token IDs and markers | Max probability error | Labels agree |
-| ---------------------- | --------------------- | --------------------- | ------------ |
-| Rust CPU F32, batch 8  | identical (6/6)       | 4.8e-7                | 9/9          |
-| Rust CUDA F32, batch 8 | identical (6/6)       | 5.4e-7                | 9/9          |
+`request-extended.json` has 18 requests and 24 questions: 15 examples from the
+model card, two requests from the OpenJev validation, and one 742-token email
+thread with three questions. The long request checks inputs beyond DeBERTa's
+512-entry absolute position table, which this model does not use.
 
-Rust ran all 6 requests as one padded batch, and the reference ran each request
-alone. The results therefore also cover padding and masking in candle's DeBERTa.
-The CUDA run used an RTX 3080 Ti and took 168 ms for the batch after loading.
-This is a single run, not a benchmark.
+| Run                                        | Set      | Token IDs and markers | Max probability error | Labels agree |
+| ------------------------------------------ | -------- | --------------------- | --------------------- | ------------ |
+| Rust CPU F32, candle encoder (2026-09-24)  | base     | identical (6/6)       | 4.8e-7                | 9/9          |
+| Rust CUDA F32, candle encoder (2026-09-24) | base     | identical (6/6)       | 5.4e-7                | 9/9          |
+| Rust CUDA F32, vs1 encoder (2026-09-25)    | base     | identical (6/6)       | 3.6e-7                | 9/9          |
+| Rust CUDA F32, vs1 encoder (2026-09-25)    | extended | identical (18/18)     | 6.6e-7                | 24/24        |
+| Rust CUDA BF16, vs1 encoder (2026-09-25)   | base     | identical (6/6)       | 0.0055                | 9/9          |
+| Rust CUDA BF16, vs1 encoder (2026-09-25)   | extended | identical (18/18)     | 0.0094                | 24/24        |
+
+All Rust runs used batch 8 with `--max-len 1024`; the first two used the
+default 512. Rust batched the requests with padding, and the reference ran each
+request alone. The results therefore also cover padding and masking. BF16 runs
+were repeated after length-sorted batching was added, with identical errors.
+The CUDA runs used an RTX 3080 Ti.
+
+### Encoder changes
+
+The first version used `candle-transformers` 0.11.0 unchanged. It was limited
+to F32, because its masked softmax mixes hard-coded F32 tensors with the
+attention scores. It also failed on inputs over 512 tokens. It sliced the
+absolute position table even though `position_biased_input` is false; PyTorch
+never reads that slice. vs1's copy fixes both. It sums the content and position
+scores and runs the mask and softmax in F32. It reads absolute positions only
+when they bias the input.
+
+### Throughput (single runs, 2026-09-25)
+
+These are whole-CLI measurements after loading. They include tokenization and
+first-call setup. They are not paired AB/BA benchmarks.
+
+| Input                                    | Batching         | BF16             | F32              |
+| ---------------------------------------- | ---------------- | ---------------- | ---------------- |
+| 17 short requests × 16 (272, ≤99 tokens) | input order, 8   | 4.9 ms/question  | 7.3 ms/question  |
+| 17 short requests × 16 (272, ≤99 tokens) | input order, 32  | 4.3 ms/question  | 6.4 ms/question  |
+| extended × 16 (288, one 742 per 18)      | input order, 8   | 40.2 ms/question | 47.7 ms/question |
+| extended × 16 (288, one 742 per 18)      | length-sorted, 8 | 7.9 ms/question  | 10.0 ms/question |
+
+Batches in input order padded every row to the longest request in the batch.
+Sorting by length cut the mixed run by 5.1× in BF16. With input-order batches of
+32, the mixed set ran out of GPU memory in both precisions.
 
 The unit test for the word splitter uses expected words produced by upstream
 `WhitespaceTokenSplitter`. Rust's `\w` and Python's `\w` differ on some Unicode
@@ -43,10 +79,18 @@ uv pip install --python /tmp/gliner2-ref/bin/python torch \
 
 target/release/vs1 --backend gliner-decide --dump-ids \
   research/gliner-decide/request.json > artifacts/gliner-decide/rust-cpu.json
+python3 research/gliner-decide/compare.py \
+  artifacts/gliner-decide/reference.json artifacts/gliner-decide/rust-cpu.json
+
+# CUDA BF16 (the default there) on the extended set.
+target/release/vs1 --backend gliner-decide --device cuda --max-len 1024 \
+  --dump-ids research/gliner-decide/request-extended.json \
+  > artifacts/gliner-decide/cuda-bf16-extended.json
 ```
 
 On NixOS, binary wheels need the GCC runtime and a 64-bit zlib on
-`LD_LIBRARY_PATH`. CUDA executables need `/run/opengl-driver/lib`. Compare
-`ids.ids` and `ids.markers` with the reference's `ids` and `markers[1:]`. The
-first marker of each reference task is its `[P]` token. Then compare each
-answer's probabilities with the reference's `answers`.
+`LD_LIBRARY_PATH`. CUDA executables need `/run/opengl-driver/lib`.
+`compare.py` checks that `ids.ids` and `ids.markers` equal the reference's
+`ids` and `markers[1:]`. The first marker of each reference task is its `[P]`
+token. It then reports the largest probability difference and any label that
+differs from upstream.

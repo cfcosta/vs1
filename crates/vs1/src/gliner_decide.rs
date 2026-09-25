@@ -8,10 +8,6 @@ use std::{collections::HashSet, path::PathBuf, sync::LazyLock};
 
 use candle_core::{DType, Device, IndexOp, Tensor};
 use candle_nn::{Linear, Module, VarBuilder, linear};
-use candle_transformers::models::debertav2::{
-    Config as DebertaConfig,
-    DebertaV2Model,
-};
 use hf_hub::{Repo, RepoType, api::sync::Api};
 use indexmap::IndexMap;
 use regex::Regex;
@@ -31,6 +27,7 @@ use crate::{
     SystemOneRequest,
     SystemOneResponse,
     Usage,
+    deberta::{Config as DebertaConfig, DebertaV2Model},
     head::{confidence_from_probs, softmax},
 };
 
@@ -178,7 +175,8 @@ impl GlinerDecideBuilder {
         self.device = device;
         self
     }
-    /// Only F32 is supported: the DeBERTa attention runs its mask in F32.
+    /// Defaults to BF16 on CUDA, F32 otherwise. BF16 is approximate and
+    /// requires CUDA; attention scores and softmax stay in F32.
     pub fn with_dtype(mut self, dtype: DType) -> Self {
         self.dtype = Some(dtype);
         self
@@ -197,9 +195,19 @@ impl GlinerDecideBuilder {
 impl TryFrom<GlinerDecideBuilder> for GlinerDecide {
     type Error = SystemOneError;
     fn try_from(builder: GlinerDecideBuilder) -> Result<Self> {
-        let dtype = builder.dtype.unwrap_or(DType::F32);
-        if dtype != DType::F32 {
-            return Err(config_error("GLiNER2.5-Decide supports only f32"));
+        let dtype = builder.dtype.unwrap_or_else(|| {
+            if builder.device.is_cuda() {
+                DType::BF16
+            } else {
+                DType::F32
+            }
+        });
+        if !matches!(dtype, DType::F32 | DType::BF16)
+            || (dtype == DType::BF16 && !builder.device.is_cuda())
+        {
+            return Err(config_error(
+                "GLiNER2.5-Decide supports f32, or bf16 on CUDA",
+            ));
         }
         if builder.batch_size == 0 || builder.max_len < 2 {
             return Err(config_error(
@@ -396,8 +404,13 @@ impl GlinerDecide {
                 return Err(config_error("invalid prepared GLiNER2 input"));
             }
         }
-        let mut results = Vec::with_capacity(inputs.len());
-        for chunk in inputs.chunks(self.batch_size) {
+        // Batch similar lengths together: every row pads to its batch's longest.
+        let mut order: Vec<usize> = (0..inputs.len()).collect();
+        order.sort_by_key(|&i| inputs[i].ids.len());
+        let mut results = vec![Vec::new(); inputs.len()];
+        for indices in order.chunks(self.batch_size) {
+            let chunk: Vec<&GlinerDecideInput> =
+                indices.iter().map(|&i| &inputs[i]).collect();
             let len = chunk.iter().map(|x| x.ids.len()).max().unwrap_or(0);
             let mut ids = vec![0u32; chunk.len() * len];
             let mut mask = vec![0f32; ids.len()];
@@ -439,7 +452,7 @@ impl GlinerDecide {
                     }
                     tasks.push(prediction(task, logits));
                 }
-                results.push(tasks);
+                results[indices[i]] = tasks;
             }
         }
         Ok(results)

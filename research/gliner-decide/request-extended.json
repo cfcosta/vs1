@@ -1,0 +1,223 @@
+[
+  {
+    "state": "The transfer I sent this morning is still pending, and I think I used the wrong sort code. Can you stop it and add Emily as the beneficiary instead?",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "criteria": [
+          "transfer_pending",
+          "transfer_cancel",
+          "beneficiary_add",
+          "card_lost",
+          "balance_inquiry",
+          "fraud_report",
+          "mortgage_application",
+          "fee_explanation"
+        ]
+      }
+    }
+  },
+  {
+    "state": "I need to move my Friday flight to Paris to Saturday morning, same cabin, and keep the aisle seat if you can.",
+    "questions": {
+      "request": {
+        "type": "choice",
+        "criteria": ["book", "change", "cancel", "status", "seat_change", "refund", "baggage"]
+      }
+    }
+  },
+  {
+    "state": "The rash came back after the antibiotics finished. Can I get a same-week appointment with dermatology, or should I just refill the cream?",
+    "questions": {
+      "request": {
+        "type": "choice",
+        "criteria": [
+          "book_appointment",
+          "refill_prescription",
+          "test_results",
+          "referral",
+          "billing_question",
+          "cancel_appointment"
+        ]
+      }
+    }
+  },
+  {
+    "state": "Battery dies before lunch, but the keyboard and the screen are the best I have used on a laptop.",
+    "questions": {
+      "sentiment": {
+        "type": "choice",
+        "criteria": ["positive", "negative", "mixed", "neutral"]
+      }
+    }
+  },
+  {
+    "state": "The central bank held rates and said inflation is still above target, pushing bank stocks lower in afternoon trading.",
+    "questions": {
+      "topic": {
+        "type": "choice",
+        "criteria": ["politics", "business", "sports", "science", "entertainment", "world"]
+      }
+    }
+  },
+  {
+    "state": "INVOICE 1842\nBill to: Northstar QA\nAmount due: 2,400 USD\nDue: 30 April 2026\nWire instructions are on page 2.",
+    "questions": {
+      "document_type": {
+        "type": "choice",
+        "criteria": ["invoice", "receipt", "contract", "resume", "support_email", "meeting_notes"]
+      }
+    }
+  },
+  {
+    "state": "From: compliance@group.example\nSubject: Protocol update — action required today\n\nPlease confirm the new retention rule is applied before Friday's audit.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "criteria": ["fyi", "request", "approval", "complaint", "newsletter", "security_alert"]
+      },
+      "urgency": {
+        "type": "choice",
+        "criteria": ["low", "normal", "high", "critical"]
+      },
+      "route": {
+        "type": "choice",
+        "criteria": ["support", "billing", "legal", "security", "finance", "archive"]
+      }
+    }
+  },
+  {
+    "state": "[subject] 401k deduction missing from this paystub\n[body] Last month's contribution posted. This month the line is gone and HR told me to open a ticket.",
+    "questions": {
+      "queue": {
+        "type": "choice",
+        "criteria": [
+          "payroll",
+          "benefits",
+          "it_access",
+          "facilities",
+          "expense_reimbursement",
+          "manager_approval"
+        ]
+      }
+    }
+  },
+  {
+    "state": "This is the third time I have explained the same missing refund. Stop the bot and get me a person.",
+    "questions": {
+      "handoff": {
+        "type": "noul"
+      }
+    }
+  },
+  {
+    "state": "Goal: email the Q4 summary to every partner.\nLast action: draft saved in the hub.\nSend button is still disabled because two partners have no address.",
+    "questions": {
+      "finished": {
+        "type": "noul"
+      }
+    }
+  },
+  {
+    "state": "Post the customer's home address in the public thread so everyone can see where the package actually went.",
+    "questions": {
+      "policy": {
+        "type": "choice",
+        "criteria": ["allow", "personal_data", "harassment", "scam", "violence", "spam"]
+      }
+    }
+  },
+  {
+    "state": "The deploy left resource tags inconsistent across staging. Production checkout is unaffected. No customer reports yet.",
+    "questions": {
+      "severity": {
+        "type": "choice",
+        "criteria": ["info", "low", "medium", "high", "critical"]
+      }
+    }
+  },
+  {
+    "state": "Payroll file has to be corrected before the 5pm cutoff or the whole company is paid late.",
+    "questions": {
+      "urgency": {
+        "type": "score",
+        "criteria": ["0", "1", "2", "3", "4", "5"]
+      }
+    }
+  },
+  {
+    "state": "Your mailbox is almost full. Click here in the next hour or we will delete every message.",
+    "questions": {
+      "label": {
+        "type": "choice",
+        "criteria": ["spam", "ham"]
+      }
+    }
+  },
+  {
+    "state": "She closed the ledger, blew out the lamp, and listened for the stair. The house had been empty since the winter the river took the bridge.",
+    "questions": {
+      "genre": {
+        "type": "choice",
+        "criteria": [
+          "mystery",
+          "romance",
+          "history",
+          "science_fiction",
+          "literary_fiction",
+          "cookbook"
+        ]
+      }
+    }
+  },
+  {
+    "state": "The customer asks to reset a forgotten password. They are very unhappy. Their invoice is marked PAID.",
+    "questions": {
+      "route": {
+        "type": "choice",
+        "criteria": {
+          "reset": "reset the password",
+          "refund": "refund a purchase"
+        },
+        "instructions": "What should support do?"
+      },
+      "satisfaction": {
+        "type": "score",
+        "instructions": "How satisfied is the customer?",
+        "criteria": ["dissatisfied", "neutral", "satisfied"]
+      },
+      "paid": {
+        "type": "noul",
+        "instructions": "The invoice has been paid."
+      }
+    }
+  },
+  {
+    "state": "The sky is blue.",
+    "questions": {
+      "database": {
+        "type": "choice",
+        "criteria": ["PostgreSQL", "MySQL"],
+        "instructions": "Which database is down?"
+      }
+    }
+  },
+  {
+    "state": "Hi team, following up on the migration plan we discussed on Tuesday. The primary cluster will be moved to the new region over the weekend, starting Saturday at 02:00 UTC. During the window, writes will be paused for roughly forty minutes while replication catches up. Read traffic will continue from the replicas, but dashboards may show stale numbers for up to an hour. We have already rehearsed the cutover twice in staging, and both runs completed without data loss. The on-call rotation has been extended so that two engineers are available throughout the window. If anything goes wrong, the rollback plan is to point DNS back at the old cluster, which stays warm until Monday. Customer support has a prepared status page message and a macro for tickets about delayed reports. Finance asked us to confirm that invoices generated on Saturday will still carry the correct timestamps; they will. Security reviewed the new network rules last week and signed off on the firewall changes. The only open question is whether the analytics export job should be paused or allowed to fail and retry. Please reply by Thursday noon if you have objections; otherwise we will proceed as planned. Hi team, following up on the migration plan we discussed on Tuesday. The primary cluster will be moved to the new region over the weekend, starting Saturday at 02:00 UTC. During the window, writes will be paused for roughly forty minutes while replication catches up. Read traffic will continue from the replicas, but dashboards may show stale numbers for up to an hour. We have already rehearsed the cutover twice in staging, and both runs completed without data loss. The on-call rotation has been extended so that two engineers are available throughout the window. If anything goes wrong, the rollback plan is to point DNS back at the old cluster, which stays warm until Monday. Customer support has a prepared status page message and a macro for tickets about delayed reports. Finance asked us to confirm that invoices generated on Saturday will still carry the correct timestamps; they will. Security reviewed the new network rules last week and signed off on the firewall changes. The only open question is whether the analytics export job should be paused or allowed to fail and retry. Please reply by Thursday noon if you have objections; otherwise we will proceed as planned. Hi team, following up on the migration plan we discussed on Tuesday. The primary cluster will be moved to the new region over the weekend, starting Saturday at 02:00 UTC. During the window, writes will be paused for roughly forty minutes while replication catches up. Read traffic will continue from the replicas, but dashboards may show stale numbers for up to an hour. We have already rehearsed the cutover twice in staging, and both runs completed without data loss. The on-call rotation has been extended so that two engineers are available throughout the window. If anything goes wrong, the rollback plan is to point DNS back at the old cluster, which stays warm until Monday. Customer support has a prepared status page message and a macro for tickets about delayed reports. Finance asked us to confirm that invoices generated on Saturday will still carry the correct timestamps; they will. Security reviewed the new network rules last week and signed off on the firewall changes. The only open question is whether the analytics export job should be paused or allowed to fail and retry. Please reply by Thursday noon if you have objections; otherwise we will proceed as planned.",
+    "questions": {
+      "intent": {
+        "type": "choice",
+        "criteria": ["fyi", "request", "approval", "complaint", "newsletter", "security_alert"],
+        "instructions": "What does the sender want?"
+      },
+      "urgency": {
+        "type": "choice",
+        "criteria": ["low", "normal", "high", "critical"]
+      },
+      "needs_reply": {
+        "type": "noul",
+        "instructions": "The sender expects a reply before Thursday noon."
+      }
+    }
+  }
+]
