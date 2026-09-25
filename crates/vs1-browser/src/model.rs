@@ -61,9 +61,9 @@ impl Backend {
         ensure!(
             matches!(
                 args.backend.as_str(),
-                "local" | "laya" | "openjev" | "cua-s1"
+                "local" | "laya" | "openjev" | "gliner-decide" | "cua-s1"
             ),
-            "backend must be local/laya, openjev, cua-s1 or typesafe/jev"
+            "backend must be local/laya, openjev, gliner-decide, cua-s1 or typesafe/jev"
         );
         let started = Instant::now();
         let device = match args.device.as_str() {
@@ -117,6 +117,22 @@ impl Backend {
                 let model: vs1::OpenJev = builder.try_into()?;
                 let metadata =
                     json!({"backend":"openjev","max_len":model.max_len()});
+                (model.into(), metadata)
+            }
+            "gliner-decide" => {
+                ensure!(
+                    args.subfolder.is_empty() && args.head_max_len.is_none(),
+                    "GLiNER2.5-Decide does not use --subfolder or --head-max-len"
+                );
+                let mut builder = vs1::GlinerDecide::from(&args.checkpoint)
+                    .with_dtype(dtype)
+                    .with_device(device)
+                    .with_batch_size(8);
+                if let Some(n) = args.max_len {
+                    builder = builder.with_max_len(n);
+                }
+                let model: vs1::GlinerDecide = builder.try_into()?;
+                let metadata = json!({"backend":"gliner-decide","max_len":model.context_tokens()});
                 (model.into(), metadata)
             }
             "cua-s1" => {
@@ -515,7 +531,7 @@ mod tests {
     #[test]
     fn local_backends_read_checkpoint_directories_without_downloading() {
         use clap::Parser;
-        for backend in ["local", "laya", "openjev", "cua-s1"] {
+        for backend in ["local", "laya", "openjev", "gliner-decide", "cua-s1"] {
             let args = crate::Cli::try_parse_from([
                 "vs1-browser",
                 "--backend",
@@ -569,6 +585,11 @@ mod tests {
         for (backend, option, message) in [
             ("openjev", "--subfolder", "OpenJev does not use"),
             ("openjev", "--head-max-len", "OpenJev does not use"),
+            (
+                "gliner-decide",
+                "--subfolder",
+                "GLiNER2.5-Decide does not use",
+            ),
             ("cua-s1", "--subfolder", "Cua-S1 does not use"),
             ("cua-s1", "--head-max-len", "Cua-S1 does not use"),
         ] {

@@ -21,7 +21,7 @@ use serde_json::{Value, json};
 #[derive(Args, Debug)]
 pub struct ModelArgs {
     #[arg(long, default_value = "typesafe")]
-    #[cfg_attr(feature="local", arg(value_parser=["typesafe", "local", "jev", "laya", "openjev", "cua-s1"]))]
+    #[cfg_attr(feature="local", arg(value_parser=["typesafe", "local", "jev", "laya", "openjev", "gliner-decide", "cua-s1"]))]
     #[cfg_attr(not(feature="local"), arg(value_parser=["typesafe", "jev"]))]
     backend: String,
     /// Hosted model ID, selected by the caller.
@@ -34,6 +34,7 @@ pub struct ModelArgs {
     #[cfg(feature = "local")]
     #[arg(long, default_value=vs1::DEFAULT_REPO_ID, default_value_ifs=[
         ("backend", "openjev", Some(vs1::openjev::DEFAULT_REPO_ID)),
+        ("backend", "gliner-decide", Some(vs1::gliner_decide::DEFAULT_REPO_ID)),
         ("backend", "cua-s1", Some(vs1::cua_s1::DEFAULT_REPO_ID)),
     ])]
     checkpoint: String,
@@ -517,7 +518,7 @@ mod scenario_cli_tests {
         args.validate_policy().unwrap();
         let mut backends = vec!["typesafe", "jev"];
         if cfg!(feature = "local") {
-            backends.extend(["local", "laya", "openjev"]);
+            backends.extend(["local", "laya", "openjev", "gliner-decide"]);
         }
         for backend in backends {
             let args =
@@ -632,7 +633,7 @@ mod scenario_cli_tests {
                 .is_ok()
             );
         }
-        for backend in ["local", "laya", "openjev", "cua-s1"] {
+        for backend in ["local", "laya", "openjev", "gliner-decide", "cua-s1"] {
             assert_eq!(
                 Cli::try_parse_from([
                     "vs1-browser",
@@ -676,6 +677,7 @@ mod scenario_cli_tests {
             ("local", vs1::DEFAULT_REPO_ID),
             ("laya", vs1::DEFAULT_REPO_ID),
             ("openjev", vs1::openjev::DEFAULT_REPO_ID),
+            ("gliner-decide", vs1::gliner_decide::DEFAULT_REPO_ID),
             ("cua-s1", vs1::cua_s1::DEFAULT_REPO_ID),
         ] {
             let args =

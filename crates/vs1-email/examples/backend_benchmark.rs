@@ -101,8 +101,10 @@ fn resolve_audit_budget(backend: &str, mode: &str) -> Result<Option<usize>> {
     }
     let budget = audit_budget(mode)?;
     ensure!(
-        mode == "original" || backend.starts_with("openjev"),
-        "audit modes are OpenJev-only"
+        mode == "original"
+            || backend.starts_with("openjev")
+            || backend == "gliner-decide",
+        "audit modes are OpenJev and GLiNER2.5-Decide only"
     );
     Ok(Some(budget))
 }
@@ -252,7 +254,7 @@ fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().collect();
     ensure!(
         (4..=6).contains(&args.len()),
-        "ROOT export|laya|jev|openjev|openjev-bf16|cua-s1 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]\nAll backends split complete requests at their model context limit and pool chunks by body character count; Laya keeps its per-chunk tournament. OpenJev audit modes configure max_len (original/compact1024: 1024, compact512/plain512: 512). Retrieval fit checks use exactly the context sent. cua-s1: original only (default), full descriptions, tournaments above 26 candidates; prepare is OpenJev-only. Summary context_tokens records the model limit; budget retains the audit setting."
+        "ROOT export|laya|jev|openjev|openjev-bf16|gliner-decide|cua-s1 RUN_NAME [original|compact1024|compact512|plain512] [none|matched|full|text|labels|labels-native|prepare]\nAll backends split complete requests at their model context limit and pool chunks by body character count; Laya keeps its per-chunk tournament. OpenJev audit modes configure max_len (original/compact1024: 1024, compact512/plain512: 512). Retrieval fit checks use exactly the context sent. cua-s1: original only (default), full descriptions, tournaments above 26 candidates; prepare is OpenJev-only. Summary context_tokens records the model limit; budget retains the audit setting."
     );
     let root = Path::new(&args[1]);
     let backend = args[2].as_str();
@@ -388,9 +390,11 @@ fn main() -> Result<()> {
             }
             records.push(serde_json::to_value(report)?);
         }
-        "jev" | "openjev" | "openjev-bf16" | "cua-s1" => {
+        "jev" | "openjev" | "openjev-bf16" | "gliner-decide" | "cua-s1" => {
             let batch_size = if backend.starts_with("openjev") {
                 openjev_settings(backend).1
+            } else if backend == "gliner-decide" {
+                8
             } else {
                 16
             };
@@ -416,6 +420,24 @@ fn main() -> Result<()> {
                             .with_max_len(budget)
                             .with_batch_size(batch_size)
                             .try_into()?;
+                    eprintln!(
+                        "{} {:?} {:?}; effective budget {budget}",
+                        model.model_name(),
+                        model.device(),
+                        model.dtype()
+                    );
+                    model.into()
+                }
+                "gliner-decide" => {
+                    let budget = budget
+                        .context("GLiNER2.5-Decide requires a token budget")?;
+                    let model: vs1::GlinerDecide = vs1::GlinerDecide::from(
+                        vs1::gliner_decide::DEFAULT_REPO_ID,
+                    )
+                    .with_device(candle_core::Device::new_cuda(0)?)
+                    .with_max_len(budget)
+                    .with_batch_size(batch_size)
+                    .try_into()?;
                     eprintln!(
                         "{} {:?} {:?}; effective budget {budget}",
                         model.model_name(),
@@ -724,14 +746,21 @@ fn cua_s1_defaults_to_original_without_an_audit_budget() {
 
 #[test]
 fn audit_modes_preserve_existing_backend_budgets() {
-    for backend in ["laya", "jev", "export", "openjev", "openjev-bf16"] {
+    for backend in [
+        "laya",
+        "jev",
+        "export",
+        "openjev",
+        "openjev-bf16",
+        "gliner-decide",
+    ] {
         assert_eq!(
             resolve_audit_budget(backend, "original").unwrap(),
             Some(1024)
         );
         for mode in ["compact1024", "compact512", "plain512"] {
             let budget = resolve_audit_budget(backend, mode);
-            if backend.starts_with("openjev") {
+            if backend.starts_with("openjev") || backend == "gliner-decide" {
                 assert_eq!(budget.unwrap(), Some(audit_budget(mode).unwrap()));
             } else {
                 assert!(budget.is_err(), "{backend} {mode}");
